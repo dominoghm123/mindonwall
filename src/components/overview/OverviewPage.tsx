@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOverviewStore } from '../../store/useOverviewStore';
 import { useUIStore } from '../../store/useUIStore';
 import { getWallpaperStyle } from '../../utils/wallpaperCSS';
+import { AvatarMenu } from '../shared/AvatarMenu';
 import type { WallSummary } from '../../store/types';
 
 /**
@@ -123,6 +124,10 @@ export function OverviewPage() {
             <>
               <HeaderButton label="Manage" onClick={() => setManageMode(true)} />
               <HeaderButton label="+ New Wall" onClick={handleNewWall} />
+              {/* 头像入口（v0.2：顶栏最右侧） */}
+              <div style={{ marginLeft: 8 }}>
+                <AvatarMenu />
+              </div>
             </>
           )}
         </div>
@@ -344,7 +349,7 @@ function WallCard({
           {wall.itemCount} {wall.itemCount === 1 ? 'item' : 'items'}
         </span>
       </div>
-      {/* 三点菜单按钮（右上角，规格要求） */}
+      {/* 三点菜单按钮（卡片右下角，硬要求，v0.2 确认） */}
       {!manageMode && (
         <button
           onClick={(e) => {
@@ -355,7 +360,7 @@ function WallCard({
           style={{
             position: 'absolute',
             right: 8,
-            top: 8,
+            bottom: 8,
             width: 26,
             height: 26,
             border: '1px solid #E5E5E5',
