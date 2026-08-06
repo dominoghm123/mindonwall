@@ -1,5 +1,5 @@
 import {
-  useState, useRef, useCallback, useEffect,
+  useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle,
   type ReactNode,
 } from 'react';
 import type { Item } from '../../store/types';
@@ -14,6 +14,14 @@ interface InfiniteCanvasProps {
   onViewChange?: (view: { zoom: number; panX: number; panY: number }) => void;
 }
 
+/** 暴露给外部的缩放控制 API（v0.2） */
+export interface InfiniteCanvasHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  fitContent: () => void;
+}
+
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3.0;
 
@@ -23,7 +31,8 @@ const MAX_ZOOM = 3.0;
  * - 平移：鼠标左键拖拽背景
  * - 初始视图：空墙 100%，有内容时自适应
  */
-export function InfiniteCanvas({ wallpaper, items, children, onViewChange }: InfiniteCanvasProps) {
+export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasProps>(
+  function InfiniteCanvas({ wallpaper, items, children, onViewChange }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -124,6 +133,55 @@ export function InfiniteCanvas({ wallpaper, items, children, onViewChange }: Inf
 
   const wallpaperStyle = getWallpaperStyle(wallpaper);
 
+  /* ── 外部缩放控制（v0.2） ── */
+  const applyZoomAtCenter = useCallback((factor: number | 'reset') => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    setZoom((prevZoom) => {
+      const newZoom = factor === 'reset'
+        ? 1
+        : Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevZoom * factor));
+      const ratio = newZoom / prevZoom;
+      setPan((prevPan) => ({
+        x: cx - ratio * (cx - prevPan.x),
+        y: cy - ratio * (cy - prevPan.y),
+      }));
+      return newZoom;
+    });
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => applyZoomAtCenter(1.2),
+    zoomOut: () => applyZoomAtCenter(1 / 1.2),
+    resetZoom: () => applyZoomAtCenter('reset'),
+    fitContent: () => {
+      const container = containerRef.current;
+      if (!container || items.length === 0) return;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const item of items) {
+        minX = Math.min(minX, item.x);
+        minY = Math.min(minY, item.y);
+        maxX = Math.max(maxX, item.x + item.width);
+        maxY = Math.max(maxY, item.y + item.height);
+      }
+      const padding = 60;
+      const newZoom = Math.max(
+        MIN_ZOOM,
+        Math.min(MAX_ZOOM, Math.min((cw - padding * 2) / (maxX - minX), (ch - padding * 2) / (maxY - minY), 1)),
+      );
+      setZoom(newZoom);
+      setPan({
+        x: cw / 2 - ((minX + maxX) / 2) * newZoom,
+        y: ch / 2 - ((minY + maxY) / 2) * newZoom,
+      });
+    },
+  }), [applyZoomAtCenter, items]);
+
   return (
     <div
       ref={containerRef}
@@ -163,7 +221,7 @@ export function InfiniteCanvas({ wallpaper, items, children, onViewChange }: Inf
       </div>
     </div>
   );
-}
+});
 
 /** 暴露给子组件的 zoom/pan 上下文 */
 export interface CanvasView {

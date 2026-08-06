@@ -7,10 +7,11 @@ import { useUIStore } from '../../store/useUIStore';
  * 纯白背景 #FFFFFF，1px bottom border #E8E8E8，无阴影。
  */
 export function TopBar({ zoom }: { zoom?: number }) {
+  void zoom;
   const name = useWallStore((s) => s.name);
   const renameWall = useWallStore((s) => s.renameWall);
-  const viewMode = useUIStore((s) => s.viewMode);
   const setViewMode = useUIStore((s) => s.setViewMode);
+  const showToast = useUIStore((s) => s.showToast);
 
   const [visible, setVisible] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -162,7 +163,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
         )}
       </div>
 
-      {/* 右区 */}
+      {/* 右区（v0.2：Saved + Share + 头像） */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* Saved 指示 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -177,53 +178,45 @@ export function TopBar({ zoom }: { zoom?: number }) {
           <span style={{ fontSize: 10, color: '#999' }}>Saved</span>
         </div>
 
-        {/* Map 按钮 */}
-        <TopBarButton
-          label="Map"
-          active={viewMode === 'map'}
-          onClick={() => setViewMode(viewMode === 'map' ? 'wall' : 'map')}
-        />
+        {/* Share 按钮（outlined） */}
+        <button
+          onClick={() => showToast('Share link copied', 'success')}
+          style={{
+            height: 28,
+            padding: '0 12px',
+            fontSize: 12,
+            color: '#333',
+            background: '#FFFFFF',
+            border: '1px solid #D0D0D0',
+            borderRadius: 6,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Share
+        </button>
 
-        {/* Export 按钮 */}
-        <TopBarButton label="Export" onClick={() => {}} />
-
-        {/* AI 按钮 */}
-        <TopBarButton label="AI" onClick={() => {}} />
-
-        {/* 缩放百分比 */}
-        <span style={{ fontSize: 12, color: '#999', minWidth: 40, textAlign: 'right' }}>
-          {Math.round((zoom ?? 1) * 100)}%
-        </span>
+        {/* 用户头像（28px 圆形，字母 U） */}
+        <div
+          title="User"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: '#F0F0F0',
+            border: '1px solid #E0E0E0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#666',
+            cursor: 'pointer',
+          }}
+        >
+          U
+        </div>
       </div>
     </div>
-  );
-}
-
-function TopBarButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        height: 28,
-        padding: '0 10px',
-        fontSize: 12,
-        color: active ? '#333' : '#666',
-        background: active ? '#F0F0F0' : '#FFFFFF',
-        border: '1px solid #D0D0D0',
-        borderRadius: 6,
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {label}
-    </button>
   );
 }

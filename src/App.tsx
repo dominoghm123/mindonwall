@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useWallStore } from './store/useWallStore';
 import { useUIStore } from './store/useUIStore';
 import { useOverviewStore } from './store/useOverviewStore';
@@ -9,6 +9,8 @@ import { TopBar } from './components/chrome/TopBar';
 import { BottomToolbar } from './components/chrome/BottomToolbar';
 import { OverviewPage } from './components/overview/OverviewPage';
 import { InfiniteCanvas } from './components/canvas/InfiniteCanvas';
+import type { InfiniteCanvasHandle } from './components/canvas/InfiniteCanvas';
+import { ZoomWidget } from './components/chrome/ZoomWidget';
 import { SelectionBox } from './components/canvas/SelectionBox';
 import { RopeLayer } from './components/objects/RopeLayer';
 import { ObjectWrapper } from './components/objects/ObjectWrapper';
@@ -17,6 +19,7 @@ import { PaperObject } from './components/objects/PaperObject';
 import { StampObject } from './components/objects/StampObject';
 import { ContextMenu } from './components/shared/ContextMenu';
 import { AssetPickerModal } from './components/shared/AssetPickerModal';
+import { ToastLayer } from './components/shared/ToastLayer';
 
 function App() {
   // Store selectors
@@ -34,6 +37,7 @@ function App() {
 
   // Canvas view state
   const [canvasView, setCanvasView] = useState({ zoom: 1, panX: 0, panY: 0 });
+  const canvasRef = useRef<InfiniteCanvasHandle>(null);
 
   // Initialize stores
   useEffect(() => {
@@ -118,7 +122,12 @@ function App() {
 
   // Render overview page
   if (viewMode === 'overview') {
-    return <OverviewPage />;
+    return (
+      <>
+        <OverviewPage />
+        <ToastLayer />
+      </>
+    );
   }
 
   // Render wall editor
@@ -143,6 +152,7 @@ function App() {
           onSelect={multiSelect.handleBoxSelect}
         >
           <InfiniteCanvas
+            ref={canvasRef}
             wallpaper={wallpaper}
             items={items}
             onViewChange={handleViewChange}
@@ -190,6 +200,12 @@ function App() {
 
       {/* Asset Picker Modal */}
       <AssetPickerModal />
+
+      {/* 右下角缩放/Map 浮窗（v0.2） */}
+      <ZoomWidget zoom={canvasView.zoom} canvasRef={canvasRef} />
+
+      {/* Toast */}
+      <ToastLayer />
     </div>
   );
 }
