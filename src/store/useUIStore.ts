@@ -8,7 +8,7 @@ export interface ContextMenuPosition {
   y: number;
 }
 
-interface UIState {
+export interface UIState {
   /** 选中物件 IDs（支持多选） */
   selectedIds: string[];
   /** 当前视图模式 */

@@ -31,7 +31,7 @@ import {
 /** 物件上限（Rope 不计入） */
 const MAX_ITEMS = 50;
 
-interface WallState {
+export interface WallState {
   /** 当前墙 ID */
   wallId: string;
   /** 墙名 */

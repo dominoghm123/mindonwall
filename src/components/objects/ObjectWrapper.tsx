@@ -3,6 +3,10 @@ import type { Item, PinOffset } from '../../store/types';
 import { useUIStore } from '../../store/useUIStore';
 import { useWallStore } from '../../store/useWallStore';
 import { Pin } from './Pin';
+import { useDrag } from '../../hooks/useDrag';
+import { useResize, type ResizeDir } from '../../hooks/useResize';
+import { useRotate } from '../../hooks/useRotate';
+import { pushUndo, makeMoveItemAction, makeResizeItemAction, makeRotateItemAction } from '../../store/undoMiddleware';
 
 interface ObjectWrapperProps {
   item: Item;
@@ -14,27 +18,115 @@ interface ObjectWrapperProps {
   onResize?: (id: string, w: number, h: number) => void;
   onRotate?: (id: string, rotation: number) => void;
   onPinDragEnd?: (id: string, offset: PinOffset) => void;
+  /** Rope 创建相关 */
+  isRopeTarget?: boolean;
+  isRopeCreating?: boolean;
+  onPinRopeStart?: (itemId: string, e: React.PointerEvent) => void;
 }
 
-type ResizeDir = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
-
+/** 手柄光标映射 */
 const HANDLE_CURSORS: Record<ResizeDir, string> = {
-  nw: 'nwse-resize', n: 'ns-resize', ne: 'nesw-resize', e: 'ew-resize',
-  se: 'nwse-resize', s: 'ns-resize', sw: 'nesw-resize', w: 'ew-resize',
+  nw: 'nwse-resize',
+  n: 'ns-resize',
+  ne: 'nesw-resize',
+  e: 'ew-resize',
+  se: 'nwse-resize',
+  s: 'ns-resize',
+  sw: 'nesw-resize',
+  w: 'ew-resize',
 };
+
+/** 角手柄尺寸 */
+const CORNER_SIZE = 6;
+/** 边手柄尺寸 */
+const EDGE_W = 10;
+const EDGE_H = 4;
 
 /**
  * 通用物件容器。
- * 提供绝对定位、选中态、缩放/旋转手柄、Pin。
+ * 集成 useDrag / useResize / useRotate hooks。
+ * 提供选中态边框、8 个缩放手柄、旋转手柄、Pin。
  */
 export function ObjectWrapper({
-  item, selected, zIndex, children,
-  onSelect, onMove, onResize, onRotate, onPinDragEnd,
+  item,
+  selected,
+  zIndex,
+  children,
+  onSelect,
+  onMove,
+  onResize,
+  onRotate,
+  onPinDragEnd,
+  isRopeTarget,
+  isRopeCreating,
+  onPinRopeStart,
 }: ObjectWrapperProps) {
-  const dragRef = useRef<{ startX: number; startY: number; itemX: number; itemY: number } | null>(null);
-  const resizeRef = useRef<{ dir: ResizeDir; startX: number; startY: number; w: number; h: number; ix: number; iy: number } | null>(null);
-  const rotateRef = useRef<{ startAngle: number; itemRotation: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  /* ── Drag hook ── */
+  const drag = useDrag({
+    x: item.x,
+    y: item.y,
+    onDragEnd: useCallback(
+      (newPos: { x: number; y: number }, startPos: { x: number; y: number }) => {
+        // 直接设置最终位置并记录正确的 undo（before=startPos, after=newPos）
+        useWallStore.setState((state) => ({
+          items: state.items.map((i) =>
+            i.id === item.id ? { ...i, x: newPos.x, y: newPos.y } : i,
+          ),
+          undoStack: pushUndo(state.undoStack, makeMoveItemAction(item.id, startPos, newPos)),
+          redoStack: [],
+        }));
+        onMove?.(item.id, newPos.x, newPos.y);
+      },
+      [item.id, onMove],
+    ),
+  });
+
+  /* ── Resize hook ── */
+  const resize = useResize({
+    width: item.width,
+    height: item.height,
+    x: item.x,
+    y: item.y,
+    onResizeEnd: useCallback(
+      (
+        newSize: { width: number; height: number },
+        startSize: { width: number; height: number },
+      ) => {
+        useWallStore.setState((state) => ({
+          items: state.items.map((i) =>
+            i.id === item.id
+              ? { ...i, width: newSize.width, height: newSize.height }
+              : i,
+          ),
+          undoStack: pushUndo(state.undoStack, makeResizeItemAction(item.id, startSize, newSize)),
+          redoStack: [],
+        }));
+        onResize?.(item.id, newSize.width, newSize.height);
+      },
+      [item.id, onResize],
+    ),
+  });
+
+  /* ── Rotate hook ── */
+  const rotate = useRotate({
+    rotation: item.rotation,
+    wrapperRef,
+    onRotateEnd: useCallback(
+      (newRotation: number, startRotation: number) => {
+        useWallStore.setState((state) => ({
+          items: state.items.map((i) =>
+            i.id === item.id ? { ...i, rotation: newRotation } : i,
+          ),
+          undoStack: pushUndo(state.undoStack, makeRotateItemAction(item.id, startRotation, newRotation)),
+          redoStack: [],
+        }));
+        onRotate?.(item.id, newRotation);
+      },
+      [item.id, onRotate],
+    ),
+  });
 
   const openContextMenu = useUIStore((s) => s.openContextMenu);
   const attachMode = useUIStore((s) => s.attachMode);
@@ -42,11 +134,14 @@ export function ObjectWrapper({
   const attachStamp = useWallStore((s) => s.attachStamp);
 
   /* ── 右键菜单 ── */
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    openContextMenu(item.id, e.clientX, e.clientY);
-  }, [item.id, openContextMenu]);
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openContextMenu(item.id, e.clientX, e.clientY);
+    },
+    [item.id, openContextMenu],
+  );
 
   /* ── 附着模式：点击 Paper 完成附着 ── */
   const handleClickForAttach = useCallback(() => {
@@ -56,76 +151,54 @@ export function ObjectWrapper({
     }
   }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode]);
 
-  /* ── 物件拖拽移动 ── */
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    e.stopPropagation();
-    onSelect?.(item.id, e.shiftKey);
-    dragRef.current = { startX: e.clientX, startY: e.clientY, itemX: item.x, itemY: item.y };
-    (e.target as Element).setPointerCapture(e.pointerId);
-  }, [item.id, item.x, item.y, onSelect]);
+  /* ── 统一 pointer 事件分发 ── */
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      // 如果点击的是 Pin 区域，跳过物件拖拽
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-pin-item-id]')) return;
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    // 移动
-    if (dragRef.current) {
-      const dx = e.clientX - dragRef.current.startX;
-      const dy = e.clientY - dragRef.current.startY;
-      onMove?.(item.id, dragRef.current.itemX + dx, dragRef.current.itemY + dy);
-    }
-    // 缩放
-    if (resizeRef.current) {
-      const r = resizeRef.current;
-      const dx = e.clientX - r.startX;
-      const dy = e.clientY - r.startY;
-      let newW = r.w;
-      let newH = r.h;
-      let newX = r.ix;
-      let newY = r.iy;
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      onSelect?.(item.id, e.shiftKey);
+      drag.handlePointerDown(e);
+    },
+    [item.id, onSelect, drag],
+  );
 
-      if (r.dir.includes('e')) newW = Math.max(20, r.w + dx);
-      if (r.dir.includes('w')) { newW = Math.max(20, r.w - dx); newX = r.ix + dx; }
-      if (r.dir.includes('s')) newH = Math.max(20, r.h + dy);
-      if (r.dir.includes('n')) { newH = Math.max(20, r.h - dy); newY = r.iy + dy; }
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      // 分发给当前活跃的交互
+      if (rotate.isRotating) {
+        rotate.handlePointerMove(e);
+      } else if (resize.isResizing) {
+        resize.handlePointerMove(e);
+      } else if (drag.isDragging) {
+        drag.handlePointerMove(e);
+      }
+    },
+    [drag, resize, rotate],
+  );
 
-      onResize?.(item.id, newW, newH);
-      onMove?.(item.id, newX, newY);
-    }
-    // 旋转
-    if (rotateRef.current && wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const angle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI) + 90;
-      const delta = angle - rotateRef.current.startAngle;
-      onRotate?.(item.id, rotateRef.current.itemRotation + delta);
-    }
-  }, [item.id, onMove, onResize, onRotate]);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (rotate.isRotating) {
+        rotate.handlePointerUp(e);
+      } else if (resize.isResizing) {
+        resize.handlePointerUp(e);
+      } else {
+        drag.handlePointerUp(e);
+      }
+    },
+    [drag, resize, rotate],
+  );
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    dragRef.current = null;
-    resizeRef.current = null;
-    rotateRef.current = null;
-    (e.target as Element).releasePointerCapture(e.pointerId);
-  }, []);
-
-  /* ── 缩放手柄 pointer down ── */
-  const handleResizeStart = useCallback((dir: ResizeDir) => (e: React.PointerEvent) => {
-    e.stopPropagation();
-    resizeRef.current = { dir, startX: e.clientX, startY: e.clientY, w: item.width, h: item.height, ix: item.x, iy: item.y };
-    (e.target as Element).setPointerCapture(e.pointerId);
-  }, [item.width, item.height, item.x, item.y]);
-
-  /* ── 旋转手柄 pointer down ── */
-  const handleRotateStart = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation();
-    if (!wrapperRef.current) return;
-    const rect = wrapperRef.current.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI) + 90;
-    rotateRef.current = { startAngle, itemRotation: item.rotation };
-    (e.target as Element).setPointerCapture(e.pointerId);
-  }, [item.rotation]);
+  /* ── 计算当前渲染参数 ── */
+  const displayX = resize.isResizing ? resize.resizeX : drag.dragX;
+  const displayY = resize.isResizing ? resize.resizeY : drag.dragY;
+  const displayW = resize.isResizing ? resize.resizeWidth : item.width;
+  const displayH = resize.isResizing ? resize.resizeHeight : item.height;
+  const displayRotation = rotate.currentRotation;
 
   const showPin = item.type !== 'stamp';
   const pinOffset = item.pinOffset ?? { x: 0.5, y: 0 };
@@ -135,14 +208,18 @@ export function ObjectWrapper({
       ref={wrapperRef}
       style={{
         position: 'absolute',
-        left: item.x,
-        top: item.y,
-        width: item.width,
-        height: item.height,
-        transform: `rotate(${item.rotation}deg)`,
+        left: displayX,
+        top: displayY,
+        width: displayW,
+        height: displayH,
+        transform: `rotate(${displayRotation}deg)`,
         zIndex,
-        cursor: attachMode && item.type === 'paper' ? 'crosshair' : 'move',
-        outline: attachMode && item.type === 'paper' ? '2px dashed #4A90D9' : undefined,
+        cursor:
+          attachMode && item.type === 'paper' ? 'crosshair' : 'move',
+        outline:
+          attachMode && item.type === 'paper'
+            ? '2px dashed #4A90D9'
+            : undefined,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -155,7 +232,7 @@ export function ObjectWrapper({
         {children}
       </div>
 
-      {/* 选中态边框 */}
+      {/* 选中态边框：1px dashed #4A90D9 */}
       {selected && (
         <div
           style={{
@@ -170,48 +247,51 @@ export function ObjectWrapper({
       {/* 缩放手柄 */}
       {selected && (
         <>
-          {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as ResizeDir[]).map((dir) => {
-            const isCorner = dir.length === 2;
-            const size = isCorner ? 8 : 12;
-            const style = getHandleStyle(dir, item.width, item.height, size);
-            return (
-              <div
-                key={dir}
-                style={{
-                  position: 'absolute',
-                  ...style,
-                  width: isCorner ? 8 : (dir === 'n' || dir === 's' ? 12 : 6),
-                  height: isCorner ? 8 : (dir === 'e' || dir === 'w' ? 12 : 6),
-                  background: '#FFFFFF',
-                  border: '1px solid #4A90D9',
-                  borderRadius: isCorner ? '50%' : 2,
-                  cursor: HANDLE_CURSORS[dir],
-                  zIndex: 20,
-                }}
-                onPointerDown={handleResizeStart(dir)}
-              />
-            );
-          })}
+          {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as ResizeDir[]).map(
+            (dir) => {
+              const isCorner = dir.length === 2;
+              const w = isCorner ? CORNER_SIZE : EDGE_W;
+              const h = isCorner ? CORNER_SIZE : EDGE_H;
+              const style = getHandleStyle(dir, displayW, displayH, w, h);
+              return (
+                <div
+                  key={dir}
+                  style={{
+                    position: 'absolute',
+                    ...style,
+                    width: w,
+                    height: isCorner ? CORNER_SIZE : EDGE_H,
+                    background: '#FFFFFF',
+                    border: '1px solid #4A90D9',
+                    borderRadius: isCorner ? 0 : 2,
+                    cursor: HANDLE_CURSORS[dir],
+                    zIndex: 20,
+                  }}
+                  onPointerDown={resize.handleResizeStart(dir)}
+                />
+              );
+            },
+          )}
 
-          {/* 旋转手柄 */}
+          {/* 旋转手柄：顶部上方 20px，⊙ 图标 16px */}
           <div
             style={{
               position: 'absolute',
               left: '50%',
               top: -28,
               transform: 'translateX(-50%)',
-              width: 20,
-              height: 20,
+              width: 16,
+              height: 16,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'grab',
-              fontSize: 14,
+              fontSize: 16,
               color: '#4A90D9',
               userSelect: 'none',
               zIndex: 20,
             }}
-            onPointerDown={handleRotateStart}
+            onPointerDown={rotate.handleRotateStart}
           >
             ⊙
           </div>
@@ -220,9 +300,9 @@ export function ObjectWrapper({
             style={{
               position: 'absolute',
               left: '50%',
-              top: -10,
+              top: -12,
               width: 1,
-              height: 10,
+              height: 12,
               background: '#4A90D9',
               transform: 'translateX(-50%)',
               pointerEvents: 'none',
@@ -231,13 +311,63 @@ export function ObjectWrapper({
         </>
       )}
 
+      {/* 实时尺寸反馈（缩放时） */}
+      {resize.isResizing && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: -24,
+            transform: 'translateX(-50%)',
+            background: '#fff',
+            border: '1px solid #4A90D9',
+            borderRadius: 3,
+            padding: '1px 6px',
+            fontSize: 11,
+            color: '#4A90D9',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 30,
+          }}
+        >
+          {Math.round(displayW)} × {Math.round(displayH)}
+        </div>
+      )}
+
+      {/* 旋转角度反馈 */}
+      {rotate.isRotating && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: -48,
+            transform: 'translateX(-50%)',
+            background: '#fff',
+            border: '1px solid #4A90D9',
+            borderRadius: 3,
+            padding: '1px 6px',
+            fontSize: 11,
+            color: '#4A90D9',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 30,
+          }}
+        >
+          {Math.round(displayRotation % 360)}°
+        </div>
+      )}
+
       {/* Pin */}
       {showPin && (
         <Pin
           offset={pinOffset}
-          parentWidth={item.width}
-          parentHeight={item.height}
+          parentWidth={displayW}
+          parentHeight={displayH}
           onDragEnd={(offset) => onPinDragEnd?.(item.id, offset)}
+          itemId={item.id}
+          isRopeTarget={isRopeTarget}
+          isRopeCreating={isRopeCreating}
+          onRopeStart={onPinRopeStart}
         />
       )}
     </div>
@@ -245,16 +375,31 @@ export function ObjectWrapper({
 }
 
 /** 根据方向计算手柄位置样式 */
-function getHandleStyle(dir: ResizeDir, w: number, h: number, size: number): React.CSSProperties {
-  const half = size / 2;
+function getHandleStyle(
+  dir: ResizeDir,
+  w: number,
+  h: number,
+  handleW: number,
+  handleH: number,
+): React.CSSProperties {
+  const halfW = handleW / 2;
+  const halfH = handleH / 2;
   switch (dir) {
-    case 'nw': return { left: -half, top: -half };
-    case 'n':  return { left: w / 2 - half, top: -half };
-    case 'ne': return { left: w - half, top: -half };
-    case 'e':  return { left: w - half, top: h / 2 - half };
-    case 'se': return { left: w - half, top: h - half };
-    case 's':  return { left: w / 2 - half, top: h - half };
-    case 'sw': return { left: -half, top: h - half };
-    case 'w':  return { left: -half, top: h / 2 - half };
+    case 'nw':
+      return { left: -halfW, top: -halfH };
+    case 'n':
+      return { left: w / 2 - halfW, top: -halfH };
+    case 'ne':
+      return { left: w - halfW, top: -halfH };
+    case 'e':
+      return { left: w - halfW, top: h / 2 - halfH };
+    case 'se':
+      return { left: w - halfW, top: h - halfH };
+    case 's':
+      return { left: w / 2 - halfW, top: h - halfH };
+    case 'sw':
+      return { left: -halfW, top: h - halfH };
+    case 'w':
+      return { left: -halfW, top: h / 2 - halfH };
   }
 }

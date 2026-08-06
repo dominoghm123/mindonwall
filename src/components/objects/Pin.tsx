@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { PinOffset } from '../../store/types';
 
 interface PinProps {
@@ -9,90 +9,138 @@ interface PinProps {
   parentHeight: number;
   /** 拖拽结束回调 */
   onDragEnd?: (offset: PinOffset) => void;
+  /** 当前物件 ID（用于 Rope 创建检测） */
+  itemId?: string;
+  /** 是否为 Rope 创建目标（发光效果） */
+  isRopeTarget?: boolean;
+  /** Rope 创建时 Pin mousedown 回调 */
+  onRopeStart?: (itemId: string, e: React.PointerEvent) => void;
+  /** 是否处于 Rope 创建模式（禁用拖拽） */
+  isRopeCreating?: boolean;
 }
 
+const PIN_SIZE = 14;
+const DOT_SIZE = 3;
+
 /**
- * 16×16 SVG 图钉组件。
- * 白色圆形钉头 + 金色短针柄，正视角，无投影。
+ * Pin 俯视图组件。
+ * 14px 直径白圈（#F8F8F8, 1px border #E0E0E0）+ 中心 3px 金色圆点（#C9A84C）。
+ * 无阴影，完全扁平。
  * 可拖拽（限制在父物件范围内）。
  */
-export function Pin({ offset, parentWidth, parentHeight, onDragEnd }: PinProps) {
+export function Pin({
+  offset,
+  parentWidth,
+  parentHeight,
+  onDragEnd,
+  itemId,
+  isRopeTarget,
+  onRopeStart,
+  isRopeCreating,
+}: PinProps) {
+  const [hovered, setHovered] = useState(false);
   const dragging = useRef(false);
-  const pinRef = useRef<SVGSVGElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
 
   const pixelX = offset.x * parentWidth;
   const pixelY = offset.y * parentHeight;
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    dragging.current = true;
-    (e.target as Element).setPointerCapture(e.pointerId);
-  }, []);
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current || !pinRef.current) return;
-    e.stopPropagation();
+      // Rope 创建模式：通知父组件
+      if (isRopeCreating && itemId && onRopeStart) {
+        onRopeStart(itemId, e);
+        return;
+      }
 
-    const parent = pinRef.current.parentElement;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
+      dragging.current = true;
+      (e.target as Element).setPointerCapture(e.pointerId);
+    },
+    [isRopeCreating, itemId, onRopeStart],
+  );
 
-    const relX = Math.max(0, Math.min(e.clientX - rect.left, parentWidth));
-    const relY = Math.max(0, Math.min(e.clientY - rect.top, parentHeight));
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragging.current || !pinRef.current) return;
+      e.stopPropagation();
 
-    // 直接移动 pin（通过 CSS transform）
-    pinRef.current.style.left = `${relX - 8}px`;
-    pinRef.current.style.top = `${relY - 8}px`;
-  }, [parentWidth, parentHeight]);
+      const parent = pinRef.current.parentElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current || !pinRef.current) return;
-    dragging.current = false;
-    (e.target as Element).releasePointerCapture(e.pointerId);
+      const relX = Math.max(0, Math.min(e.clientX - rect.left, parentWidth));
+      const relY = Math.max(0, Math.min(e.clientY - rect.top, parentHeight));
 
-    const parent = pinRef.current.parentElement;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
+      // 直接移动 pin（通过 CSS transform）
+      pinRef.current.style.left = `${relX - PIN_SIZE / 2}px`;
+      pinRef.current.style.top = `${relY - PIN_SIZE / 2}px`;
+    },
+    [parentWidth, parentHeight],
+  );
 
-    const relX = Math.max(0, Math.min(e.clientX - rect.left, parentWidth));
-    const relY = Math.max(0, Math.min(e.clientY - rect.top, parentHeight));
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragging.current || !pinRef.current) return;
+      dragging.current = false;
+      (e.target as Element).releasePointerCapture(e.pointerId);
 
-    const newOffset: PinOffset = {
-      x: relX / parentWidth,
-      y: relY / parentHeight,
-    };
-    onDragEnd?.(newOffset);
-  }, [parentWidth, parentHeight, onDragEnd]);
+      const parent = pinRef.current.parentElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
+
+      const relX = Math.max(0, Math.min(e.clientX - rect.left, parentWidth));
+      const relY = Math.max(0, Math.min(e.clientY - rect.top, parentHeight));
+
+      const newOffset: PinOffset = {
+        x: relX / parentWidth,
+        y: relY / parentHeight,
+      };
+      onDragEnd?.(newOffset);
+    },
+    [parentWidth, parentHeight, onDragEnd],
+  );
 
   return (
-    <svg
+    <div
       ref={pinRef}
-      width={16}
-      height={16}
-      viewBox="0 0 16 16"
+      data-pin-item-id={itemId}
       style={{
         position: 'absolute',
-        left: pixelX - 8,
-        top: pixelY - 8,
+        left: pixelX - PIN_SIZE / 2,
+        top: pixelY - PIN_SIZE / 2,
+        width: PIN_SIZE,
+        height: PIN_SIZE,
+        borderRadius: '50%',
+        background: '#F8F8F8',
+        border: '1px solid #E0E0E0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         cursor: 'grab',
         zIndex: 10,
         pointerEvents: 'auto',
+        transform: hovered ? 'scale(1.1)' : 'scale(1)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        boxShadow: isRopeTarget ? '0 0 8px #4A90D9' : 'none',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
     >
-      <defs>
-        <radialGradient id="pinHead" cx="40%" cy="35%" r="50%">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="100%" stopColor="#E8E8E8" />
-        </radialGradient>
-      </defs>
-      {/* 金色针柄 */}
-      <rect x="7" y="10" width="2" height="4" rx="0.5" fill="#C9A84C" />
-      {/* 白色圆形钉头 */}
-      <circle cx="8" cy="6" r="5" fill="url(#pinHead)" stroke="#D0D0D0" strokeWidth="0.5" />
-    </svg>
+      {/* 中心金色圆点 */}
+      <div
+        style={{
+          width: DOT_SIZE,
+          height: DOT_SIZE,
+          borderRadius: '50%',
+          background: '#C9A84C',
+        }}
+      />
+    </div>
   );
 }

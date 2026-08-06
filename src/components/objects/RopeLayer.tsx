@@ -15,7 +15,14 @@ interface RopeLayerProps {
  * SVG Rope 层。
  * 全屏 overlay，pointer-events: none（Rope 本身 pointer-events: auto）。
  */
-export function RopeLayer({ ropes, items, selectedRopeId, dragTail, onRopeClick, onRopeContextMenu }: RopeLayerProps) {
+export function RopeLayer({
+  ropes,
+  items,
+  selectedRopeId,
+  dragTail,
+  onRopeClick,
+  onRopeContextMenu,
+}: RopeLayerProps) {
   const itemMap = new Map(items.map((i) => [i.id, i]));
 
   return (
@@ -44,7 +51,9 @@ export function RopeLayer({ ropes, items, selectedRopeId, dragTail, onRopeClick,
         const x2 = to.x + toPin.x * to.width;
         const y2 = to.y + toPin.y * to.height;
 
-        const naturalLength = rope.naturalLength ?? Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * 1.2;
+        const naturalLength =
+          rope.naturalLength ??
+          Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * 1.2;
         const path = calculateRopePath(x1, y1, x2, y2, naturalLength);
         const isSelected = rope.id === selectedRopeId;
 
@@ -77,7 +86,7 @@ export function RopeLayer({ ropes, items, selectedRopeId, dragTail, onRopeClick,
           stroke="#8B7355"
           strokeWidth={2}
           strokeDasharray="6 4"
-          opacity={0.5}
+          opacity={0.6}
           strokeLinecap="round"
         />
       )}
