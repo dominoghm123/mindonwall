@@ -1,4 +1,4 @@
-# Pin & Paper Journal
+# Mind on Wall
 
 一个桌面优先的数字手帐网页：用户把记录、图片与灵感贴到可换墙纸的白墙上，用 Paper、Stamp 与 Rope 慢慢看见碎片间的关系。
 

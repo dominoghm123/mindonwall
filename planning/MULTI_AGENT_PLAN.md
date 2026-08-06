@@ -1,4 +1,4 @@
-# Multi-Agent 协作方案 — Pin & Paper Journal v0.1
+# Multi-Agent 协作方案 — Mind on Wall v0.1
 
 **目标：** 8 月 9 日前完成可验收 MVP  
 **环境：** Qoder + Quest 模式  

@@ -1,8 +1,9 @@
-# UI Component Design — v0.1
+# UI Component Design — v0.2
 
-**状态：** 细化版（基于冻结 PRD + Visual Spec 扩展）  
+**状态：** 确认版（基于用户选择：1B + 2V1 + 40px）  
 **创建日期：** 2026-08-06  
-**关联文档：** `planning/PRD.md` · `researching/VISUAL_SPEC.md` · `researching/VIBE_MOODBOARD.md`
+**最后更新：** 2026-08-06  
+**关联文档：** `planning/PRD.md` · `researching/VISUAL_SPEC.md` · `researching/VIBE_MOODBOARD.md` · `planning/MAGNIFIC_DESIGN_ANALYSIS.md`
 
 ---
 
@@ -12,7 +13,7 @@
 src/
 ├── main.tsx                          # 入口
 ├── App.tsx                           # 路由：总览页 / 墙面编辑器
-├── index.css                         # 全局 CSS 变量 + reset
+── index.css                         # 全局 CSS 变量 + reset
 │
 ├── store/
 │   ├── useWallStore.ts               # Zustand: 当前墙面数据（items/ropes/wallpaper/undo）
@@ -20,10 +21,10 @@ src/
 │   ├── useAssetStore.ts              # Zustand: 素材托盘（全局共享）
 │   ├── useMapStore.ts                # Zustand: Map 编辑状态（独立撤销栈）
 │   ├── useUIStore.ts                 # Zustand: UI 状态（选中/浮窗展开/Toast）
-│   ── adapters/
+│   └── adapters/
 │       ├── storageAdapter.ts         # 抽象接口
 │       ├── localStorageAdapter.ts    # localStorage 实现
-│       └── indexedDBAdapter.ts       # IndexedDB 实现（图片二进制）
+│       ── indexedDBAdapter.ts       # IndexedDB 实现（图片二进制）
 │
 ├── pages/
 │   ├── OverviewPage.tsx              # 总览页
@@ -44,10 +45,9 @@ src/
 │   │   └── RopeLayer.tsx             # SVG 层：Rope 曲线 + 拖拽尾巴线
 │   │
 │   ├── floating/
-│   │   ├── TopBar.tsx                # 顶部浮窗
-│   │   ├── BottomToolbar.tsx         # 底部工具栏
-│   │   ├── MaterialTray.tsx          # 左侧素材托盘
-│   │   └── AIAssistant.tsx           # 右侧 AI 助手浮窗
+│   │   ├── TopBar.tsx                # 顶部浮窗（40px，纯白实色）
+│   │   ├── BottomToolbar.tsx         # 底部工具栏（Version B: Micro Icon Row）
+│   │   └── AIAssistant.tsx           # 右侧 AI 助手浮窗（V1: Pill Tag Row）
 │   │
 │   ├── map/
 │   │   ├── ConnectionMap.tsx         # Map 视图容器
@@ -67,27 +67,179 @@ src/
 ├── hooks/
 │   ├── useDrag.ts                    # 拖拽 hook（物件 + Pin）
 │   ├── useResize.ts                  # 缩放 hook（四角等比 + 边缘拉伸）
-│   ├── useRotate.ts                  # 旋转 hook（15° 吸附）
+│   ├── useRotate.ts                  # 旋转 hook（360° 自由旋转）
 │   ├── useRopeCreation.ts            # Rope 创建流程 hook
 │   ├── useMultiSelect.ts             # 多选 hook（Shift + 框选）
 │   ├── useUndo.ts                    # 撤销/重做 hook
 │   └── useKeyboard.ts                # 键盘快捷键 hook
 │
 ── utils/
-│   ├── ropeGeometry.ts               # Rope 贝塞尔曲线计算
-│   ├── mapLayout.ts                  # Map 网格/环形布局算法
-│   ├── exportPNG.ts                  # PNG 导出
-│   └── wallpaperCSS.ts              # 墙纸 CSS 生成
-│
-└── api/
-    └── story.ts                      # 百炼 Qwen API 调用
+    ├── ropeGeometry.ts               # Rope 贝塞尔曲线计算
+    ├── mapLayout.ts                  # Map 网格/环形布局算法
+    ├── exportPNG.ts                  # PNG 导出
+    └── wallpaperCSS.ts              # 墙纸 CSS 生成
 ```
 
 ---
 
-## 2. 物件交互状态机
+## 2. 浮窗统一样式规范
 
-### 2.1 全局画布状态
+**核心原则：** 纯白实色 + 1px 边框，无毛玻璃、无阴影、无透明度
+
+```css
+/* 所有浮窗统一样式 */
+.floating-panel {
+  background: #FFFFFF;          /* 纯白实色 */
+  border: 1px solid #E8E8E8;    /* 极浅边框 */
+  border-radius: 10px;          /* 适中圆角 */
+  /* NO box-shadow */
+  /* NO backdrop-filter */
+  /* NO opacity */
+}
+
+/* 分区标签（参考 Magnific） */
+.section-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 药丸标签（用于选择器） */
+.pill-tag {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  border: 1px solid #E0E0E0;
+  background: transparent;
+  color: #666666;
+}
+.pill-tag.active {
+  background: #1A1A1A;
+  color: #FFFFFF;
+  border-color: #1A1A1A;
+}
+```
+
+---
+
+## 3. 顶部浮窗（TopBar）
+
+**高度：** 40px（从 48px 压缩）  
+**背景：** 纯白 #FFFFFF + 1px 底部边框 #E8E8E8  
+**交互：** 默认隐藏，鼠标触顶后从上滑入
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ← First Mind ✏️          ● Saved   Map  Export  AI  100%     │
+└─────────────────────────────────────────────────────────────┘
+  40px 高 · 纯白 · 1px 底部边框
+  左区（200px）：返回箭头 + 墙名（可点击编辑）
+  中区（自适应）：保存状态指示
+  右区（200px）：Map / Export / AI 按钮 + 缩放比例
+```
+
+**元素细节：**
+- 返回箭头：20px，#333
+- 墙名：14px bold #1A1A1A + 编辑图标（12px，#999）
+- 保存状态：绿点（6px）+ "Saved"（10px，#999）
+- 按钮（Map/Export/AI）：28px 高，1px 边框 #D0D0D0，6px 圆角，12px 文字
+- 缩放比例：10px 文字 #999（非按钮，仅显示）
+- 元素间距：8px（紧凑）
+
+---
+
+## 4. 底部工具栏（BottomToolbar）— Version B: Micro Icon Row
+
+**选择理由：** 始终显示图标，信息密度适中，展开后加文字标签更清晰
+
+### 4.1 布局与动画
+
+```
+默认态（collapsed）:
+┌─────────────────────────────────────┐
+│  [🖼] [📄] [📌] []                │  ← 4 个微图标（10px，#CCC）
+└─────────────────────────────────────┘
+  宽 100px · 高 28px · border-radius 14px
+  居中底部，距底边 24px
+  纯白 #FFF · 1px 边框 #E5E5E5
+
+Hover 展开态（expanded）:
+┌────────────────────────────────────────────┐
+│  [🖼 Image] [📄 Paper] [📌 Stamp] [🪢 Rope] │  ← 图标 16px + 文字 9px
+└────────────────────────────────────────────┘
+  宽 220px · 高 28px · border-radius 14px
+  图标 16px（#666）+ 文字标签 9px（#999）
+  按钮间距 8px
+```
+
+**展开动画：** `transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`（弹性缓动）  
+**背景：** 纯白 #FFFFFF + 1px 边框 #E5E5E5  
+**Hover 态：** 按钮背景 #F5F5F5
+
+### 4.2 工具按钮
+
+| 图标 | 功能 | 行为 |
+|---|---|---|
+| 🖼 Image | 添加图片 | 点击后进入"从素材托盘拖入"提示模式；或打开文件选择器 |
+| 📄 Paper | 添加 Paper | 点击弹出 4 变体选择（普通纸/撕边纸/便利贴/胶带），点击后在画布中心创建 |
+|  Stamp | 添加 Stamp | 点击弹出 5 色 Stamp 选择，点击后在画布中心创建 |
+| 🪢 Rope | 创建 Rope | 点击后进入 Rope 创建模式（提示"点击一个 Pin 开始"） |
+
+**注意：** 删除功能不在工具栏内，通过右键菜单或 Delete 键实现。
+
+---
+
+## 5. AI 助手浮窗（AIAssistant）— V1: Pill Tag Row + Chat Flow
+
+**选择理由：** 药丸标签行更紧凑，对话流占主区域更符合 AI 交互习惯（参考 Codex）
+
+### 5.1 布局
+
+```
+默认：隐藏（仅顶部栏 "AI" 按钮可见）
+点击展开 → 右侧固定面板：
+
+┌──────────────────────────────┐
+│ AI                          │  ← 40px 顶栏
+├──────────────────────────────┤
+│ Name · Reflect · Title · Multi│  ← 药丸标签行，26px 高
+├──────────────────────────────┤
+│                              │
+│  [AI 对话流区域]              │  ← 占主要空间
+│  "I notice your temple..."   │
+│                              │
+├──────────────────────────────
+│ 📷 Temple  📝 Note     [×]   │  ← 选中物件 tag（Codex 风格）
+│ ──────────────────────────┐ │
+│ │ Type a message...        │ │  ← 输入框
+│ ──────────────────────────┘ │
+└──────────────────────────────┘
+  宽 320px · 最大高 60vh · 右侧距边 16px · 顶部距顶 64px
+  纯白 #FFF · 1px 左边框 #E8E8E8
+```
+
+### 5.2 交互细节
+
+- **任务切换：** 点击药丸标签 → 高亮（背景 #1A1A1A，文字白）→ 更新对话上下文
+- **对话流：** 
+  - AI 消息：左对齐，浅灰气泡 #F5F5F5，圆角，13px 文字
+  - 用户消息：右对齐，深色气泡 #1A1A1A，白色文字
+  - 占位符："Ask about your wall..."（13px，#AAA）
+- **选中物件：** 以 inline tag 形式显示在输入框上方（Codex 风格）
+  - Tag 样式：22px 高，10px 文字，背景 #F0F0F0，带 × 可移除
+- **输入框：** 36px 高，1px 边框 #E0E0E0，border-radius 8px
+- **加载态：** 对话区显示 3 点跳动动画 + "Thinking..."
+- **失败态：** "AI temporarily unavailable. Non-AI features still work."
+- **v0.1 限制：** 界面预留，AI 不接入，显示 "v0.1: AI interface reserved"
+
+---
+
+## 6. 物件交互状态机
+
+### 6.1 全局画布状态
 
 ```
 IDLE ──click 背景──→ IDLE（取消选中）
@@ -99,13 +251,13 @@ IDLE ──click 背景──→ IDLE（取消选中）
   └──拖拽空白区域（按住）──→ BOX_SELECTING ──mouseup──→ MULTI_SELECT / IDLE
 ```
 
-### 2.2 物件状态（单个物件）
+### 6.2 物件状态（单个物件）
 
 ```
 IDLE ──click──→ SELECTED
   │
-  ├──拖拽本体──→ DRAGGING ──mouseup──→ SELECTED
-  ├──拖拽角手柄──→ RESIZING_UNIFORM ──mouseup──→ SELECTED
+  ├──拖拽本体──→ DRAGGING ─mouseup──→ SELECTED
+  ├──拖拽角手柄──→ RESIZING_UNIFORM ─mouseup──→ SELECTED
   ├──拖拽边手柄──→ RESIZING_STRETCH ──mouseup──→ SELECTED
   ├──拖拽旋转手柄──→ ROTATING ──mouseup──→ SELECTED
   ├──拖拽 Pin──→ PIN_DRAGGING ──mouseup──→ SELECTED
@@ -117,7 +269,9 @@ IDLE ──click──→ SELECTED
   └──click 背景──→ IDLE
 ```
 
-### 2.3 多选状态
+**关键变更：** 旋转支持 360° 自由旋转，无 15° 吸附增量。
+
+### 6.3 多选状态
 
 ```
 MULTI_SELECT
@@ -128,7 +282,7 @@ MULTI_SELECT
   └──click 背景──→ IDLE
 ```
 
-### 2.4 Rope 创建流程
+### 6.4 Rope 创建流程
 
 ```
 SELECTED（有 Pin 的物件）
@@ -141,193 +295,6 @@ SELECTED（有 Pin 的物件）
 
 ---
 
-## 3. 底部工具栏详细设计
-
-### 3.1 布局与动画
-
-```
-默认态（collapsed）:
-┌─────────────────────────────────────┐
-│  ●  ●  ●  ●  ●                      │  ← 5 个圆点指示器
-└─────────────────────────────────────┘
-  宽 180px · 高 32px · border-radius 16px
-  居中底部，距底边 24px
-
-Hover 展开态（expanded）:
-┌───┬───┬───┬───┬───┬───┐
-│ 🖼 │ 📄 │ 📌 │ 🪢 │  │   │  ← 图标按钮（24×24px SVG）
-└───┴──────┴───┴──────┘
-  宽自适应（约 320px）· 高 56px · border-radius 16px
-  图标间距 12px，每个按钮 40×40px 点击区
-```
-
-**展开动画：** `transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`（弹性缓动）  
-**背景：** `rgba(255,255,255,0.95)` + `backdrop-filter: blur(12px)` + `border: 1px solid #E0E0E0`
-
-### 3.2 工具按钮
-
-| 图标 | 功能 | 行为 |
-|---|---|---|
-|  Picture | 添加图片 | 点击后进入"从素材托盘拖入"提示模式；或打开文件选择器 |
-|  Paper | 添加 Paper | 点击弹出 4 变体选择（普通纸/撕边纸/便利贴/胶带），点击后在画布中心创建 |
-|  Stamp | 添加 Stamp | 点击弹出 5 色 Stamp 选择，点击后在画布中心创建 |
-| 🪢 Rope | 创建 Rope | 点击后进入 Rope 创建模式（提示"点击一个 Pin 开始"） |
-| 🗑 Delete | 删除选中 | 删除当前选中物件（多选时批量删除） |
-
-### 3.3 便利贴颜色选择区
-
-选中便利贴时，工具栏右侧扩展出颜色区：
-
-```
-┌───┬───┬───┬───┬───┬───┬───┬───┬  ┐
-│ 🟡 │ 🩷 │ 🩵 │  │ 🟠 │ ⬜ │  │   │
-└──────┴───┴──────┴───┴──────┴────┘
-  8 色圆点（20px 直径）+ 自定义色盘入口
-  间距 8px
-```
-
-**颜色值：** `#FFF3B0` `#FFB3BA` `#BAFFC9` `#BAE1FF` `#E8D5FF` `#FFD8B1` `#F5F5F5` `#2C2C2C`
-
----
-
-## 4. 素材托盘详细设计
-
-### 4.1 布局
-
-```
-默认态（collapsed）:
-  ┌──┐
-  │ │  ← 32px 宽竖条，纵向居中左侧，距左边 16px
-  │▤ │     border-radius 16px
-  └──┘
-
-Hover 展开态（expanded）:
-──────────────────────┐
-│   点击上传          │  ← 虚线框上传区（高 80px）
-│  ┌──┬────┐          │
-│  │🖼│🖼│🖼│          │  ← 缩略图网格（3 列，64×64px 缩略图）
-│  └────┴──┘          │
-│  ┌──┬──┬──┐          │
-│  │🖼│🖼│🖼│          │
-│  └──┴──┴──┘          │
-│  已用 3/12 张         │  ← 配额指示
-└──────────────────────┘
-  宽 200px · 背景同工具栏
-```
-
-### 4.2 交互细节
-
-- **上传：** 点击虚线框 → 打开文件选择器（接受 `image/*`，单文件 ≤ 10MB）
-- **拖入画布：** 从托盘缩略图拖出 → 创建 Picture 物件跟随鼠标 → 松手放置
-- **拖拽中视觉：** 缩略图半透明跟随鼠标，带 `box-shadow: 0 4px 12px rgba(0,0,0,0.15)`
-- **上传进度：** 上传中显示旋转 loading 图标在缩略图位置
-- **上传失败：** 缩略图位置显示红色 × 图标 + Toast 提示
-- **样例素材区：** 在用户图片上方，用分割线隔开，标注"样例"标签（10px，#999）
-- **配额满：** 上传按钮置灰 + tooltip "已达 12 张上限"
-
----
-
-## 5. 顶部栏详细设计
-
-### 5.1 布局
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ← First Mind ✏️          ● 已保存   🎨 墙纸  │  Map  │  AI  │
-└─────────────────────────────────────────────────────────────
-  高 48px · 左右贯通 · 背景 rgba(255,255,255,0.9) + blur
-  左区（200px）：返回箭头 + 墙名（可点击编辑）
-  中区（自适应）：保存状态指示
-  右区（200px）：墙纸选择器 + Map Tab + AI 按钮
-```
-
-### 5.2 墙名行内编辑
-
-- 点击墙名 → 变为 input 框（同位置，border-bottom: 2px solid #4A90D9）
-- Enter / 失焦 → 保存
-- ESC → 取消
-- 最大 30 字符
-
-### 5.3 保存状态指示
-
-```
-● 已保存     → 绿点 #4CAF50 + "已保存"（12px，#666）
-● 保存中...  → 黄点 #FFC107 + 旋转动画
-● 离线       → 灰点 #999 + "离线"
-● 未保存     → 橙点 #FF9800 + "未保存"（操作后 500ms 出现，保存成功后消失）
-```
-
-### 5.4 墙纸选择器下拉
-
-点击"🎨 墙纸"按钮 → 弹出下拉面板（宽 240px）：
-
-```
-┌──────────────────────────┐
-│ 墙纸                      │
-│ ┌────┐ ────┐ ┌────┐     │
-│ │无  │ │白纸│ │米色│     │  ← 3 列，每项 64×48px 预览缩略
-│ └────┘ └────┘ └────┘     │
-│ ┌────┐ ┌────┐ ┌────┐     │
-│ │粗纹│ │水彩│ │牛皮│     │
-│ ────┘ └────┘ └────┘     │
-│ 当前：米色基础纸 ✓         │
-──────────────────────────┘
-```
-
-- 点击即切换，无确认
-- 当前墙纸有蓝色边框 + ✓ 标记
-
----
-
-## 6. AI 助手浮窗详细设计
-
-### 6.1 布局
-
-```
-默认：隐藏（仅顶部栏 "AI" 按钮可见）
-点击展开 → 右侧固定面板：
-
-┌──────────────────────────┐
-│ AI 助手              ✕   │  ← 标题 + 关闭
-├──────────────────────────┤
-│ 任务类型：                │
-│ ┌──────┬──────┐          │
-│ │关系命名│回顾问题│        │  ← 2×2 按钮网格
-│ └────────────┘          │
-│ ┌──────┬──────┐          │
-│ │故事标题│多物件推演│      │
-│ └──────┴──────┘          │
-├──────────────────────────┤
-│ 操作对象：                │
-│  契迪龙寺 📄 泰北咖喱面  │  ← 已选物件标签（可 × 取消）
-│ （点选 Rope 模式）        │  ← 关系命名任务时的引导文字
-├──────────────────────────┤
-│                          │
-│  AI 输出区域              │  ← 最小高 120px
-│  "这条Rope连接了清迈的    │
-│   寺庙与美食，可以命名为   │
-│   『清迈的灵魂』"          │
-│                          │
-├──────────────────────────┤
-│        [采纳]  [取消]     │  ← 底部按钮
-└──────────────────────────┘
-  宽 320px · 最大高 60vh · 右侧距边 16px · 顶部距顶 64px
-  背景同浮窗风格
-```
-
-### 6.2 交互细节
-
-- **任务切换：** 点击任务按钮 → 高亮（背景 #4A90D9，文字白）→ 更新操作对象区
-- **关系命名模式：** 操作对象区显示"请点击墙上一条 Rope"，墙上 Rope 进入可点击态（hover 加粗）
-- **回顾问题模式：** 需先选中 ≥2 物件（Shift 多选），否则按钮置灰 + tooltip "请先选中至少 2 个物件"
-- **AI 输出：** 打字机效果逐字显示（30ms/字），显示完毕后"采纳"按钮从置灰变为可用
-- **采纳动画：** 按钮变绿 → "已采纳 ✓" → 1s 后浮窗自动收起
-- **取消：** 直接关闭浮窗，输出丢弃（回顾问题例外：展示即自动保存）
-- **加载态：** 输出区显示 3 点跳动动画 + "AI 思考中..."
-- **失败态：** 输出区显示 "⚠ AI 暂时不可用，稍后再试"，非 AI 流程不受影响
-
----
-
 ## 7. 物件组件内部布局
 
 ### 7.1 ObjectWrapper（通用容器）
@@ -335,16 +302,16 @@ Hover 展开态（expanded）:
 每个物件被 `ObjectWrapper` 包裹，负责：
 - 绝对定位（x, y, rotation, z-index）
 - 选中态虚线边框（1px dashed #4A90D9）
-- 8 个缩放手柄（四角 8×8px 圆形 + 四边 12×6px 矩形）
-- 旋转手柄（顶部上方 20px，圆环图标 ⊙）
+- 8 个缩放手柄（四角 6×6px 方形 + 四边 10×4px 矩形）
+- 旋转手柄（角手柄 + 修饰键实现 360° 自由旋转）
 - Pin 渲染（默认上边缘中点）
 
 **选中态层级：**
 ```
 ObjectWrapper
-├── 内容层（Picture/Paper/Stamp 实际渲染）
+── 内容层（Picture/Paper/Stamp 实际渲染）
 ├── Pin 层（z-index: 内容层 + 1）
-├── 选中边框层（z-index: 内容层 + 2）
+── 选中边框层（z-index: 内容层 + 2）
 ├── 缩放手柄层（z-index: 内容层 + 3）
 └── 旋转手柄层（z-index: 内容层 + 4）
 ```
@@ -367,8 +334,8 @@ ObjectWrapper
 **普通纸（note）：**
 ```
 ┌────────────────────────────
-│  契迪龙寺的安静             │  ← contenteditable
-│  让人不想离开               │     font: "LXGW WenKai"/"Caveat" 16px
+│  The quiet of temples      │  ← contenteditable
+│  makes me stay             │     font: "LXGW WenKai"/"Caveat" 16px
 │                            │     color: #1A1A1A
 │                            │     padding: 16px
 ────────────────────────────┘
@@ -379,8 +346,8 @@ ObjectWrapper
 **撕边纸（torn）：**
 ```
   ╭──────────────────────────╮
-  │  罗广场的              │  ← 同普通纸，但上下边缘
-  │  雨后彩虹                │     用 SVG clip-path 模拟撕边
+  │  Rainbow after rain      │  ← 同普通纸，但上下边缘
+  │  at Siam Square          │     用 SVG clip-path 模拟撕边
   ──────────────────────────╯     （不规则锯齿，振幅 3-5px）
   背景 #F5F0E8（微暖白）
 ```
@@ -389,9 +356,9 @@ ObjectWrapper
 ```
 ┌──────────────────┐
 │                  │  ← 140×140px 正方形
-│  必尝：          │     背景色可切换（8 预设色）
-│  芒果糯米饭      │     右上角微卷效果（CSS ::after 伪元素
-│                  │     三角渐变模拟折角）
+│  Must try:       │     背景色可切换（8 预设色）
+│  Khao Soi        │     无卷角效果（完全扁平）
+│                  │
 └──────────────────┘
 ```
 
@@ -433,38 +400,57 @@ ObjectWrapper
 **Stamp 右键菜单：**
 ```
 ┌──────────────────────┐
-│ 附着到 Paper 上       │  ← 仅当 Stamp 独立时显示
-│ 取消附着              │  ← 仅当 Stamp 已附着时显示
+│ Attach to Paper       │  ← 仅当 Stamp 独立时显示
+│ Detach                │  ← 仅当 Stamp 已附着时显示
 │ ──────────────────── │
-│ 删除                  │
+│ Bring to Front        │
+│ Send to Back          │
+│ ──────────────────── │
+│ Change Color          │  ← 显示 5 色选项（蓝/灰/红/绿/黄）
+│ ──────────────────── │
+│ Delete                │  ← 红色文字 #C0392B
+──────────────────────┘
+```
+
+**Picture 右键菜单：**
+```
+┌──────────────────────┐
+│ Replace Image         │  ← 打开素材库弹窗
+│ ──────────────────── │
+│ Bring to Front        │
+│ Send to Back          │
+│ ──────────────────── │
+│ Delete                │
 └──────────────────────┘
 ```
 
-**普通物件右键菜单（Picture/Paper）：**
+**Paper 右键菜单：**
 ```
 ┌──────────────────────┐
-│ 置顶                  │  ← 移到最高 z-index
-│ 置底                  │
+│ Change Color          │  ← 仅 sticky 变体时显示（8 色）
 │ ──────────────────── │
-│ 删除                  │
+│ Bring to Front        │
+│ Send to Back          │
+│ ──────────────────── │
+│ Delete                │
 └──────────────────────┘
 ```
 
 **Rope 右键菜单：**
 ```
-┌──────────────────────┐
-│ 编辑关联说明          │
-│ ─────────────────── │
-│ 删除                  │
+──────────────────────┐
+│ Edit Note             │
+│ ──────────────────── │
+│ Delete                │
 └──────────────────────┘
 ```
 
 ### 8.3 视觉
 
-- 背景 `rgba(255,255,255,0.98)` + `backdrop-filter: blur(8px)`
+- 背景 `#FFFFFF`（纯白实色）
 - `border: 1px solid #E0E0E0` · `border-radius: 8px`
-- `box-shadow: 0 4px 16px rgba(0,0,0,0.1)`
-- 菜单项高 36px，hover 背景 `#F5F5F5`
+- **无投影**
+- 菜单项高 32px，hover 背景 `#F5F5F5`
 - 分割线 `1px solid #EEE`
 - 点击菜单外区域 → 关闭
 
@@ -482,17 +468,17 @@ ObjectWrapper
 
 | 场景 | 文案 | 类型 |
 |---|---|---|
-| 物件达上限 | "物件已达上限（50/50）" | warning（橙色左边框） |
-| 图片上传成功 | "图片已添加到素材托盘" | success（绿色左边框） |
-| 图片过大 | "图片超过 10MB，无法上传" | error（红色左边框） |
-| 图片配额满 | "用户图片已达 12 张上限" | warning |
-| 存储不可用 | "本地存储不可用，内容不会自动保存" | error |
-| IndexedDB 满 | "存储空间已满，请导出后清理" | error |
-| AI 不可用 | "AI 暂时不可用，稍后再试" | info（蓝色左边框） |
-| 导出成功 | "PNG 已导出" | success |
-| 导出失败 | "导出失败，请重试" | error |
-| 撤销 | "已撤销" | info |
-| 重做 | "已重做" | info |
+| 物件达上限 | "Object limit reached (50/50)" | warning（橙色左边框） |
+| 图片上传成功 | "Image added to tray" | success（绿色左边框） |
+| 图片过大 | "Image exceeds 10MB limit" | error（红色左边框） |
+| 图片配额满 | "User image limit reached (12/12)" | warning |
+| 存储不可用 | "Local storage unavailable. Content won't auto-save." | error |
+| IndexedDB 满 | "Storage full. Please export and clean up." | error |
+| AI 不可用 | "AI temporarily unavailable" | info（蓝色左边框） |
+| 导出成功 | "PNG exported" | success |
+| 导出失败 | "Export failed. Please retry." | error |
+| 撤销 | "Undone" | info |
+| 重做 | "Redone" | info |
 
 ---
 
@@ -504,10 +490,10 @@ ObjectWrapper
 ┌──────────────────────┐
 │  ┌────────────────┐  │
 │  │                │  │  ← 缩略图（64×48px，object-fit: cover）
-│  │    缩略图      │  │
+│  │    Thumbnail   │  │
 │  └────────────────┘  │
-│  旅行随笔             │  ← 标题（12px，#1A1A1A，单行截断）
-│  项目                 │  ← 类型标签（10px，#999）
+│  Travel Notes         │  ← 标题（12px，#1A1A1A，单行截断）
+│  Project              │  ← 类型标签（10px，#999）
 └──────────────────────┘
   宽 120px · 背景 #FFF · border-radius: 8px
   border: 1px solid #E8E8E8
@@ -552,19 +538,11 @@ ObjectWrapper
 
 ### 11.1 缩放指示器
 
-位置：右下角，距右边 16px，距底边 80px（避开底部工具栏）
-
-```
-┌──────────────┐
-│  -  100%  +  │  ← 高 32px，圆角 16px
-──────────────┘
-  背景 rgba(255,255,255,0.9) + blur
-  字体 12px，#666
-  - / + 按钮：24×24px 点击区
-  点击 - → 缩小 10%（最小 20%）
-  点击 + → 放大 10%（最大 300%）
-  双击 100% → 重置为 100%
-```
+**位置：** 整合进顶部浮窗最右侧（10px 文字 #999）  
+**交互：** 
+- 点击 "100%" → 弹出小面板（+/- 按钮 + 重置）
+- 滚轮缩放：20%-300%，以鼠标位置为中心
+- 双击 "100%" → 重置为 100%
 
 ### 11.2 平移
 
@@ -599,14 +577,30 @@ ObjectWrapper
 
 ---
 
-## 13. 需要额外参考资料的项目
+## 13. 设计决策记录
 
-在实现以下组件时，我可能需要你提供额外的参考：
+| 决策 | 结论 | 日期 |
+|---|---|---|
+| 底部工具栏版本 | Version B（Micro Icon Row） | 2026-08-06 |
+| AI 面板版本 | V1（Pill Tag Row + Chat Flow） | 2026-08-06 |
+| 顶部浮窗高度 | 40px（从 48px 压缩） | 2026-08-06 |
+| 浮窗背景 | 纯白实色 + 1px 边框，无毛玻璃 | 2026-08-06 |
+| 项目命名 | Mind on Wall（从 Pin & Paper Journal 改名） | 2026-08-06 |
+| Pin 风格 | 俯视图，白圈 + 金色中心点 | 2026-08-06 |
+| Rope 弧度 | 悬链线物理模拟（sag = k × (L - d)） | 2026-08-06 |
+| 旋转角度 | 360° 自由旋转，无吸附 | 2026-08-06 |
+| 总览页缩略 | v0.1 用墙纸色块 + 物件数量，后续加实时渲染 | 2026-08-06 |
 
-| # | 组件 | 需要的参考 | 原因 |
-|---|---|---|---|
-| 1 | **撕边纸边缘** | 1-2 张真实撕边纸的照片或 SVG 路径参考 | CSS clip-path 撕边形状需要参考真实锯齿形态，避免过于规则 |
-| 2 | **胶带纹理** | 透明胶带的微距照片或纹理图 | `repeating-linear-gradient` 模拟胶带半透明条纹，需要参考真实胶带的纹理间距和透明度 |
-| 3 | **Pin 图钉造型** | 你期望的图钉风格参考（极简圆点 vs 拟真图钉） | 当前 spec 定义为"圆形钉头+短柄极简线条"，但截图中显示的是拟真红色图钉，需确认最终风格 |
-| 4 | **总览页卡片缩略** | 是否需要实时渲染墙面缩略图，还是用墙纸纯色+物件数量文字即可 | 实时缩略图实现成本高（需离屏渲染），纯色预览更轻量 |
-| 5 | **Rope 松弛弧度** | 你期望的 Rope 下垂程度参考（轻微下垂 vs 明显弧形） | 贝塞尔控制点的偏移量需要视觉参考来调参 |
+---
+
+## 14. 待办事项
+
+- [ ] 实现 TopBar 组件（40px，纯白实色）
+- [ ] 实现 BottomToolbar 组件（Version B）
+- [ ] 实现 AIAssistant 组件（V1）
+- [ ] 更新所有浮窗样式为纯白实色 + 1px 边框
+- [ ] 实现 Pin 俯视图（白圈 + 金色中心点）
+- [ ] 实现 Rope 悬链线物理弧度
+- [ ] 实现 360° 自由旋转
+- [ ] 实现右键上下文菜单
+- [ ] 实现素材库弹窗（Replace Image）

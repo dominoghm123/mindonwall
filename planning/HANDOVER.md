@@ -1,11 +1,11 @@
-# Handover — Pin & Paper Journal v0.1
+# Handover — Mind on Wall v0.1
 
 **最后更新：** 2026-08-06  
 **当前阶段：** Planning 完成（PRD 已冻结 + UI 组件设计细化完成），准备进入 Implementation
 
 ## 项目一句话
 
-Pin & Paper Journal 是一个桌面优先的数字手帐网页：用户把记录、图片与灵感贴到可换墙纸的白墙上，用 Paper、Stamp 与 Rope 慢慢看见碎片间的关系。
+Mind on Wall 是一个桌面优先的数字手帐网页：用户把记录、图片与灵感贴到可换墙纸的白墙上，用 Paper、Stamp 与 Rope 慢慢看见碎片间的关系。
 
 ## MVP 范围（8 月 9 日前交付）
 

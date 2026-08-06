@@ -2,7 +2,7 @@
 
 **参考来源：** Magnific Web App (magnific.com/app)  
 **分析日期：** 2026-08-06  
-**目的：** 提取可借鉴的设计语言，对比当前 Pin & Paper Journal 布局，给出改进建议
+**目的：** 提取可借鉴的设计语言，对比当前 Mind on Wall 布局，给出改进建议
 
 ---
 
@@ -54,7 +54,7 @@ Magnific 是一个 AI 创意工具平台，其 UI 设计完全服务于"快速�
 
 ---
 
-## 2. 与 Pin & Paper Journal 的对比分析
+## 2. 与 Mind on Wall 的对比分析
 
 ### 2.1 可借鉴的设计原则
 
