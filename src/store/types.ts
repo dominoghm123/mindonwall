@@ -103,7 +103,7 @@ export interface WallSummary {
 }
 
 /** 视图模式 */
-export type ViewMode = 'wall' | 'map';
+export type ViewMode = 'wall' | 'overview' | 'map';
 
 /** Toast 消息 */
 export interface ToastMessage {

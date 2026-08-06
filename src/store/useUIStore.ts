@@ -23,6 +23,8 @@ export interface UIState {
   attachMode: string | null; // stampId
   /** AssetPicker 弹窗 */
   assetPickerOpen: string | null; // picture itemId
+  /** Rope 创建模式 */
+  ropeCreating: boolean;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -56,6 +58,8 @@ export interface UIState {
   openAssetPicker: (pictureId: string) => void;
   /** 关闭素材选择弹窗 */
   closeAssetPicker: () => void;
+  /** 设置 Rope 创建模式 */
+  setRopeCreating: (value: boolean) => void;
 }
 
 let toastCounter = 0;
@@ -64,12 +68,13 @@ export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
       selectedIds: [],
-      viewMode: 'wall',
+      viewMode: 'overview',
       expandedPopups: {},
       toasts: [],
       contextMenu: null,
       attachMode: null,
       assetPickerOpen: null,
+      ropeCreating: false,
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });
@@ -146,6 +151,10 @@ export const useUIStore = create<UIState>()(
 
       closeAssetPicker: () => {
         set({ assetPickerOpen: null });
+      },
+
+      setRopeCreating: (value: boolean) => {
+        set({ ropeCreating: value });
       },
     }),
     {

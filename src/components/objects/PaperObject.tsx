@@ -112,15 +112,23 @@ function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
 
   // 生成撕边 clip-path（上下边缘不规则锯齿）
   const clipId = `torn-clip-${item.id}`;
-  const topEdge = generateTornEdge(item.width, 0, 3, 5);
-  const bottomEdge = generateTornEdge(item.width, item.height, 3, 5);
+  const topPoints = generateTornEdge(item.width, 0, 3, 5);
+  const bottomPoints = generateTornEdge(item.width, item.height, 3, 5);
+  // 构建 SVG path: M topStart L topPoints... L bottomEnd L bottomPoints(reversed) Z
+  const pathD = [
+    `M ${topPoints[0].x} ${topPoints[0].y}`,
+    ...topPoints.slice(1).map((p) => `L ${p.x} ${p.y}`),
+    `L ${bottomPoints[bottomPoints.length - 1].x} ${bottomPoints[bottomPoints.length - 1].y}`,
+    ...bottomPoints.slice(0, -1).reverse().map((p) => `L ${p.x} ${p.y}`),
+    'Z',
+  ].join(' ');
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
           <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-            <path d={`M 0 ${topEdge} L ${item.width} ${topEdge} L ${item.width} ${bottomEdge} L 0 ${bottomEdge} Z`} />
+            <path d={pathD} />
           </clipPath>
         </defs>
       </svg>
@@ -158,17 +166,17 @@ function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
   );
 }
 
-/** 生成撕边锯齿路径的 y 坐标序列（空格分隔的坐标对） */
-function generateTornEdge(width: number, baseY: number, minAmp: number, maxAmp: number): string {
+/** 生成撕边锯齿路径的点序列 */
+function generateTornEdge(width: number, baseY: number, minAmp: number, maxAmp: number): { x: number; y: number }[] {
   const segments = Math.ceil(width / 8);
-  const points: string[] = [];
+  const points: { x: number; y: number }[] = [];
   for (let i = 0; i <= segments; i++) {
     const x = (i / segments) * width;
     const amp = minAmp + Math.random() * (maxAmp - minAmp);
     const y = baseY + (i % 2 === 0 ? -amp : amp);
-    points.push(`${x} ${y}`);
+    points.push({ x, y });
   }
-  return points.join(' L ');
+  return points;
 }
 
 /* ─── 便利贴 sticky ─── */
