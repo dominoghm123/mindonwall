@@ -1,606 +1,226 @@
-# UI Component Design — v0.2
+# UI Component Design — v0.3
 
-**状态：** 确认版（基于用户选择：1B + 2V1 + 40px）  
-**创建日期：** 2026-08-06  
-**最后更新：** 2026-08-06  
-**关联文档：** `planning/PRD.md` · `researching/VISUAL_SPEC.md` · `researching/VIBE_MOODBOARD.md` · `planning/MAGNIFIC_DESIGN_ANALYSIS.md`
-
----
-
-## 1. React 组件树与文件结构
-
-```
-src/
-├── main.tsx                          # 入口
-├── App.tsx                           # 路由：总览页 / 墙面编辑器
-── index.css                         # 全局 CSS 变量 + reset
-│
-├── store/
-│   ├── useWallStore.ts               # Zustand: 当前墙面数据（items/ropes/wallpaper/undo）
-│   ├── useOverviewStore.ts           # Zustand: 墙面列表（总览页）
-│   ├── useAssetStore.ts              # Zustand: 素材托盘（全局共享）
-│   ├── useMapStore.ts                # Zustand: Map 编辑状态（独立撤销栈）
-│   ├── useUIStore.ts                 # Zustand: UI 状态（选中/浮窗展开/Toast）
-│   └── adapters/
-│       ├── storageAdapter.ts         # 抽象接口
-│       ├── localStorageAdapter.ts    # localStorage 实现
-│       ── indexedDBAdapter.ts       # IndexedDB 实现（图片二进制）
-│
-├── pages/
-│   ├── OverviewPage.tsx              # 总览页
-│   └── WallEditor.tsx                # 墙面编辑器（画布 + 浮窗）
-│
-├── components/
-│   ├── canvas/
-│   │   ├── InfiniteCanvas.tsx        # 无限画布容器（缩放/平移/背景拖拽）
-│   │   ├── ZoomIndicator.tsx         # 缩放比例指示器 + 重置按钮
-│   │   └── SelectionBox.tsx          # 矩形框选 overlay
-│   │
-│   ├── objects/
-│   │   ├── ObjectWrapper.tsx         # 通用物件容器（拖拽/缩放/旋转/选中态/Pin）
-│   │   ├── PictureObject.tsx         # Picture 渲染
-│   │   ├── PaperObject.tsx           # Paper 渲染（4 变体）
-│   │   ├── StampObject.tsx           # Stamp 渲染
-│   │   ├── Pin.tsx                   # Pin 组件（拖拽 Rope 起点）
-│   │   └── RopeLayer.tsx             # SVG 层：Rope 曲线 + 拖拽尾巴线
-│   │
-│   ├── floating/
-│   │   ├── TopBar.tsx                # 顶部浮窗（40px，纯白实色）
-│   │   ├── BottomToolbar.tsx         # 底部工具栏（Version B: Micro Icon Row）
-│   │   └── AIAssistant.tsx           # 右侧 AI 助手浮窗（V1: Pill Tag Row）
-│   │
-│   ├── map/
-│   │   ├── ConnectionMap.tsx         # Map 视图容器
-│   │   ├── MapNode.tsx               # Map 节点卡片
-│   │   └── MapEdge.tsx               # Map 连线（SVG）
-│   │
-│   ├── overview/
-│   │   ├── WallCard.tsx              # 总览页墙面卡片
-│   │   └── ManageMode.tsx            # 管理墙多选模式
-│   │
-│   └── shared/
-│       ├── ContextMenu.tsx           # 右键上下文菜单
-│       ├── Toast.tsx                 # Toast 通知
-│       ├── ColorPicker.tsx           # 便利贴颜色选择器
-│       └── ConfirmDialog.tsx         # 二次确认弹窗
-│
-├── hooks/
-│   ├── useDrag.ts                    # 拖拽 hook（物件 + Pin）
-│   ├── useResize.ts                  # 缩放 hook（四角等比 + 边缘拉伸）
-│   ├── useRotate.ts                  # 旋转 hook（360° 自由旋转）
-│   ├── useRopeCreation.ts            # Rope 创建流程 hook
-│   ├── useMultiSelect.ts             # 多选 hook（Shift + 框选）
-│   ├── useUndo.ts                    # 撤销/重做 hook
-│   └── useKeyboard.ts                # 键盘快捷键 hook
-│
-── utils/
-    ├── ropeGeometry.ts               # Rope 贝塞尔曲线计算
-    ├── mapLayout.ts                  # Map 网格/环形布局算法
-    ├── exportPNG.ts                  # PNG 导出
-    └── wallpaperCSS.ts              # 墙纸 CSS 生成
-```
+**状态：** 修订版（整合用户 v4 反馈）
+**创建日期：** 2026-08-06
+**最后更新：** 2026-08-06
+**关联文档：** `planning/PRD.md` · `researching/VISUAL_SPEC.md` · `planning/MAGNIFIC_DESIGN_ANALYSIS.md`
 
 ---
 
-## 2. 浮窗统一样式规范
+## 设计原则
 
-**核心原则：** 纯白实色 + 1px 边框，无毛玻璃、无阴影、无透明度
-
-```css
-/* 所有浮窗统一样式 */
-.floating-panel {
-  background: #FFFFFF;          /* 纯白实色 */
-  border: 1px solid #E8E8E8;    /* 极浅边框 */
-  border-radius: 10px;          /* 适中圆角 */
-  /* NO box-shadow */
-  /* NO backdrop-filter */
-  /* NO opacity */
-}
-
-/* 分区标签（参考 Magnific） */
-.section-label {
-  font-size: 10px;
-  font-weight: 500;
-  color: #999999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* 药丸标签（用于选择器） */
-.pill-tag {
-  height: 26px;
-  padding: 0 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  border: 1px solid #E0E0E0;
-  background: transparent;
-  color: #666666;
-}
-.pill-tag.active {
-  background: #1A1A1A;
-  color: #FFFFFF;
-  border-color: #1A1A1A;
-}
-```
+1. **零投影** — 所有物件、浮窗均无 box-shadow
+2. **纯白实色浮窗** — `#FFFFFF` + 1px `#E8E8E8` 边框，无毛玻璃/透明度
+3. **超现实扁平** — 物件直接贴合墙体材质，无深度感
+4. **紧凑工具感** — 参考 Magnific/Codex，按钮 28-32px，标签 11px uppercase
+5. **层级标签** — 浮窗分区用 11px uppercase #999 标签做视觉分隔
 
 ---
 
-## 3. 顶部浮窗（TopBar）
+## 1. 浮窗系统
 
-**高度：** 40px（从 48px 压缩）  
-**背景：** 纯白 #FFFFFF + 1px 底部边框 #E8E8E8  
-**交互：** 默认隐藏，鼠标触顶后从上滑入
+### 1.1 顶部栏（40px）
+
+- **触发：** 鼠标移至屏幕最上方 → 从上滑入
+- **收拢：** 仅顶部 2px 灰色触发线
+- **样式：** 纯白 `#FFF`，1px 底边框 `#E8E8E8`，高 40px，无投影
+
+**布局（左对齐）：**
+```
+← First Mind                    ● Saved   [Map] [Export] [AI]  100%
+```
+- 左：返回箭头 `←`（16px）+ 墙名（14px bold，可编辑）— **左对齐**
+- 右：绿色圆点 + "Saved"（10px #999）| Map / Export / AI 按钮（28px 高，1px border #D0D0D9，radius 6px）| 缩放比例 "100%"（10px #999）
+
+### 1.2 底部工具栏（Version B — 微图标行）
+
+- **收拢态：** 28px × 100px 圆角药丸，纯白 + 1px border #E5E5E5，radius 14px，4 个微图标（10px #CCC）
+- **展开态（hover）：** 28px × 260px，4 个图标按钮（40×40px）+ **下方文字标签**（10px #999）
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ ← First Mind ✏️          ● Saved   Map  Export  AI  100%     │
-└─────────────────────────────────────────────────────────────┘
-  40px 高 · 纯白 · 1px 底部边框
-  左区（200px）：返回箭头 + 墙名（可点击编辑）
-  中区（自适应）：保存状态指示
-  右区（200px）：Map / Export / AI 按钮 + 缩放比例
+收拢:  [ ·  ·  ·  · ]                    ← 4 micro icons
+展开:  [ 🖼️   📄   🔵   〰️ ]            ← 14px icons
+         Image  Paper  Stamp  Rope        ← 10px labels below
 ```
 
-**元素细节：**
-- 返回箭头：20px，#333
-- 墙名：14px bold #1A1A1A + 编辑图标（12px，#999）
-- 保存状态：绿点（6px）+ "Saved"（10px，#999）
-- 按钮（Map/Export/AI）：28px 高，1px 边框 #D0D0D0，6px 圆角，12px 文字
-- 缩放比例：10px 文字 #999（非按钮，仅显示）
-- 元素间距：8px（紧凑）
+### 1.3 墙纸选择器（浮窗面板）
+
+- **触发：** 从顶部栏或右键菜单打开
+- **样式：** 浮窗面板，240px 宽，纯白 + 1px border，radius 10px
+- **标题：** "WALLPAPER"（11px uppercase #999）
+- **内容：** 3×2 网格，每个 64×44px 真实材质预览缩略图
+  - None / White / Beige / Textured / Watercolor / Kraft
+  - 当前选中：2px 蓝框 #4A90D9 + ✓
+
+### 1.4 Paper 子菜单（浮窗面板）
+
+- **触发：** 点击底部工具栏 Paper 按钮 → 弹出次级浮窗
+- **样式：** 200px 宽，纯白 + 1px border，radius 10px
+- **标题：** "PAPER"（11px uppercase #999）
+- **4 选项（纵向列表，36px 高/项）：**
+  - Note — 白纸 + 横线图标
+  - Sticky — 小方块 + 折角图标
+  - Torn — 锯齿边缘图标
+  - Tape — 半透明条纹图标
+
+### 1.5 Map 面板（浮窗）
+
+- **触发：** 点击顶部栏 Map 按钮
+- **样式：** 300px 宽浮窗，纯白 + 1px border，radius 10px
+- **标题：** "MAP"（11px uppercase #999）
+- **内容：** 墙面卡片列表，每张 270×80px
+  - 左半：**真实渲染缩略图**（显示实际照片/文字/印章的缩小版，非抽象色块）
+  - 右半：标题（13px bold）+ 描述（11px #999）
+  - 点击卡片 → 进入该墙面
+
+### 1.6 AI 面板（浮窗，从右滑入）
+
+- **触发：** 点击顶部栏 AI 按钮
+- **样式：** 320px 宽，纯白 + 1px 左边框，无投影
+- **顶栏（36px）：** "AI" 标签 + × 关闭
+- **模式切换：**
+  - `Auto` 模式（默认）：AI 自动检测选中物件并推断任务
+    - 浅蓝建议条：✨ "Detected: 2 photos from Chiang Mai" + Auto/Manual pill 切换
+  - `Manual` 模式：紧凑药丸标签行 `Name` · `Reflect` · `Title` · `Multi`
+- **对话流区域：** 聊天气泡（AI 灰 #F5F5F5 / 用户深 #1A1A1A）
+- **底部输入框：** 选中物件以 inline tag 附着在输入框内（参考 Codex）
+- **v0.1 备注：** 接口预留，AI 未接入
+
+### 1.7 物件操作面板（替代右键菜单）
+
+- **触发：** 选中物件后，在物件附近浮现
+- **样式：** 160px 宽，纯白 + 1px border，radius 8px
+- **内容：** 5 个图标按钮一行排列（28×28px）：
+  - Move（四向箭头）| Rotate（↻）| Scale（↗↙）| Color（调色板）| Delete（🗑 红色 #C0392B）
+- 通过细线连接到物件
+
+### 1.8 右键菜单（补充操作）
+
+- 操作面板处理主要操作，右键菜单提供补充：
+  - **Stamp：** Attach to Paper / Detach / Bring to Front / Send to Back / Change Color / Delete
+  - **Picture：** Replace Image / Bring to Front / Send to Back / Delete
+  - **Paper：** Change Color（Sticky 8色）/ Bring to Front / Send to Back / Delete
+  - **Rope：** Edit Note / Delete
+- 样式：纯白 + 1px border #E0E0E0，radius 8px，32px/项，**无投影**
 
 ---
 
-## 4. 底部工具栏（BottomToolbar）— Version B: Micro Icon Row
+## 2. 物件设计
 
-**选择理由：** 始终显示图标，信息密度适中，展开后加文字标签更清晰
+### 2.1 Pin（俯视图）
 
-### 4.1 布局与动画
+- 16px 圆形，白色填充 #F5F5F5，1px border #E0E0E0
+- **高光点：** 左上区域 4px 白色圆点（模拟弧面反光），使图钉可辨认
+- **中心金点：** 3px #C9A84C（针尖俯视图）
+- 可拖拽，限制在父物件范围内
 
-```
-默认态（collapsed）:
-┌─────────────────────────────────────┐
-│  [🖼] [📄] [📌] []                │  ← 4 个微图标（10px，#CCC）
-└─────────────────────────────────────┘
-  宽 100px · 高 28px · border-radius 14px
-  居中底部，距底边 24px
-  纯白 #FFF · 1px 边框 #E5E5E5
+### 2.2 Rope（加粗可见）
 
-Hover 展开态（expanded）:
-┌────────────────────────────────────────────┐
-│  [🖼 Image] [📄 Paper] [📌 Stamp] [🪢 Rope] │  ← 图标 16px + 文字 9px
-└────────────────────────────────────────────┘
-  宽 220px · 高 28px · border-radius 14px
-  图标 16px（#666）+ 文字标签 9px（#999）
-  按钮间距 8px
-```
+- 棕色曲线 #8B6914，**3px 描边**（原 1.5px）
+- 悬链线弧度：`sag = 0.3 * (L - d)`
+- 从钉头到钉头的自然下垂
 
-**展开动画：** `transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`（弹性缓动）  
-**背景：** 纯白 #FFFFFF + 1px 边框 #E5E5E5  
-**Hover 态：** 按钮背景 #F5F5F5
+### 2.3 Picture
 
-### 4.2 工具按钮
+- 原始图片矩形，无边框，无投影
+- Pin 在顶部中心
+- 支持缩放、旋转（360° 自由）
 
-| 图标 | 功能 | 行为 |
+### 2.4 Paper（4 变体，统一归 Paper 类）
+
+| 变体 | 尺寸 | 特征 |
 |---|---|---|
-| 🖼 Image | 添加图片 | 点击后进入"从素材托盘拖入"提示模式；或打开文件选择器 |
-| 📄 Paper | 添加 Paper | 点击弹出 4 变体选择（普通纸/撕边纸/便利贴/胶带），点击后在画布中心创建 |
-|  Stamp | 添加 Stamp | 点击弹出 5 色 Stamp 选择，点击后在画布中心创建 |
-| 🪢 Rope | 创建 Rope | 点击后进入 Rope 创建模式（提示"点击一个 Pin 开始"） |
+| Note | 200×120px | 白纸，手写字体，Pin 在顶部 |
+| Sticky | 140×140px | 8 预设色，折角，无 Pin（自粘） |
+| Torn | 200×120px | 米色 #F5F0E8，SVG clip-path 撕边 |
+| Tape | 180×30px | 半透明条纹，opacity 0.7，无 Pin |
 
-**注意：** 删除功能不在工具栏内，通过右键菜单或 Delete 键实现。
+- 字体："LXGW WenKai" / "Caveat"，16px
+- Note/Torn/Sticky 支持缩放、旋转
 
----
+### 2.5 Stamp
 
-## 5. AI 助手浮窗（AIAssistant）— V1: Pill Tag Row + Chat Flow
+- 圆形印章，multiply 混合模式
+- **无 Pin**（独立或附着均无）
+- 可附着到 Paper 上
+- 支持缩放、旋转
 
-**选择理由：** 药丸标签行更紧凑，对话流占主区域更符合 AI 交互习惯（参考 Codex）
+### 2.6 选中态 & 操作
 
-### 5.1 布局
-
-```
-默认：隐藏（仅顶部栏 "AI" 按钮可见）
-点击展开 → 右侧固定面板：
-
-┌──────────────────────────────┐
-│ AI                          │  ← 40px 顶栏
-├──────────────────────────────┤
-│ Name · Reflect · Title · Multi│  ← 药丸标签行，26px 高
-├──────────────────────────────┤
-│                              │
-│  [AI 对话流区域]              │  ← 占主要空间
-│  "I notice your temple..."   │
-│                              │
-├──────────────────────────────
-│ 📷 Temple  📝 Note     [×]   │  ← 选中物件 tag（Codex 风格）
-│ ──────────────────────────┐ │
-│ │ Type a message...        │ │  ← 输入框
-│ ──────────────────────────┘ │
-└──────────────────────────────┘
-  宽 320px · 最大高 60vh · 右侧距边 16px · 顶部距顶 64px
-  纯白 #FFF · 1px 左边框 #E8E8E8
-```
-
-### 5.2 交互细节
-
-- **任务切换：** 点击药丸标签 → 高亮（背景 #1A1A1A，文字白）→ 更新对话上下文
-- **对话流：** 
-  - AI 消息：左对齐，浅灰气泡 #F5F5F5，圆角，13px 文字
-  - 用户消息：右对齐，深色气泡 #1A1A1A，白色文字
-  - 占位符："Ask about your wall..."（13px，#AAA）
-- **选中物件：** 以 inline tag 形式显示在输入框上方（Codex 风格）
-  - Tag 样式：22px 高，10px 文字，背景 #F0F0F0，带 × 可移除
-- **输入框：** 36px 高，1px 边框 #E0E0E0，border-radius 8px
-- **加载态：** 对话区显示 3 点跳动动画 + "Thinking..."
-- **失败态：** "AI temporarily unavailable. Non-AI features still work."
-- **v0.1 限制：** 界面预留，AI 不接入，显示 "v0.1: AI interface reserved"
+- **选中框：** 1px 虚线 #4A90D9 + 8 resize handles（6×6px 白底蓝框）
+- **操作面板：** 选中后物件上方浮现（见 1.7）
+- **框选：** Figma 风格 — 半透明蓝填充 `rgba(74,144,217,0.08)` + 1px 虚线蓝框
 
 ---
 
-## 6. 物件交互状态机
+## 3. 总览页
 
-### 6.1 全局画布状态
+### 3.1 布局
 
-```
-IDLE ──click 背景──→ IDLE（取消选中）
-  │
-  ├──click 物件──→ SELECTED
-  ├──拖拽背景──→ PANNING ──mouseup──→ IDLE
-  ├──滚轮──→ ZOOMING（实时）
-  ├──Shift+click 物件──→ MULTI_SELECT
-  └──拖拽空白区域（按住）──→ BOX_SELECTING ──mouseup──→ MULTI_SELECT / IDLE
-```
+- 顶部栏：app 名 "Mind on Wall"（左）+ "New Wall" 按钮（右）
+- 卡片网格：3 列，16px 间距
 
-### 6.2 物件状态（单个物件）
+### 3.2 墙面卡片（280×200px）
 
-```
-IDLE ──click──→ SELECTED
-  │
-  ├──拖拽本体──→ DRAGGING ─mouseup──→ SELECTED
-  ├──拖拽角手柄──→ RESIZING_UNIFORM ─mouseup──→ SELECTED
-  ├──拖拽边手柄──→ RESIZING_STRETCH ──mouseup──→ SELECTED
-  ├──拖拽旋转手柄──→ ROTATING ──mouseup──→ SELECTED
-  ├──拖拽 Pin──→ PIN_DRAGGING ──mouseup──→ SELECTED
-  ├──Pin 拖出──→ ROPE_CREATING ──mouseup 在另一 Pin──→ IDLE（Rope 创建完成）
-  │                                              ──mouseup 空白──→ SELECTED（取消）
-  ├──双击 Paper──→ EDITING_TEXT ──blur/Enter──→ SELECTED
-  ├──双击 Rope──→ EDITING_NOTE ──blur/Enter──→ IDLE
-  ├──Delete 键──→ （删除，回到 IDLE）
-  └──click 背景──→ IDLE
-```
+- **上半（70%）：真实渲染预览** — 显示实际照片/文字/印章/绳索的缩小版
+  - 不是抽象色块，而是墙面内容的真实缩略
+- **下半（30%）：信息区**
+  - 标题（13px bold）+ 描述（11px #999）+ 物件数（10px #BBB）
+- 1px border #E8E8E8，radius 10px，无投影
+- Hover：2px 蓝框 #4A90D9
+- 点击卡片 → 进入墙面编辑
 
-**关键变更：** 旋转支持 360° 自由旋转，无 15° 吸附增量。
+### 3.3 新建卡片
 
-### 6.3 多选状态
-
-```
-MULTI_SELECT
-  ├──拖拽任一选中物件──→ DRAGGING_MULTI ──mouseup──→ MULTI_SELECT
-  ├──Shift+click 已选物件──→ 取消该物件选中
-  ├──Shift+click 未选物件──→ 加入选中
-  ├──Delete 键──→ 批量删除 → IDLE
-  └──click 背景──→ IDLE
-```
-
-### 6.4 Rope 创建流程
-
-```
-SELECTED（有 Pin 的物件）
-  ──mousedown Pin──→ ROPE_CREATING
-    ├──mousemove──→ 尾巴线跟随鼠标（SVG 虚线）
-    ├──mouseenter 另一 Pin──→ 目标 Pin 发光（#4A90D9 glow）
-    ├──mouseup 在有效 Pin──→ 创建 Rope → IDLE
-    └──mouseup 空白/ESC──→ 取消 → SELECTED
-```
+- 虚线边框 1px #D0D0D9，radius 10px
+- 中心 "+" 图标 + "New Wall" 文字
 
 ---
 
-## 7. 物件组件内部布局
-
-### 7.1 ObjectWrapper（通用容器）
-
-每个物件被 `ObjectWrapper` 包裹，负责：
-- 绝对定位（x, y, rotation, z-index）
-- 选中态虚线边框（1px dashed #4A90D9）
-- 8 个缩放手柄（四角 6×6px 方形 + 四边 10×4px 矩形）
-- 旋转手柄（角手柄 + 修饰键实现 360° 自由旋转）
-- Pin 渲染（默认上边缘中点）
-
-**选中态层级：**
-```
-ObjectWrapper
-── 内容层（Picture/Paper/Stamp 实际渲染）
-├── Pin 层（z-index: 内容层 + 1）
-── 选中边框层（z-index: 内容层 + 2）
-├── 缩放手柄层（z-index: 内容层 + 3）
-└── 旋转手柄层（z-index: 内容层 + 4）
-```
-
-### 7.2 PictureObject
+## 4. 交互状态机
 
 ```
-┌────────────────────────────┐
-│                            │
-│         <img>              │  ← object-fit: cover
-│                            │
-└────────────────────────────┘
-  无边框，无投影
-  默认 240px 宽，高度自适应（维持宽高比）
-  最小 80×80，最大 600×600
+IDLE → SELECTED → DRAGGING / RESIZING / ROTATING / PIN_DRAGGING / ROPE_CREATING / EDITING_TEXT
 ```
 
-### 7.3 PaperObject（4 变体）
-
-**普通纸（note）：**
-```
-┌────────────────────────────
-│  The quiet of temples      │  ← contenteditable
-│  makes me stay             │     font: "LXGW WenKai"/"Caveat" 16px
-│                            │     color: #1A1A1A
-│                            │     padding: 16px
-────────────────────────────┘
-  背景 #FFFFFF · 无边框 · 无投影
-  默认 200×120px
-```
-
-**撕边纸（torn）：**
-```
-  ╭──────────────────────────╮
-  │  Rainbow after rain      │  ← 同普通纸，但上下边缘
-  │  at Siam Square          │     用 SVG clip-path 模拟撕边
-  ──────────────────────────╯     （不规则锯齿，振幅 3-5px）
-  背景 #F5F0E8（微暖白）
-```
-
-**便利贴（sticky）：**
-```
-┌──────────────────┐
-│                  │  ← 140×140px 正方形
-│  Must try:       │     背景色可切换（8 预设色）
-│  Khao Soi        │     无卷角效果（完全扁平）
-│                  │
-└──────────────────┘
-```
-
-**胶带（tape）：**
-```
-┌────────────────────────────────────┐
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │  ← 180×30px
-│  半透明条纹纹理（CSS repeating-     │     无文字，纯装饰
-│  linear-gradient 模拟胶带质感）      │     opacity: 0.7
-└────────────────────────────────────┘
-```
-
-### 7.4 StampObject
-
-```
-  ┌──────────┐
-  │  ╭────╮  │  ← 80×80px 默认
-  │  │印章│  │     mix-blend-mode: multiply
-  │  ╰────╯  │     旋转角度随机（-15° 到 +15°，创建时随机）
-  └──────────     无 Pin
-```
-
-**附着在 Paper 上时：**
-- Stamp 的 `position: absolute` 相对于 Paper 容器
-- 位置用局部坐标（百分比）存储
-- z-index 高于 Paper 文字层
-- 缩放 Paper 时 Stamp 跟随缩放（相对尺寸不变）
+- 左键单击 → 选中 → 操作面板浮现
+- 左键拖拽物件 → 移动
+- 左键拖拽 Pin → 更新局部坐标
+- 左键拖拽空白 → 框选（Figma 蓝色填充）
+- Shift+Click → 多选切换
+- 右键 → 补充菜单
+- 360° 自由旋转，无角度吸附
 
 ---
 
-## 8. 右键上下文菜单
+## 5. 键盘快捷键
 
-### 8.1 触发
-
-在任意物件上右键 → 显示上下文菜单（鼠标位置）
-
-### 8.2 菜单项
-
-**Stamp 右键菜单：**
-```
-┌──────────────────────┐
-│ Attach to Paper       │  ← 仅当 Stamp 独立时显示
-│ Detach                │  ← 仅当 Stamp 已附着时显示
-│ ──────────────────── │
-│ Bring to Front        │
-│ Send to Back          │
-│ ──────────────────── │
-│ Change Color          │  ← 显示 5 色选项（蓝/灰/红/绿/黄）
-│ ──────────────────── │
-│ Delete                │  ← 红色文字 #C0392B
-──────────────────────┘
-```
-
-**Picture 右键菜单：**
-```
-┌──────────────────────┐
-│ Replace Image         │  ← 打开素材库弹窗
-│ ──────────────────── │
-│ Bring to Front        │
-│ Send to Back          │
-│ ──────────────────── │
-│ Delete                │
-└──────────────────────┘
-```
-
-**Paper 右键菜单：**
-```
-┌──────────────────────┐
-│ Change Color          │  ← 仅 sticky 变体时显示（8 色）
-│ ──────────────────── │
-│ Bring to Front        │
-│ Send to Back          │
-│ ──────────────────── │
-│ Delete                │
-└──────────────────────┘
-```
-
-**Rope 右键菜单：**
-```
-──────────────────────┐
-│ Edit Note             │
-│ ──────────────────── │
-│ Delete                │
-└──────────────────────┘
-```
-
-### 8.3 视觉
-
-- 背景 `#FFFFFF`（纯白实色）
-- `border: 1px solid #E0E0E0` · `border-radius: 8px`
-- **无投影**
-- 菜单项高 32px，hover 背景 `#F5F5F5`
-- 分割线 `1px solid #EEE`
-- 点击菜单外区域 → 关闭
+| 快捷键 | 功能 |
+|---|---|
+| Ctrl+Z / Ctrl+Shift+Z | 撤销/重做 |
+| Delete / Backspace | 删除选中 |
+| Escape | 取消选中/退出模式 |
+| Shift+Click | 多选切换 |
+| Ctrl+A | 全选 |
+| M | 进入 Map |
+| Space（按住） | 拖拽画布 |
+| +/- | 缩放 |
+| 0 | 重置缩放 |
 
 ---
 
-## 9. Toast 通知系统
+## 6. 设计决策记录
 
-### 9.1 位置与样式
-
-- 位置：顶部栏下方居中（距顶 60px）
-- 样式：`background: #333` · `color: #FFF` · `border-radius: 8px` · `padding: 10px 20px` · `font-size: 13px`
-- 动画：从顶部滑入（0.3s ease-out），3s 后自动消失（0.3s fade-out）
-
-### 9.2 Toast 类型
-
-| 场景 | 文案 | 类型 |
+| 决策 | 选择 | 原因 |
 |---|---|---|
-| 物件达上限 | "Object limit reached (50/50)" | warning（橙色左边框） |
-| 图片上传成功 | "Image added to tray" | success（绿色左边框） |
-| 图片过大 | "Image exceeds 10MB limit" | error（红色左边框） |
-| 图片配额满 | "User image limit reached (12/12)" | warning |
-| 存储不可用 | "Local storage unavailable. Content won't auto-save." | error |
-| IndexedDB 满 | "Storage full. Please export and clean up." | error |
-| AI 不可用 | "AI temporarily unavailable" | info（蓝色左边框） |
-| 导出成功 | "PNG exported" | success |
-| 导出失败 | "Export failed. Please retry." | error |
-| 撤销 | "Undone" | info |
-| 重做 | "Redone" | info |
-
----
-
-## 10. Connection Map 节点设计
-
-### 10.1 Map 节点卡片（MapNode）
-
-```
-┌──────────────────────┐
-│  ┌────────────────┐  │
-│  │                │  │  ← 缩略图（64×48px，object-fit: cover）
-│  │    Thumbnail   │  │
-│  └────────────────┘  │
-│  Travel Notes         │  ← 标题（12px，#1A1A1A，单行截断）
-│  Project              │  ← 类型标签（10px，#999）
-└──────────────────────┘
-  宽 120px · 背景 #FFF · border-radius: 8px
-  border: 1px solid #E8E8E8
-  选中态：border 2px solid #4A90D9 + 轻微蓝色光晕
-  拖拽中：box-shadow: 0 4px 16px rgba(74,144,217,0.3)
-```
-
-### 10.2 Map 连线（MapEdge）
-
-- SVG 二次贝塞尔曲线（同 Rope 视觉风格但更细）
-- 线宽 1.5px · 颜色 `#B0A090`（比 Rope 浅）
-- 选中态：2px · `#4A90D9`
-- 关联说明标签：沿曲线中点放置，背景白，padding 2px 6px，font-size 11px
-
-### 10.3 布局算法
-
-**输入：** 节点列表（含缩略图、标题、类型）+ 连线列表（含说明）  
-**输出：** 每个节点的 (x, y) 坐标
-
-**网格布局：**
-- 计算节点总数 N
-- 列数 = ceil(sqrt(N * 1.6))（宽屏偏宽）
-- 行间距 160px，列间距 180px
-- 节点不重叠检测：若两节点距离 < 140px，微调位置
-
-**环形布局（备选）：**
-- 中心点 = 画布中心
-- 半径 = max(200, N * 30)
-- 均匀分布角度 = 360° / N
-- 中心区域留给交叉连线
-
-### 10.4 Map 编辑规则
-
-- 节点可拖拽重排（位置存入 `mapViewState`，不写回白墙）
-- 右键节点 → "隐藏子元素"（隐藏该节点关联的 Stamp 等子物件）
-- 独立撤销栈：Ctrl+Z 仅撤销 Map 编辑操作
-- 切回白墙视图时，Map 编辑状态保留（下次进入 Map 时恢复）
-
----
-
-## 11. 缩放/平移控件
-
-### 11.1 缩放指示器
-
-**位置：** 整合进顶部浮窗最右侧（10px 文字 #999）  
-**交互：** 
-- 点击 "100%" → 弹出小面板（+/- 按钮 + 重置）
-- 滚轮缩放：20%-300%，以鼠标位置为中心
-- 双击 "100%" → 重置为 100%
-
-### 11.2 平移
-
-- 鼠标左键拖拽空白背景 → 平移画布
-- 平移时鼠标变为 `grab` → `grabbing`
-- 触控板双指平移原生支持
-
-### 11.3 初始视图
-
-- 空墙：固定 100%，画布中心
-- 有内容：自适应缩放使全部物件可见（计算包围盒，取 min(画布宽/包围盒宽, 画布高/包围盒高) * 0.9，限制在 20%-300%）
-
----
-
-## 12. 键盘快捷键清单
-
-| 快捷键 | 功能 | 作用域 |
-|---|---|---|
-| `Ctrl+Z` | 撤销 | 白墙 / Map（各自独立栈） |
-| `Ctrl+Shift+Z` | 重做 | 白墙 / Map |
-| `Delete` / `Backspace` | 删除选中物件 | 白墙（多选时批量删除） |
-| `Escape` | 取消当前操作 / 取消选中 | 全局 |
-| `Shift + Click` | 多选物件 | 白墙 |
-| `Ctrl+A` | 全选 | 白墙 |
-| `Ctrl+S` | 手动保存（触发持久化） | 全局 |
-| `Ctrl+E` | 导出 PNG | 全局 |
-| `1` / `2` / `3` | 切换墙纸（快捷） | 白墙 |
-| `M` | 切换 Map / 白墙视图 | 白墙 |
-| `Space`（按住） | 临时切换为平移模式 | 白墙 |
-| `+` / `-` | 缩放 ±10% | 白墙 |
-| `0` | 重置缩放至 100% | 白墙 |
-
----
-
-## 13. 设计决策记录
-
-| 决策 | 结论 | 日期 |
-|---|---|---|
-| 底部工具栏版本 | Version B（Micro Icon Row） | 2026-08-06 |
-| AI 面板版本 | V1（Pill Tag Row + Chat Flow） | 2026-08-06 |
-| 顶部浮窗高度 | 40px（从 48px 压缩） | 2026-08-06 |
-| 浮窗背景 | 纯白实色 + 1px 边框，无毛玻璃 | 2026-08-06 |
-| 项目命名 | Mind on Wall（从 Pin & Paper Journal 改名） | 2026-08-06 |
-| Pin 风格 | 俯视图，白圈 + 金色中心点 | 2026-08-06 |
-| Rope 弧度 | 悬链线物理模拟（sag = k × (L - d)） | 2026-08-06 |
-| 旋转角度 | 360° 自由旋转，无吸附 | 2026-08-06 |
-| 总览页缩略 | v0.1 用墙纸色块 + 物件数量，后续加实时渲染 | 2026-08-06 |
-
----
-
-## 14. 待办事项
-
-- [ ] 实现 TopBar 组件（40px，纯白实色）
-- [ ] 实现 BottomToolbar 组件（Version B）
-- [ ] 实现 AIAssistant 组件（V1）
-- [ ] 更新所有浮窗样式为纯白实色 + 1px 边框
-- [ ] 实现 Pin 俯视图（白圈 + 金色中心点）
-- [ ] 实现 Rope 悬链线物理弧度
-- [ ] 实现 360° 自由旋转
-- [ ] 实现右键上下文菜单
-- [ ] 实现素材库弹窗（Replace Image）
+| 底部工具栏 | Version B（微图标行） | 收拢态即可识别功能 |
+| AI 面板 | V1（药丸标签 + 对话流） | 紧凑 + Codex 风格 |
+| 顶部栏高度 | 40px | 紧凑但不拥挤 |
+| 浮窗材质 | 纯白实色 + 1px 边框 | 去毛玻璃，超现实扁平 |
+| 墙名位置 | 左对齐 | 更符合阅读习惯 |
+| 物件操作 | 浮窗面板（非右键） | 更直觉，减少隐藏操作 |
+| 框选样式 | Figma 蓝色填充 | 用户熟悉的标准交互 |
+| Rope 粗细 | 3px（原 1.5px） | 提高可见性 |
+| Pin 高光 | 左上 4px 白点 | 增加图钉辨识度 |
+| 总览卡片 | 真实内容预览 | 非抽象色块，直观展示 |
+| AI 模式 | Auto + Manual 双模式 | 降低操作门槛 |
