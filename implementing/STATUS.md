@@ -33,7 +33,7 @@
 | 0: 数据层基础 | ✅ 完成 | `feature/slice0-data-layer` — 11 stores + adapters + undo + initialData |
 | 1: 画布渲染 | ✅ 完成 | `feature/slice1-canvas-render` — InfiniteCanvas + 5 object components + Pin + RopeLayer |
 | 2: 交互层 | not started | Rope创建 + 多选 + 键盘 |
-| 3: Stamp双状态 | not started | 附着/独立 + 右键菜单 |
+| 3: Stamp双状态 | ✅ 完成 | 附着/独立 + 右键菜单 + AssetPicker + bringToFront/sendToBack |
 | 4: UI浮窗 | not started | 底部工具栏 + 左侧托盘 + 顶部 |
 | 5: 多墙面+托盘 | not started | 总览页数据 + CRUD |
 | 6: Connection Map | not started | 网格排布 + 独立撤销 |

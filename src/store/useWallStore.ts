@@ -74,6 +74,14 @@ interface WallState {
   loadWall: (data: { wallId: string; name: string; wallpaper: WallpaperType; items: Item[]; ropes: Rope[] }) => void;
   /** 获取 Item 的 Pin 世界坐标 */
   getPinWorldPos: (itemId: string) => { x: number; y: number } | null;
+  /** 附着 Stamp 到 Paper（设置 parentId，计算局部坐标百分比） */
+  attachStamp: (stampId: string, paperId: string) => void;
+  /** 解除 Stamp 附着（清除 parentId，保持绝对位置） */
+  detachStamp: (stampId: string) => void;
+  /** 将物件移到最前（渲染顺序最后） */
+  bringToFront: (itemId: string) => void;
+  /** 将物件移到最后（渲染顺序最前） */
+  sendToBack: (itemId: string) => void;
 }
 
 export const useWallStore = create<WallState>()(
@@ -306,6 +314,90 @@ export const useWallStore = create<WallState>()(
         const item = get().items.find((i) => i.id === itemId);
         if (!item) return null;
         return getPinWorldPosition(item);
+      },
+
+      attachStamp: (stampId: string, paperId: string) => {
+        const { items, undoStack } = get();
+        const stamp = items.find((i) => i.id === stampId && i.type === 'stamp');
+        const paper = items.find((i) => i.id === paperId && i.type === 'paper');
+        if (!stamp || !paper) return;
+
+        // 计算 Stamp 相对于 Paper 的局部坐标（百分比）
+        const localX = (stamp.x - paper.x) / paper.width;
+        const localY = (stamp.y - paper.y) / paper.height;
+
+        const before: Partial<Item> = { parentId: stamp.parentId, x: stamp.x, y: stamp.y };
+        const after: Partial<Item> = { parentId: paperId, x: localX, y: localY };
+
+        const action: UndoAction = {
+          type: 'edit',
+          itemId: stampId,
+          before,
+          after,
+          timestamp: Date.now(),
+        };
+
+        set({
+          items: items.map((i) =>
+            i.id === stampId
+              ? { ...i, parentId: paperId, x: localX, y: localY }
+              : i
+          ),
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      detachStamp: (stampId: string) => {
+        const { items, undoStack } = get();
+        const stamp = items.find((i) => i.id === stampId && i.type === 'stamp');
+        if (!stamp || !stamp.parentId) return;
+
+        const paper = items.find((i) => i.id === stamp.parentId);
+        if (!paper) return;
+
+        // 将局部坐标（百分比）转回绝对坐标
+        const absX = stamp.x * paper.width + paper.x;
+        const absY = stamp.y * paper.height + paper.y;
+
+        const before: Partial<Item> = { parentId: stamp.parentId, x: stamp.x, y: stamp.y };
+        const after: Partial<Item> = { parentId: undefined, x: absX, y: absY };
+
+        const action: UndoAction = {
+          type: 'edit',
+          itemId: stampId,
+          before,
+          after,
+          timestamp: Date.now(),
+        };
+
+        set({
+          items: items.map((i) =>
+            i.id === stampId
+              ? { ...i, parentId: undefined, x: absX, y: absY }
+              : i
+          ),
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      bringToFront: (itemId: string) => {
+        const { items } = get();
+        const idx = items.findIndex((i) => i.id === itemId);
+        if (idx < 0 || idx === items.length - 1) return;
+        const item = items[idx];
+        const newItems = [...items.slice(0, idx), ...items.slice(idx + 1), item];
+        set({ items: newItems });
+      },
+
+      sendToBack: (itemId: string) => {
+        const { items } = get();
+        const idx = items.findIndex((i) => i.id === itemId);
+        if (idx <= 0) return;
+        const item = items[idx];
+        const newItems = [item, ...items.slice(0, idx), ...items.slice(idx + 1)];
+        set({ items: newItems });
       },
     }),
     {

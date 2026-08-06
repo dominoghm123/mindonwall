@@ -8,13 +8,14 @@ interface RopeLayerProps {
   /** 拖拽中的尾巴线起点坐标 */
   dragTail?: { x: number; y: number; endX: number; endY: number } | null;
   onRopeClick?: (id: string) => void;
+  onRopeContextMenu?: (id: string, x: number, y: number) => void;
 }
 
 /**
  * SVG Rope 层。
  * 全屏 overlay，pointer-events: none（Rope 本身 pointer-events: auto）。
  */
-export function RopeLayer({ ropes, items, selectedRopeId, dragTail, onRopeClick }: RopeLayerProps) {
+export function RopeLayer({ ropes, items, selectedRopeId, dragTail, onRopeClick, onRopeContextMenu }: RopeLayerProps) {
   const itemMap = new Map(items.map((i) => [i.id, i]));
 
   return (
@@ -57,6 +58,11 @@ export function RopeLayer({ ropes, items, selectedRopeId, dragTail, onRopeClick 
             strokeLinecap="round"
             style={{ pointerEvents: 'auto', cursor: 'pointer' }}
             onClick={() => onRopeClick?.(rope.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onRopeContextMenu?.(rope.id, e.clientX, e.clientY);
+            }}
           />
         );
       })}

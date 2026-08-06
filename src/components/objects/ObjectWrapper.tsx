@@ -1,5 +1,7 @@
 import { useCallback, useRef, type ReactNode } from 'react';
 import type { Item, PinOffset } from '../../store/types';
+import { useUIStore } from '../../store/useUIStore';
+import { useWallStore } from '../../store/useWallStore';
 import { Pin } from './Pin';
 
 interface ObjectWrapperProps {
@@ -33,6 +35,26 @@ export function ObjectWrapper({
   const resizeRef = useRef<{ dir: ResizeDir; startX: number; startY: number; w: number; h: number; ix: number; iy: number } | null>(null);
   const rotateRef = useRef<{ startAngle: number; itemRotation: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const openContextMenu = useUIStore((s) => s.openContextMenu);
+  const attachMode = useUIStore((s) => s.attachMode);
+  const cancelAttachMode = useUIStore((s) => s.cancelAttachMode);
+  const attachStamp = useWallStore((s) => s.attachStamp);
+
+  /* ── 右键菜单 ── */
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openContextMenu(item.id, e.clientX, e.clientY);
+  }, [item.id, openContextMenu]);
+
+  /* ── 附着模式：点击 Paper 完成附着 ── */
+  const handleClickForAttach = useCallback(() => {
+    if (attachMode && item.type === 'paper') {
+      attachStamp(attachMode, item.id);
+      cancelAttachMode();
+    }
+  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode]);
 
   /* ── 物件拖拽移动 ── */
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -119,11 +141,14 @@ export function ObjectWrapper({
         height: item.height,
         transform: `rotate(${item.rotation}deg)`,
         zIndex,
-        cursor: 'move',
+        cursor: attachMode && item.type === 'paper' ? 'crosshair' : 'move',
+        outline: attachMode && item.type === 'paper' ? '2px dashed #4A90D9' : undefined,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onContextMenu={handleContextMenu}
+      onClick={handleClickForAttach}
     >
       {/* 物件内容 */}
       <div style={{ width: '100%', height: '100%', overflow: 'visible' }}>

@@ -1,5 +1,7 @@
 import { useRef, useCallback } from 'react';
 import type { Item } from '../../store/types';
+import { useWallStore } from '../../store/useWallStore';
+import { StampObject } from './StampObject';
 
 interface PaperObjectProps {
   item: Item;
@@ -11,18 +13,48 @@ interface PaperObjectProps {
  */
 export function PaperObject({ item, onTextChange }: PaperObjectProps) {
   const variant = item.variant ?? 'note';
+  const items = useWallStore((s) => s.items);
+  // 查询附着在当前 Paper 上的 Stamp
+  const attachedStamps = items.filter(
+    (i) => i.type === 'stamp' && i.parentId === item.id
+  );
 
-  switch (variant) {
-    case 'torn':
-      return <TornPaper item={item} onTextChange={onTextChange} />;
-    case 'sticky':
-      return <StickyNote item={item} onTextChange={onTextChange} />;
-    case 'tape':
-      return <TapeStrip />;
-    case 'note':
-    default:
-      return <NotePaper item={item} onTextChange={onTextChange} />;
-  }
+  const renderContent = () => {
+    switch (variant) {
+      case 'torn':
+        return <TornPaper item={item} onTextChange={onTextChange} />;
+      case 'sticky':
+        return <StickyNote item={item} onTextChange={onTextChange} />;
+      case 'tape':
+        return <TapeStrip />;
+      case 'note':
+      default:
+        return <NotePaper item={item} onTextChange={onTextChange} />;
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {renderContent()}
+      {/* 渲染附着的 Stamp 子物件（位置用百分比，跟随 Paper 变换） */}
+      {attachedStamps.map((stamp) => (
+        <div
+          key={stamp.id}
+          style={{
+            position: 'absolute',
+            left: `${stamp.x * 100}%`,
+            top: `${stamp.y * 100}%`,
+            width: stamp.width,
+            height: stamp.height,
+            pointerEvents: 'none',
+            zIndex: 5,
+          }}
+        >
+          <StampObject item={stamp} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* ─── 普通纸 note ─── */

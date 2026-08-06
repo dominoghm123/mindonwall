@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ViewMode, ToastMessage } from './types';
 
+/** 右键菜单位置 */
+export interface ContextMenuPosition {
+  x: number;
+  y: number;
+}
+
 interface UIState {
   /** 选中物件 IDs（支持多选） */
   selectedIds: string[];
@@ -11,6 +17,12 @@ interface UIState {
   expandedPopups: Record<string, boolean>;
   /** Toast 消息队列 */
   toasts: ToastMessage[];
+  /** 右键菜单状态 */
+  contextMenu: { type: 'item'; itemId: string; x: number; y: number } | { type: 'rope'; ropeId: string; x: number; y: number } | null;
+  /** “选择目标 Paper” 附着模式 */
+  attachMode: string | null; // stampId
+  /** AssetPicker 弹窗 */
+  assetPickerOpen: string | null; // picture itemId
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -30,6 +42,20 @@ interface UIState {
   showToast: (text: string, type?: ToastMessage['type'], duration?: number) => void;
   /** 移除 Toast */
   removeToast: (id: string) => void;
+  /** 打开物件右键菜单 */
+  openContextMenu: (itemId: string, x: number, y: number) => void;
+  /** 打开 Rope 右键菜单 */
+  openRopeContextMenu: (ropeId: string, x: number, y: number) => void;
+  /** 关闭右键菜单 */
+  closeContextMenu: () => void;
+  /** 进入附着模式 */
+  startAttachMode: (stampId: string) => void;
+  /** 退出附着模式 */
+  cancelAttachMode: () => void;
+  /** 打开素材选择弹窗 */
+  openAssetPicker: (pictureId: string) => void;
+  /** 关闭素材选择弹窗 */
+  closeAssetPicker: () => void;
 }
 
 let toastCounter = 0;
@@ -41,6 +67,9 @@ export const useUIStore = create<UIState>()(
       viewMode: 'wall',
       expandedPopups: {},
       toasts: [],
+      contextMenu: null,
+      attachMode: null,
+      assetPickerOpen: null,
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });
@@ -89,6 +118,34 @@ export const useUIStore = create<UIState>()(
 
       removeToast: (id: string) => {
         set({ toasts: get().toasts.filter((t) => t.id !== id) });
+      },
+
+      openContextMenu: (itemId: string, x: number, y: number) => {
+        set({ contextMenu: { type: 'item', itemId, x, y } });
+      },
+
+      openRopeContextMenu: (ropeId: string, x: number, y: number) => {
+        set({ contextMenu: { type: 'rope', ropeId, x, y } });
+      },
+
+      closeContextMenu: () => {
+        set({ contextMenu: null });
+      },
+
+      startAttachMode: (stampId: string) => {
+        set({ attachMode: stampId, contextMenu: null });
+      },
+
+      cancelAttachMode: () => {
+        set({ attachMode: null });
+      },
+
+      openAssetPicker: (pictureId: string) => {
+        set({ assetPickerOpen: pictureId, contextMenu: null });
+      },
+
+      closeAssetPicker: () => {
+        set({ assetPickerOpen: null });
       },
     }),
     {
