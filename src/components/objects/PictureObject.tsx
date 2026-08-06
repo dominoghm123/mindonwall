@@ -10,7 +10,7 @@ interface PictureObjectProps {
  */
 export function PictureObject({ item }: PictureObjectProps) {
   // assetId 作为图片 URL 的占位（后续由资源层替换为真实 URL）
-  const src = item.assetId ? `/demo-assets/${item.assetId}` : '';
+  const src = item.assetId ? `/demo-assets/${item.assetId}.jpg` : '';
 
   return (
     <div

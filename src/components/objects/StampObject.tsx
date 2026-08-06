@@ -29,7 +29,11 @@ export function StampObject({ item }: StampObjectProps) {
     return ((Math.abs(hash) % 300) - 150) / 10; // -15.0 ~ +15.0
   }, [item.id]);
 
-  const src = item.stampId ? STAMP_MAP[item.stampId] ?? `/demo-assets/stamps/${item.stampId}` : '';
+  // stampId may have 'stamp-' prefix; normalize for STAMP_MAP lookup
+  const normalizedId = item.stampId?.replace(/^stamp-/, '') ?? '';
+  const src = normalizedId
+    ? STAMP_MAP[normalizedId] ?? `/demo-assets/stamps/${item.stampId}.png`
+    : '';
 
   return (
     <div

@@ -137,25 +137,29 @@ function App() {
             />
 
             {/* Items */}
-            {items.map((item, index) => (
-              <ObjectWrapper
-                key={item.id}
-                item={item}
-                selected={selectedIds.includes(item.id)}
-                zIndex={index + 2}
-                onSelect={multiSelect.handleSelect}
-                onPinDragEnd={handlePinDragEnd}
-                isRopeCreating={ropeCreating}
-                isRopeTarget={ropeCreation.ropeTargetId === item.id}
-                onPinRopeStart={ropeCreation.handlePinMouseDown}
-              >
-                {item.type === 'picture' && <PictureObject item={item} />}
-                {item.type === 'paper' && (
-                  <PaperObject item={item} onTextChange={handleTextChange} />
-                )}
-                {item.type === 'stamp' && <StampObject item={item} />}
-              </ObjectWrapper>
-            ))}
+            {items.map((item, index) => {
+              // 附着在 Paper 上的 Stamp 由 PaperObject 内部渲染，跳过独立渲染
+              if (item.type === 'stamp' && item.parentId) return null;
+              return (
+                <ObjectWrapper
+                  key={item.id}
+                  item={item}
+                  selected={selectedIds.includes(item.id)}
+                  zIndex={index + 2}
+                  onSelect={multiSelect.handleSelect}
+                  onPinDragEnd={handlePinDragEnd}
+                  isRopeCreating={ropeCreating}
+                  isRopeTarget={ropeCreation.ropeTargetId === item.id}
+                  onPinRopeStart={ropeCreation.handlePinMouseDown}
+                >
+                  {item.type === 'picture' && <PictureObject item={item} />}
+                  {item.type === 'paper' && (
+                    <PaperObject item={item} onTextChange={handleTextChange} />
+                  )}
+                  {item.type === 'stamp' && <StampObject item={item} />}
+                </ObjectWrapper>
+              );
+            })}
           </InfiniteCanvas>
         </SelectionBox>
       </div>

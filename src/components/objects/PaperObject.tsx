@@ -36,23 +36,28 @@ export function PaperObject({ item, onTextChange }: PaperObjectProps) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {renderContent()}
-      {/* 渲染附着的 Stamp 子物件（位置用百分比，跟随 Paper 变换） */}
-      {attachedStamps.map((stamp) => (
-        <div
-          key={stamp.id}
-          style={{
-            position: 'absolute',
-            left: `${stamp.x * 100}%`,
-            top: `${stamp.y * 100}%`,
-            width: stamp.width,
-            height: stamp.height,
-            pointerEvents: 'none',
-            zIndex: 5,
-          }}
-        >
-          <StampObject item={stamp} />
-        </div>
-      ))}
+      {/* 渲染附着的 Stamp 子物件（位置跟随 Paper 变换） */}
+      {attachedStamps.map((stamp) => {
+        // 兼容绝对像素坐标（x > 1）和比例坐标（0-1）
+        const leftPct = stamp.x > 1 ? ((stamp.x - item.x) / item.width) * 100 : stamp.x * 100;
+        const topPct = stamp.y > 1 ? ((stamp.y - item.y) / item.height) * 100 : stamp.y * 100;
+        return (
+          <div
+            key={stamp.id}
+            style={{
+              position: 'absolute',
+              left: `${leftPct}%`,
+              top: `${topPct}%`,
+              width: stamp.width,
+              height: stamp.height,
+              pointerEvents: 'none',
+              zIndex: 5,
+            }}
+          >
+            <StampObject item={stamp} />
+          </div>
+        );
+      })}
     </div>
   );
 }
