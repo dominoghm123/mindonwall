@@ -25,17 +25,18 @@
 - **收拢：** 仅顶部 2px 灰色触发线
 - **样式：** 纯白 `#FFF`，1px 底边框 `#E8E8E8`，高 40px，无投影
 
-**布局（左对齐）：**
+**布局（左对齐，v0.2 修订）：**
 ```
-← First Mind                    ● Saved   [Map] [Export] [AI]  100%
+← Wall 01                    ● Saved   [Share]  (头像)
 ```
 - 左：返回箭头 `←`（16px）+ 墙名（14px bold，可编辑）— **左对齐**
-- 右：绿色圆点 + "Saved"（10px #999）| Map / Export / AI 按钮（28px 高，1px border #D0D0D9，radius 6px）| 缩放比例 "100%"（10px #999）
+- 右：绿色圆点 + "Saved" | Share 按钮 | 头像入口（下拉菜单：Profile / Materials / Settings）
 
-### 1.2 底部工具栏（Version B — 微图标行）
+### 1.2 底部工具栏（v0.2 修订 — hover 浮出）
 
-- **收拢态：** 28px × 100px 圆角药丸，纯白 + 1px border #E5E5E5，radius 14px，4 个微图标（10px #CCC）
-- **展开态（hover）：** 28px × 260px，4 个图标按钮（40×40px）+ **下方文字标签**（10px #999）
+- **默认隐藏**：鼠标 hover 屏幕底部时从下往上滑出，离开后收回
+- **展开态：** 48px 高胶囊条，4 个图标按钮（Image / Paper / Stamp / Rope）；点击图标向上弹出次级面板（同时只能开一个）
+- **缩放/Map 浮窗：** 右下角，默认隐藏，hover 时由右向左滑出（−/百分比/+ | Fit | Map）
 
 ```
 收拢:  [ ·  ·  ·  · ]                    ← 4 micro icons
@@ -169,6 +170,7 @@
 - 1px border #E8E8E8，radius 10px，无投影
 - Hover：2px 蓝框 #4A90D9
 - 点击卡片 → 进入墙面编辑
+- **三点菜单（⋮）：卡片右下角**（硬要求，v0.2 确认）；菜单含 Rename / Duplicate / Export JSON / Share / Delete
 
 ### 3.3 新建卡片
 
@@ -189,7 +191,7 @@ IDLE → SELECTED → DRAGGING / RESIZING / ROTATING / PIN_DRAGGING / ROPE_CREAT
 - 左键拖拽空白 → 框选（Figma 蓝色填充）
 - Shift+Click → 多选切换
 - 右键 → 补充菜单
-- 360° 自由旋转，无角度吸附
+- 旋转：长按选中框顶部区域 → 拖动旋转，松手停止；0°/90°/180°/270°/360° 磁性吸附停顿（v0.2 修订，原为无角度吸附）
 
 ---
 
