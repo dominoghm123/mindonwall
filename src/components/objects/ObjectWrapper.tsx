@@ -22,8 +22,11 @@ interface ObjectWrapperProps {
   onPinDragEnd?: (id: string, offset: PinOffset) => void;
   /** Rope 创建相关 */
   isRopeTarget?: boolean;
+  isRopeSource?: boolean;
   isRopeCreating?: boolean;
   onPinRopeStart?: (itemId: string, e: React.PointerEvent) => void;
+  /** v0.2: Rope 点击连线模式下 Pin 被点击 */
+  onPinRopeClick?: (itemId: string) => void;
 }
 
 /** 手柄光标映射 */
@@ -61,8 +64,10 @@ export function ObjectWrapper({
   onRotate,
   onPinDragEnd,
   isRopeTarget,
+  isRopeSource,
   isRopeCreating,
   onPinRopeStart,
+  onPinRopeClick,
 }: ObjectWrapperProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   /** 当前活跃交互模式（ref 避免闭包 stale state） */
@@ -387,8 +392,10 @@ export function ObjectWrapper({
           onDragEnd={(offset) => onPinDragEnd?.(item.id, offset)}
           itemId={item.id}
           isRopeTarget={isRopeTarget}
+          isRopeSource={isRopeSource}
           isRopeCreating={isRopeCreating}
           onRopeStart={onPinRopeStart}
+          onRopePinClick={onPinRopeClick}
         />
       )}
     </div>

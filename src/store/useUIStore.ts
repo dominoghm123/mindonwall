@@ -25,6 +25,10 @@ export interface UIState {
   assetPickerOpen: string | null; // picture itemId
   /** Rope 创建模式 */
   ropeCreating: boolean;
+  /** v0.2: Rope 点击连线模式（工具栏激活） */
+  ropeMode: boolean;
+  /** v0.2: 底部工具栏当前打开的次级面板（同时只能开一个） */
+  toolbarPanel: 'image' | 'paper' | 'stamp' | null;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -60,6 +64,12 @@ export interface UIState {
   closeAssetPicker: () => void;
   /** 设置 Rope 创建模式 */
   setRopeCreating: (value: boolean) => void;
+  /** v0.2: 设置 Rope 点击连线模式 */
+  setRopeMode: (value: boolean) => void;
+  /** v0.2: 切换工具栏次级面板（再点同一图标关闭） */
+  toggleToolbarPanel: (panel: 'image' | 'paper' | 'stamp') => void;
+  /** v0.2: 关闭次级面板 */
+  closeToolbarPanel: () => void;
 }
 
 let toastCounter = 0;
@@ -75,6 +85,8 @@ export const useUIStore = create<UIState>()(
       attachMode: null,
       assetPickerOpen: null,
       ropeCreating: false,
+      ropeMode: false,
+      toolbarPanel: null,
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });
@@ -155,6 +167,20 @@ export const useUIStore = create<UIState>()(
 
       setRopeCreating: (value: boolean) => {
         set({ ropeCreating: value });
+      },
+
+      setRopeMode: (value: boolean) => {
+        // 进入连线模式时关闭次级面板
+        set(value ? { ropeMode: true, toolbarPanel: null } : { ropeMode: false });
+      },
+
+      toggleToolbarPanel: (panel) => {
+        const cur = get().toolbarPanel;
+        set({ toolbarPanel: cur === panel ? null : panel, ropeMode: false });
+      },
+
+      closeToolbarPanel: () => {
+        set({ toolbarPanel: null });
       },
     }),
     {

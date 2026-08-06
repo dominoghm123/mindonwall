@@ -13,10 +13,14 @@ interface PinProps {
   itemId?: string;
   /** 是否为 Rope 创建目标（发光效果） */
   isRopeTarget?: boolean;
-  /** Rope 创建时 Pin mousedown 回调 */
+  /** 是否为 Rope 连线起点（高亮） */
+  isRopeSource?: boolean;
+  /** Rope 创建时 Pin mousedown 回调（旧拖拽模式） */
   onRopeStart?: (itemId: string, e: React.PointerEvent) => void;
   /** 是否处于 Rope 创建模式（禁用拖拽） */
   isRopeCreating?: boolean;
+  /** v0.2: Rope 点击连线模式下 Pin 被点击 */
+  onRopePinClick?: (itemId: string) => void;
 }
 
 const PIN_SIZE = 14;
@@ -35,8 +39,10 @@ export function Pin({
   onDragEnd,
   itemId,
   isRopeTarget,
+  isRopeSource,
   onRopeStart,
   isRopeCreating,
+  onRopePinClick,
 }: PinProps) {
   const [hovered, setHovered] = useState(false);
   const dragging = useRef(false);
@@ -50,7 +56,13 @@ export function Pin({
       e.stopPropagation();
       e.preventDefault();
 
-      // Rope 创建模式：通知父组件
+      // Rope 点击连线模式（v0.2）：直接走点击流程，不拖拽
+      if (isRopeCreating && itemId && onRopePinClick) {
+        onRopePinClick(itemId);
+        return;
+      }
+
+      // Rope 创建模式（旧）：通知父组件
       if (isRopeCreating && itemId && onRopeStart) {
         onRopeStart(itemId, e);
         return;
@@ -59,7 +71,7 @@ export function Pin({
       dragging.current = true;
       (e.target as Element).setPointerCapture(e.pointerId);
     },
-    [isRopeCreating, itemId, onRopeStart],
+    [isRopeCreating, itemId, onRopeStart, onRopePinClick],
   );
 
   const handlePointerMove = useCallback(
@@ -124,7 +136,7 @@ export function Pin({
         pointerEvents: 'auto',
         transform: hovered ? 'scale(1.1)' : 'scale(1)',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        boxShadow: isRopeTarget ? '0 0 8px #4A90D9' : 'none',
+        boxShadow: isRopeTarget || isRopeSource ? '0 0 8px #4A90D9' : 'none',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

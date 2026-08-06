@@ -60,6 +60,8 @@ export interface Asset {
   byteSize: number;
   /** IndexedDB 中的 key */
   storageKey: string;
+  /** v0.2: base64 data URL（本地存储模式下直接作为图片源） */
+  dataUrl?: string;
 }
 
 /** 撤销动作 */

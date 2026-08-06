@@ -26,6 +26,7 @@ function App() {
   const wallpaper = useWallStore((s) => s.wallpaper);
   const selectedIds = useUIStore((s) => s.selectedIds);
   const ropeCreating = useUIStore((s) => s.ropeCreating);
+  const ropeMode = useUIStore((s) => s.ropeMode);
 
   // Store actions
   const uiStore = useUIStore();
@@ -48,8 +49,10 @@ function App() {
     (fromItemId: string, toItemId: string, naturalLength: number) => {
       const id = `rope-${Date.now()}`;
       wallStore.addRope({ id, fromItemId, toItemId, naturalLength });
+      // 连线完成后自动退出连线模式
+      uiStore.setRopeMode(false);
     },
-    [wallStore],
+    [wallStore, uiStore],
   );
 
   const ropeCreation = useRopeCreation({
@@ -57,11 +60,24 @@ function App() {
     onRopeCreate: handleRopeCreate,
   });
 
-  // Cancel rope creation
+  // Cancel rope creation（ESC / 空白点击）
   const handleCancelRope = useCallback(() => {
     ropeCreation.cancelRopeCreation();
     uiStore.setRopeCreating(false);
+    uiStore.setRopeMode(false);
   }, [ropeCreation, uiStore]);
+
+  // ropeMode 下点击空白取消连线
+  const handleRootPointerDownCapture = useCallback(
+    (e: React.PointerEvent) => {
+      if (!useUIStore.getState().ropeMode) return;
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-pin-item-id]')) return;
+      ropeCreation.cancelRopeCreation();
+      useUIStore.getState().setRopeMode(false);
+    },
+    [ropeCreation],
+  );
 
   // Keyboard hook
   useKeyboard({
@@ -107,12 +123,15 @@ function App() {
 
   // Render wall editor
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div
+      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+      onPointerDownCapture={handleRootPointerDownCapture}
+    >
       {/* TopBar */}
       <TopBar zoom={canvasView.zoom} />
 
       {/* BottomToolbar */}
-      <BottomToolbar />
+      <BottomToolbar zoom={canvasView.zoom} panX={canvasView.panX} panY={canvasView.panY} />
 
       {/* Canvas area */}
       <div style={{ position: 'absolute', inset: 0 }}>
@@ -149,9 +168,10 @@ function App() {
                   zoom={canvasView.zoom}
                   onSelect={multiSelect.handleSelect}
                   onPinDragEnd={handlePinDragEnd}
-                  isRopeCreating={ropeCreating}
+                  isRopeCreating={ropeMode || ropeCreating}
                   isRopeTarget={ropeCreation.ropeTargetId === item.id}
-                  onPinRopeStart={ropeCreation.handlePinMouseDown}
+                  isRopeSource={ropeCreation.ropeSourceId === item.id}
+                  onPinRopeClick={ropeCreation.handlePinClick}
                 >
                   {item.type === 'picture' && <PictureObject item={item} />}
                   {item.type === 'paper' && (
