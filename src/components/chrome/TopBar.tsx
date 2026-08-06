@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
+import { useOverviewStore } from '../../store/useOverviewStore';
 
 /**
  * 40px 高顶部栏，默认隐藏，鼠标触顶滑入。
@@ -78,6 +79,8 @@ export function TopBar({ zoom }: { zoom?: number }) {
   );
 
   const handleBack = useCallback(() => {
+    // 返回总览前快照当前墙数据（v0.2 多墙切换）
+    useOverviewStore.getState().captureCurrentWall();
     setViewMode('overview');
   }, [setViewMode]);
 

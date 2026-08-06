@@ -1,7 +1,7 @@
 import type { Item, Rope, WallpaperType } from './types';
 
 /** 默认墙名 */
-export const DEFAULT_WALL_NAME = 'First Mind';
+export const DEFAULT_WALL_NAME = 'Wall 01';
 export const DEFAULT_WALL_ID = 'wall-first-mind';
 export const DEFAULT_WALLPAPER: WallpaperType = 'beige';
 
