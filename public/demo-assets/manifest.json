@@ -1,0 +1,87 @@
+{
+  "version": "1.0",
+  "description": "MVP demo assets for Pin & Paper Journal — First Mind wall",
+  "license_status": "user-owned, all images shot by the project author (绮路书 Qilujournal), free to use in demo without attribution requirements",
+  "assets": [
+    {
+      "id": "north-01-wat-chedi-luang",
+      "file": "north-01-wat-chedi-luang.jpg",
+      "title": "契迪龙寺红砖佛塔",
+      "location": "清迈古城, Chiang Mai",
+      "description": "Wat Chedi Luang — the iconic 14th-century Lanna-style brick pagoda in Chiang Mai old city",
+      "source": "绮路书 article/01-thai-north/article-assets/body/body-005.webp",
+      "resolution": "1280x960",
+      "scene_type": "landmark"
+    },
+    {
+      "id": "north-02-khao-soi",
+      "file": "north-02-khao-soi.jpg",
+      "title": "泰北咖喱面 Khao Soi",
+      "location": "清迈, Chiang Mai",
+      "description": "Northern Thai curry noodle Khao Soi — a staple comfort food of Chiang Mai",
+      "source": "绮路书 article/01-thai-north/article-assets/body/body-014.webp",
+      "resolution": "1130x1506",
+      "scene_type": "food"
+    },
+    {
+      "id": "north-03-white-temple",
+      "file": "north-03-white-temple.jpg",
+      "title": "清莱白庙 (Wat Rong Khun)",
+      "location": "清莱, Chiang Rai",
+      "description": "Wat Rong Khun — the contemporary White Temple designed by Thai artist Chalermchai Kositpipat",
+      "source": "绮路书 article/01-thai-north/article-assets/body/body-018.webp",
+      "resolution": "1130x1506",
+      "scene_type": "landmark"
+    },
+    {
+      "id": "bangkok-01",
+      "file": "bangkok-01.jpg",
+      "title": "曼谷城市街景",
+      "location": "曼谷 Siam 商圈, Bangkok",
+      "description": "Bangkok urban scene — commercial district atmosphere",
+      "source": "绮路书 article/02-thai-bangkok/article-assets/IMG_20260530_221044.jpg",
+      "resolution": "1130x1506",
+      "scene_type": "urban"
+    },
+    {
+      "id": "bangkok-02",
+      "file": "bangkok-02.jpg",
+      "title": "曼谷文化体验",
+      "location": "曼谷, Bangkok",
+      "description": "Bangkok cultural experience — Thai social life and city culture",
+      "source": "绮路书 article/02-thai-bangkok/article-assets/IMG_20260531_182120.jpg",
+      "resolution": "1130x1506",
+      "scene_type": "culture"
+    },
+    {
+      "id": "bangkok-03",
+      "file": "bangkok-03.jpg",
+      "title": "曼谷商业空间",
+      "location": "曼谷, Bangkok",
+      "description": "Bangkok retail and commercial space — one of Asia's most vibrant consumer cities",
+      "source": "绮路书 article/02-thai-bangkok/article-assets/IMG_20260530_181134.jpg",
+      "resolution": "477x358",
+      "note": "Below 800px threshold — use as fallback; consider replacing with higher-res Bangkok photo when available",
+      "scene_type": "urban"
+    }
+  ],
+  "demo_paper_contents": {
+    "description": "Default text content for Paper variants loaded with the demo wall",
+    "papers": [
+      { "variant": "note", "text": "契迪龙寺的安静让人不想离开" },
+      { "variant": "note", "text": "Khao Soi — 泰北的灵魂咖喱面" },
+      { "variant": "note", "text": "白庙的震撼只有亲眼见到才懂" },
+      { "variant": "torn", "text": "暹罗广场的雨后彩虹" },
+      { "variant": "torn", "text": "7-11 的袋装小样让人走不出来" },
+      { "variant": "torn", "text": "泰国人把香氛做到了极致" }
+    ]
+  },
+  "demo_stamps": [
+    "stamp-blue-travel",
+    "stamp-gray-compass",
+    "stamp-red-passport",
+    "stamp-green-nature",
+    "stamp-yellow-sunshine"
+  ],
+  "demo_tape_count": 3
+}
