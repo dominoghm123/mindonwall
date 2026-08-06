@@ -4,6 +4,10 @@ import { useRef, useCallback, useState } from 'react';
 const LONG_PRESS_MS = 500;
 /** 长按期间允许的最大移动量（px），超过则取消旋转 */
 const MOVE_CANCEL_THRESHOLD = 6;
+/** 整角吸附：进入吸附的角度阈值（°） */
+const SNAP_ENTER = 6;
+/** 整角吸附：脱离吸附需超过的角度阈值（°，磁滞） */
+const SNAP_RELEASE = 14;
 
 interface UseRotateOptions {
   rotation: number;
@@ -14,12 +18,15 @@ interface UseRotateOptions {
 
 /**
  * 物件旋转 hook。
- * - 360° 自由旋转，无角度吸附
- * - 长按旋转手柄 ~500ms 后激活，再拖拽旋转；长按期间移动超过阈值则取消
+ * - 长按旋转手柄/选中框顶部 ~500ms 后激活，再拖拽旋转；长按期间移动超过阈值则取消
+ * - 接近 0°/90°/180°/270°/360° 时磁性吸附（带磁滞），产生明显停顿感
  */
 export function useRotate({ rotation, wrapperRef, onRotateEnd }: UseRotateOptions) {
   const [currentRotation, setCurrentRotation] = useState(rotation);
   const [armed, setArmed] = useState(false); // 长按已激活，可旋转
+  const [snapped, setSnapped] = useState(false); // 当前是否吸附在整角
+  const rotRef = useRef(rotation); // 最新角度（供 pointerup 读取，避免 stale state）
+  const snapRef = useRef<number | null>(null); // 当前吸附的整角
   const rotateRef = useRef<{
     startAngle: number;
     itemRotation: number;
@@ -39,7 +46,10 @@ export function useRotate({ rotation, wrapperRef, onRotateEnd }: UseRotateOption
   const prevRotation = useRef(rotation);
   if (prevRotation.current !== rotation) {
     prevRotation.current = rotation;
-    if (!rotateRef.current) setCurrentRotation(rotation);
+    if (!rotateRef.current) {
+      setCurrentRotation(rotation);
+      rotRef.current = rotation;
+    }
   }
 
   const cancelPending = useCallback(() => {
@@ -59,6 +69,8 @@ export function useRotate({ rotation, wrapperRef, onRotateEnd }: UseRotateOption
       const cy = rect.top + rect.height / 2;
       const startAngle = Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI) + 90;
       rotateRef.current = { startAngle, itemRotation: currentRotation };
+      snapRef.current = null;
+      setSnapped(false);
       setArmed(true);
     },
     [currentRotation, wrapperRef],
@@ -102,7 +114,21 @@ export function useRotate({ rotation, wrapperRef, onRotateEnd }: UseRotateOption
     const cy = rect.top + rect.height / 2;
     const angle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI) + 90;
     const delta = angle - r.startAngle;
-    setCurrentRotation(r.itemRotation + delta);
+    const raw = r.itemRotation + delta;
+    // 整角磁性吸附（带磁滞，产生停顿感）
+    const nearest = Math.round(raw / 90) * 90;
+    let result = raw;
+    if (snapRef.current !== null && Math.abs(raw - snapRef.current) <= SNAP_RELEASE) {
+      result = snapRef.current;
+    } else if (Math.abs(raw - nearest) <= SNAP_ENTER) {
+      result = nearest;
+      snapRef.current = nearest;
+    } else {
+      snapRef.current = null;
+    }
+    setSnapped(snapRef.current !== null);
+    rotRef.current = result;
+    setCurrentRotation(result);
   }, [wrapperRef, cancelPending]);
 
   const handlePointerUp = useCallback(
@@ -113,17 +139,19 @@ export function useRotate({ rotation, wrapperRef, onRotateEnd }: UseRotateOption
       }
       const r = rotateRef.current;
       rotateRef.current = null;
+      snapRef.current = null;
       setArmed(false);
+      setSnapped(false);
       try {
         (e.target as Element).releasePointerCapture(e.pointerId);
       } catch {
         /* ignore */
       }
       if (r) {
-        onRotateEndRef.current?.(currentRotation, r.itemRotation);
+        onRotateEndRef.current?.(rotRef.current, r.itemRotation);
       }
     },
-    [currentRotation, cancelPending],
+    [cancelPending],
   );
 
   return {
@@ -135,5 +163,7 @@ export function useRotate({ rotation, wrapperRef, onRotateEnd }: UseRotateOption
     isRotating: rotateRef.current !== null,
     /** 长按已激活（可显示反馈） */
     isArmed: armed,
+    /** 当前吸附在整角（0/90/180/270/360） */
+    isSnapped: snapped,
   };
 }

@@ -3,7 +3,7 @@ import type { Item, Rope, WallpaperType } from './types';
 /** 默认墙名 */
 export const DEFAULT_WALL_NAME = 'Wall 01';
 export const DEFAULT_WALL_ID = 'wall-first-mind';
-export const DEFAULT_WALLPAPER: WallpaperType = 'beige';
+export const DEFAULT_WALLPAPER: WallpaperType = 'white';
 
 /** 样例图片 Item 配置（引用 manifest.json 中的 asset ID） */
 export const INITIAL_PICTURE_ITEMS: Item[] = [

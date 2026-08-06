@@ -6,6 +6,10 @@ interface UseRopeCreationOptions {
   items: Item[];
   /** 创建 Rope 回调（由父组件调用 store.addRope） */
   onRopeCreate: (fromItemId: string, toItemId: string, naturalLength: number) => void;
+  /** 画布视图（用于尾巴线屏幕→画布坐标换算） */
+  zoom?: number;
+  panX?: number;
+  panY?: number;
 }
 
 /**
@@ -14,7 +18,7 @@ interface UseRopeCreationOptions {
  * - 点击第二个 Pin → 自动创建 Rope → 退出模式
  * - ESC / 点击空白 → 取消
  */
-export function useRopeCreation({ items, onRopeCreate }: UseRopeCreationOptions) {
+export function useRopeCreation({ items, onRopeCreate, zoom = 1, panX = 0, panY = 0 }: UseRopeCreationOptions) {
   const [dragTail, setDragTail] = useState<{
     x: number; y: number; endX: number; endY: number;
   } | null>(null);
@@ -23,6 +27,8 @@ export function useRopeCreation({ items, onRopeCreate }: UseRopeCreationOptions)
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const viewRef = useRef({ zoom, panX, panY });
+  viewRef.current = { zoom, panX, panY };
   const sourceRef = useRef<string | null>(null);
   const onRopeCreateRef = useRef(onRopeCreate);
   onRopeCreateRef.current = onRopeCreate;
@@ -36,14 +42,17 @@ export function useRopeCreation({ items, onRopeCreate }: UseRopeCreationOptions)
     return pinEl.getAttribute('data-pin-item-id');
   }, []);
 
-  /* 尾巴线跟随鼠标（仅选出第一个 Pin 后） */
+  /* 尾巴线跟随鼠标（仅选出第一个 Pin 后；鼠标坐标转为画布坐标） */
   useEffect(() => {
     if (!ropeSourceId) return;
     const handleMove = (e: MouseEvent) => {
       const sourceItem = itemsRef.current.find((i) => i.id === sourceRef.current);
       if (!sourceItem) return;
       const srcPin = getPinWorldPosition(sourceItem);
-      setDragTail({ x: srcPin.x, y: srcPin.y, endX: e.clientX, endY: e.clientY });
+      const v = viewRef.current;
+      const cx = (e.clientX - v.panX) / v.zoom;
+      const cy = (e.clientY - v.panY) / v.zoom;
+      setDragTail({ x: srcPin.x, y: srcPin.y, endX: cx, endY: cy });
       const targetId = findPinAtPoint(e.clientX, e.clientY);
       setRopeTargetId(targetId && targetId !== sourceRef.current ? targetId : null);
     };

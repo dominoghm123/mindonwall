@@ -48,13 +48,14 @@ function App() {
   // MultiSelect hook
   const multiSelect = useMultiSelect({ items, uiStore, wallStore });
 
-  // RopeCreation hook
+  // RopeCreation hook（v0.2 修订：尾巴线用画布坐标）
   const handleRopeCreate = useCallback(
     (fromItemId: string, toItemId: string, naturalLength: number) => {
       const id = `rope-${Date.now()}`;
       wallStore.addRope({ id, fromItemId, toItemId, naturalLength });
       // 连线完成后自动退出连线模式
       uiStore.setRopeMode(false);
+      uiStore.showToast('Rope connected', 'success', 2000);
     },
     [wallStore, uiStore],
   );
@@ -62,6 +63,9 @@ function App() {
   const ropeCreation = useRopeCreation({
     items,
     onRopeCreate: handleRopeCreate,
+    zoom: canvasView.zoom,
+    panX: canvasView.panX,
+    panY: canvasView.panY,
   });
 
   // Cancel rope creation（ESC / 空白点击）
@@ -71,12 +75,30 @@ function App() {
     uiStore.setRopeMode(false);
   }, [ropeCreation, uiStore]);
 
-  // ropeMode 下点击空白取消连线
+  // ropeMode 下点击处理：点 Pin/带 Pin 物件 → 连线；点空白 → 取消（v0.2 修订：扩大命中范围）
   const handleRootPointerDownCapture = useCallback(
     (e: React.PointerEvent) => {
       if (!useUIStore.getState().ropeMode) return;
+      if (e.button !== 0) return;
       const target = e.target as HTMLElement;
+      // 直接点在 Pin 上：由 Pin 自己处理
       if (target.closest('[data-pin-item-id]')) return;
+      // 点在带 Pin 的物件本体上：等同点击该物件的 Pin
+      const itemEl = target.closest('[data-item-id]');
+      if (itemEl) {
+        const itemId = itemEl.getAttribute('data-item-id');
+        const it = useWallStore.getState().items.find((i) => i.id === itemId);
+        const hasPin =
+          it && !it.parentId &&
+          (it.type === 'picture' || (it.type === 'paper' && it.variant !== 'tape'));
+        if (hasPin && itemId) {
+          ropeCreation.handlePinClick(itemId);
+        } else {
+          useUIStore.getState().showToast('This item has no pin', 'warning', 2000);
+        }
+        return;
+      }
+      // 空白处：取消并退出模式
       ropeCreation.cancelRopeCreation();
       useUIStore.getState().setRopeMode(false);
     },

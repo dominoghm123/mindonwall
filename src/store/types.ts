@@ -53,7 +53,7 @@ export interface Rope {
   naturalLength?: number;
 }
 
-/** 资源（图片） */
+/** 资源（素材库） */
 export interface Asset {
   id: string;
   mimeType: string;
@@ -62,6 +62,8 @@ export interface Asset {
   storageKey: string;
   /** v0.2: base64 data URL（本地存储模式下直接作为图片源） */
   dataUrl?: string;
+  /** v0.2 修订：素材类型（对应上传面板），缺省为 picture */
+  kind?: 'picture' | 'paper' | 'stamp';
 }
 
 /** 撤销动作 */

@@ -3,20 +3,23 @@ import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
 import type { Item } from '../../store/types';
 
-/** Stamp 预设颜色列表 */
-const STAMP_COLORS = [
-  { id: 'stamp-blue-travel', label: '蓝', color: '#3B82F6' },
-  { id: 'stamp-gray-compass', label: '灰', color: '#6B7280' },
-  { id: 'stamp-red-passport', label: '红', color: '#EF4444' },
-  { id: 'stamp-green-nature', label: '绿', color: '#22C55E' },
-  { id: 'stamp-yellow-sunshine', label: '黄', color: '#EAB308' },
-];
+/** Stamp 预设颜色（v0.2：颜色写入 item.color，不再切换 stampId） */
+const STAMP_COLORS = ['#3B82F6', '#6B7280', '#EF4444', '#22C55E', '#EAB308'];
 
 /** 便利贴 8 色 */
 const STICKY_COLORS = [
   '#FFF3B0', '#FFB3BA', '#BAFFC9', '#BAE1FF',
   '#E8D5FF', '#FFD8B1', '#F5F5F5', '#2C2C2C',
 ];
+
+/** Note / Torn 纸面预设色 */
+const PAPER_COLORS = [
+  '#FFFFFF', '#F5F0E8', '#FFF3B0', '#FFB3BA',
+  '#BAFFC9', '#BAE1FF', '#E8D5FF', '#FFD8B1',
+];
+
+/** Tape 预设色 */
+const TAPE_COLORS = ['#FDE68A', '#FBCFE8', '#BBF7D0', '#BFDBFE', '#FCA5A5', '#DDD6FE'];
 
 interface ContextMenuProps {
   /** 画布缩放（用于将屏幕坐标转为画布坐标） */
@@ -136,6 +139,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
           bringToFront={bringToFront}
           sendToBack={sendToBack}
           removeItem={removeItem}
+          closeMenu={closeContextMenu}
         />
       )}
       {item.type === 'picture' && (
@@ -156,6 +160,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
           bringToFront={bringToFront}
           sendToBack={sendToBack}
           removeItem={removeItem}
+          closeMenu={closeContextMenu}
         />
       )}
     </div>
@@ -206,34 +211,75 @@ function Divider() {
   return <div style={{ height: 1, background: '#EEE', margin: '4px 0' }} />;
 }
 
-/* ─── 颜色选择子菜单 ─── */
-function ColorDots({
+/* ─── 颜色选择行：预设色点 + 自定义调色盘（v0.2） ─── */
+function ColorRow({
   colors,
+  current,
   onSelect,
+  onDone,
 }: {
-  colors: { id: string; label: string; color: string }[];
-  onSelect: (id: string) => void;
+  colors: string[];
+  current?: string;
+  onSelect: (color: string) => void;
+  /** 点选预设色后回调（关闭菜单）；调色盘微调不触发 */
+  onDone?: () => void;
 }) {
+  const pickerValue = /^#[0-9a-fA-F]{6}$/.test(current ?? '') ? current : '#FFFFFF';
   return (
-    <div style={{ display: 'flex', gap: 6, padding: '6px 14px' }}>
+    <div style={{ display: 'flex', gap: 6, padding: '6px 14px', flexWrap: 'wrap', alignItems: 'center' }}>
       {colors.map((c) => (
         <div
-          key={c.id}
-          title={c.label}
+          key={c}
+          title={c}
           onClick={(e) => {
             e.stopPropagation();
-            onSelect(c.id);
+            onSelect(c);
+            onDone?.();
           }}
           style={{
             width: 20,
             height: 20,
             borderRadius: '50%',
-            background: c.color,
-            border: '1px solid #DDD',
+            background: c,
+            border: current === c ? '2px solid #4A90D9' : '1px solid #DDD',
             cursor: 'pointer',
+            boxSizing: 'border-box',
           }}
         />
       ))}
+      {/* 自定义调色盘 */}
+      <label
+        title="Custom color"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          border: '1px dashed #BBB',
+          cursor: 'pointer',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 12,
+          color: '#999',
+          background: 'conic-gradient(#EF4444, #EAB308, #22C55E, #3B82F6, #A855F7, #EF4444)',
+        }}
+      >
+        <input
+          type="color"
+          value={pickerValue}
+          onChange={(e) => onSelect(e.target.value)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer',
+          }}
+        />
+      </label>
     </div>
   );
 }
@@ -248,6 +294,7 @@ function StampMenuItems({
   bringToFront,
   sendToBack,
   removeItem,
+  closeMenu,
 }: {
   item: Item;
   onItemClick: (fn: () => void) => (e: React.MouseEvent) => void;
@@ -257,6 +304,7 @@ function StampMenuItems({
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
   removeItem: (id: string) => void;
+  closeMenu: () => void;
 }) {
   const isAttached = !!item.parentId;
 
@@ -273,9 +321,11 @@ function StampMenuItems({
       <MenuItem label="Send to Back" onClick={onItemClick(() => sendToBack(item.id))} />
       <Divider />
       <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
-      <ColorDots
+      <ColorRow
         colors={STAMP_COLORS}
-        onSelect={(stampId) => updateItem(item.id, { stampId })}
+        current={item.color}
+        onSelect={(color) => updateItem(item.id, { color })}
+        onDone={closeMenu}
       />
       <Divider />
       <MenuItem label="Delete" danger onClick={onItemClick(() => removeItem(item.id))} />
@@ -319,6 +369,7 @@ function PaperMenuItems({
   bringToFront,
   sendToBack,
   removeItem,
+  closeMenu,
 }: {
   item: Item;
   onItemClick: (fn: () => void) => (e: React.MouseEvent) => void;
@@ -326,22 +377,24 @@ function PaperMenuItems({
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
   removeItem: (id: string) => void;
+  closeMenu: () => void;
 }) {
-  const isSticky = item.variant === 'sticky';
-  const stickyColorOptions = STICKY_COLORS.map((c, i) => ({ id: `sticky-${i}`, label: c, color: c }));
+  // v0.2：所有 paper 变体均支持改色（预设色点 + 调色盘）
+  const colors =
+    item.variant === 'sticky' ? STICKY_COLORS
+    : item.variant === 'tape' ? TAPE_COLORS
+    : PAPER_COLORS;
 
   return (
     <>
-      {isSticky && (
-        <>
-          <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
-          <ColorDots
-            colors={stickyColorOptions}
-            onSelect={(color) => updateItem(item.id, { color })}
-          />
-          <Divider />
-        </>
-      )}
+      <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
+      <ColorRow
+        colors={colors}
+        current={item.color}
+        onSelect={(color) => updateItem(item.id, { color })}
+        onDone={closeMenu}
+      />
+      <Divider />
       <MenuItem label="Bring to Front" onClick={onItemClick(() => bringToFront(item.id))} />
       <MenuItem label="Send to Back" onClick={onItemClick(() => sendToBack(item.id))} />
       <Divider />

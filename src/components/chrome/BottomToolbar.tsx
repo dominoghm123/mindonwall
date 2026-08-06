@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useAssetStore } from '../../store/useAssetStore';
 import type { Item, PaperVariant } from '../../store/types';
+import { StampArt } from '../objects/StampObject';
 
 /* ─── 图标（20px，纯白底工具栏内使用） ─── */
 const IconImage = ({ color = '#666' }: { color?: string }) => (
@@ -52,21 +53,21 @@ const DEMO_IMAGES = [
   { id: 'bangkok-03', src: '/demo-assets/bangkok-03.jpg' },
 ];
 
-/** Stamp 预设 */
+/** Stamp 预设（v0.2 修订：透明矢量，弃用白底 PNG） */
 const STAMP_PRESETS = [
-  { id: 'stamp-blue-travel', src: '/demo-assets/stamps/stamp-blue-travel.png' },
-  { id: 'stamp-gray-compass', src: '/demo-assets/stamps/stamp-gray-compass.png' },
-  { id: 'stamp-green-nature', src: '/demo-assets/stamps/stamp-green-nature.png' },
-  { id: 'stamp-red-passport', src: '/demo-assets/stamps/stamp-red-passport.png' },
-  { id: 'stamp-yellow-sunshine', src: '/demo-assets/stamps/stamp-yellow-sunshine.png' },
+  { id: 'stamp-blue-travel', color: '#3B82F6' },
+  { id: 'stamp-gray-compass', color: '#6B7280' },
+  { id: 'stamp-green-nature', color: '#22C55E' },
+  { id: 'stamp-red-passport', color: '#EF4444' },
+  { id: 'stamp-yellow-sunshine', color: '#EAB308' },
 ];
 
-/** Paper 变体配置 */
+/** Paper 变体配置（v0.2 修订：torn/tape 增色） */
 const PAPER_TABS: { variant: PaperVariant; label: string; presets: { label: string; color?: string }[] }[] = [
   { variant: 'note', label: 'Note', presets: [{ label: 'White' }, { label: 'Cream', color: '#FBF7EE' }, { label: 'Gray', color: '#F2F2F0' }] },
-  { variant: 'torn', label: 'Torn', presets: [{ label: 'Kraft', color: '#F5F0E8' }, { label: 'White', color: '#FFFFFF' }] },
-  { variant: 'sticky', label: 'Sticky', presets: [{ label: 'Yellow', color: '#FFF3B0' }, { label: 'Pink', color: '#FFB3BA' }, { label: 'Green', color: '#BAFFC9' }] },
-  { variant: 'tape', label: 'Tape', presets: [{ label: 'Washi', color: 'rgba(232,224,200,0.6)' }, { label: 'White', color: 'rgba(255,255,255,0.6)' }] },
+  { variant: 'torn', label: 'Torn', presets: [{ label: 'Kraft', color: '#F5F0E8' }, { label: 'White', color: '#FFFFFF' }, { label: 'Pink', color: '#FBE4E8' }, { label: 'Sky', color: '#E3F0F7' }, { label: 'Mint', color: '#E6F4EC' }] },
+  { variant: 'sticky', label: 'Sticky', presets: [{ label: 'Yellow', color: '#FFF3B0' }, { label: 'Pink', color: '#FFB3BA' }, { label: 'Green', color: '#BAFFC9' }, { label: 'Blue', color: '#BAE1FF' }] },
+  { variant: 'tape', label: 'Tape', presets: [{ label: 'Washi', color: 'rgba(232,224,200,0.6)' }, { label: 'White', color: 'rgba(255,255,255,0.6)' }, { label: 'Pink', color: 'rgba(244,194,194,0.6)' }, { label: 'Mint', color: 'rgba(198,228,206,0.6)' }, { label: 'Sky', color: 'rgba(196,220,238,0.6)' }, { label: 'Lemon', color: 'rgba(246,232,168,0.6)' }] },
 ];
 
 const DEFAULT_SIZES: Record<PaperVariant, { w: number; h: number }> = {
@@ -83,10 +84,9 @@ interface BottomToolbarProps {
 }
 
 /**
- * 底部工具栏（v0.2）。
- * 48px 高，4 个 40×40 图标按钮（Image/Paper/Stamp/Rope）。
- * 点击图标向上弹出次级面板（同时只能开一个，再点同一图标关闭）。
- * Rope 图标切换点击连线模式（图标加深表示选中）。
+ * 底部工具栏（v0.2 修订）。
+ * 默认隐藏，hover 屏幕底部时从下往上浮出；面板打开/rope 模式时常驻。
+ * 48px 高，4 个图标按钮（Image/Paper/Stamp/Rope）；上传素材先入素材库。
  * 纯白底 + 1px border #E5E5E5，圆角 14px，无阴影。
  */
 export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
@@ -99,7 +99,19 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   const assets = useAssetStore((s) => s.assets);
   const addAsset = useAssetStore((s) => s.addAsset);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadKindRef = useRef<'picture' | 'paper' | 'stamp'>('picture');
   const [paperTab, setPaperTab] = useState<PaperVariant>('note');
+
+  /* ── hover 浮出（v0.2 修订：默认隐藏） ── */
+  const [hoverVisible, setHoverVisible] = useState(false);
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (e.clientY >= window.innerHeight - 56) setHoverVisible(true);
+    };
+    document.addEventListener('mousemove', onMove);
+    return () => document.removeEventListener('mousemove', onMove);
+  }, []);
+  const shown = hoverVisible || toolbarPanel !== null || ropeMode;
 
   /** 计算视口中心对应的画布坐标 */
   const canvasCenter = useCallback(() => {
@@ -108,24 +120,30 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     return { x: (cx - panX) / zoom, y: (cy - panY) / zoom };
   }, [zoom, panX, panY]);
 
-  /** 在画布中心附近添加物件（带随机偏移与轻微旋转） */
+  /** 在画布中心附近添加物件（v0.2 修订：默认垂直不倾斜） */
   const placeItem = useCallback(
     (w: number, h: number) => {
       const c = canvasCenter();
       return {
         x: c.x - w / 2 + (Math.random() - 0.5) * 60,
         y: c.y - h / 2 + (Math.random() - 0.5) * 60,
-        rotation: (Math.random() - 0.5) * 6,
+        rotation: 0,
       };
     },
     [canvasCenter],
   );
 
-  /* ── Image：上传 ── */
+  /* ── 上传（v0.2 修订：存入素材库，不直接上墙） ── */
+  const openUpload = useCallback((kind: 'picture' | 'paper' | 'stamp') => {
+    uploadKindRef.current = kind;
+    fileInputRef.current?.click();
+  }, []);
+
   const handleUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
+      const kind = uploadKindRef.current;
       Array.from(files).forEach((file) => {
         if (!file.type.startsWith('image/')) return;
         const reader = new FileReader();
@@ -138,29 +156,19 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
             byteSize: file.size,
             storageKey: id,
             dataUrl,
+            kind,
           });
           if (!ok) {
-            showToast('Upload limit reached', 'warning');
+            showToast('Material limit reached', 'warning');
             return;
           }
-          // 上传后直接添加 Picture 到画布中心
-          const place = placeItem(220, 165);
-          const item: Item = {
-            id: genId('item-pic'),
-            type: 'picture',
-            ...place,
-            width: 220,
-            height: 165,
-            assetId: id,
-            pinOffset: { x: 0.5, y: 0 },
-          };
-          addItem(item);
+          showToast('Saved to Materials', 'success', 2000);
         };
         reader.readAsDataURL(file);
       });
       e.target.value = '';
     },
-    [addAsset, addItem, placeItem, showToast],
+    [addAsset, showToast],
   );
 
   /** 点击缩略图添加 Picture */
@@ -212,8 +220,46 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         ...place,
         width: 64,
         height: 64,
-        rotation: (Math.random() - 0.5) * 10,
+        rotation: 0,
         stampId,
+      };
+      addItem(item);
+    },
+    [addItem, placeItem],
+  );
+
+  /** 从素材库添加 Paper（上传的图片作为纸面） */
+  const handleAddPaperAsset = useCallback(
+    (assetId: string) => {
+      const place = placeItem(180, 135);
+      const item: Item = {
+        id: genId('item-paper'),
+        type: 'paper',
+        variant: 'note',
+        ...place,
+        width: 180,
+        height: 135,
+        text: '',
+        assetId,
+        pinOffset: { x: 0.5, y: 0 },
+      };
+      addItem(item);
+    },
+    [addItem, placeItem],
+  );
+
+  /** 从素材库添加 Stamp（上传的图片作为印章） */
+  const handleAddStampAsset = useCallback(
+    (assetId: string) => {
+      const place = placeItem(64, 64);
+      const item: Item = {
+        id: genId('item-stamp'),
+        type: 'stamp',
+        ...place,
+        width: 64,
+        height: 64,
+        rotation: 0,
+        assetId,
       };
       addItem(item);
     },
@@ -240,35 +286,21 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   });
 
   return (
-    <>
+    <div
+      onMouseLeave={(e) => {
+        // 鼠标离开工具栏区域且不在屏幕底缘时隐藏
+        if (e.clientY < window.innerHeight - 64) setHoverVisible(false);
+      }}
+      style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 340, pointerEvents: 'none', zIndex: 1000 }}
+    >
       {/* 次级面板 */}
       {toolbarPanel === 'image' && (
         <Panel title="Add Image">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 64px)', gap: 8 }}>
-            {/* 上传按钮 */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                width: 64,
-                height: 64,
-                border: '1px dashed #CCC',
-                borderRadius: 6,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#999',
-                fontSize: 10,
-                gap: 2,
-              }}
-              title="Upload image"
-            >
-              <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
-              Upload
-            </div>
-            {/* 用户上传缩略图 */}
-            {assets.filter((a) => a.dataUrl).map((a) => (
+            {/* 上传→存入素材库 */}
+            <UploadTile onClick={() => openUpload('picture')} />
+            {/* 用户上传缩略图（素材库） */}
+            {assets.filter((a) => a.dataUrl && (a.kind ?? 'picture') === 'picture').map((a) => (
               <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddImage(a.id)} />
             ))}
             {/* 样例素材 */}
@@ -276,14 +308,6 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
               <Thumb key={d.id} src={d.src} onClick={() => handleAddImage(d.id)} />
             ))}
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            style={{ display: 'none' }}
-            onChange={handleUpload}
-          />
         </Panel>
       )}
 
@@ -308,6 +332,13 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
               >
                 {t.label}
               </button>
+            ))}
+          </div>
+          {/* 上传 + 素材库（v0.2 修订） */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <UploadTile onClick={() => openUpload('paper')} />
+            {assets.filter((a) => a.dataUrl && a.kind === 'paper').map((a) => (
+              <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddPaperAsset(a.id)} />
             ))}
           </div>
           {/* 变体 */}
@@ -338,6 +369,13 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
 
       {toolbarPanel === 'stamp' && (
         <Panel title="Add Stamp">
+          {/* 上传 + 素材库（v0.2 修订） */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <UploadTile onClick={() => openUpload('stamp')} />
+            {assets.filter((a) => a.dataUrl && a.kind === 'stamp').map((a) => (
+              <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddStampAsset(a.id)} />
+            ))}
+          </div>
           <div style={{ display: 'flex', gap: 10 }}>
             {STAMP_PRESETS.map((s) => (
               <div
@@ -355,12 +393,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
                 }}
                 title={s.id.replace('stamp-', '')}
               >
-                <img
-                  src={s.src}
-                  alt=""
-                  draggable={false}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                />
+                <StampArt id={s.id} color={s.color} size={42} />
               </div>
             ))}
           </div>
@@ -388,13 +421,12 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         </div>
       )}
 
-      {/* 工具栏本体 */}
+      {/* 工具栏本体（默认隐藏，hover 从下往上浮出） */}
       <div
         style={{
           position: 'fixed',
           bottom: 24,
           left: '50%',
-          transform: 'translateX(-50%)',
           height: 48,
           display: 'flex',
           alignItems: 'center',
@@ -403,7 +435,9 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
           background: '#FFFFFF',
           border: '1px solid #E5E5E5',
           borderRadius: 14,
-          zIndex: 1000,
+          pointerEvents: 'auto',
+          transform: shown ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(88px)',
+          transition: 'transform 0.25s ease',
         }}
       >
         <button
@@ -435,7 +469,17 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
           <IconRope color={ropeMode ? '#333' : '#666'} />
         </button>
       </div>
-    </>
+
+      {/* 隐藏的上传 input（三个面板共用） */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleUpload}
+      />
+    </div>
   );
 }
 
@@ -454,10 +498,39 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
         padding: 14,
         zIndex: 1000,
         maxWidth: 420,
+        pointerEvents: 'auto',
       }}
     >
       <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+/** 上传入口磁贴（存入素材库） */
+function UploadTile({ onClick }: { onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        width: 64,
+        height: 64,
+        border: '1px dashed #CCC',
+        borderRadius: 6,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        color: '#999',
+        fontSize: 10,
+        gap: 2,
+        flexShrink: 0,
+      }}
+      title="Upload to Materials"
+    >
+      <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+      Upload
     </div>
   );
 }

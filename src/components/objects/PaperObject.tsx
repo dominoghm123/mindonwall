@@ -2,6 +2,7 @@ import { useRef, useCallback, useMemo } from 'react';
 import type { Item } from '../../store/types';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
+import { useAssetStore } from '../../store/useAssetStore';
 import { pushUndo, makeMoveItemAction } from '../../store/undoMiddleware';
 import { StampObject } from './StampObject';
 
@@ -21,6 +22,7 @@ export function PaperObject({ item, onTextChange, zoom = 1 }: PaperObjectProps) 
   const items = useWallStore((s) => s.items);
   const selectItem = useUIStore((s) => s.selectItem);
   const selectedIds = useUIStore((s) => s.selectedIds);
+  const openContextMenu = useUIStore((s) => s.openContextMenu);
 
   // 附着 Stamp 拖拽状态
   const stampDragRef = useRef<{
@@ -138,6 +140,12 @@ export function PaperObject({ item, onTextChange, zoom = 1 }: PaperObjectProps) 
             onPointerDown={handleStampPointerDown(stamp)}
             onPointerMove={handleStampPointerMove}
             onPointerUp={handleStampPointerUp}
+            onContextMenu={(e) => {
+              // v0.2：附着 stamp 也有独立右键菜单（改色/解除附着等）
+              e.preventDefault();
+              e.stopPropagation();
+              openContextMenu(stamp.id, e.clientX, e.clientY);
+            }}
           >
             <StampObject item={stamp} />
           </div>
@@ -152,9 +160,15 @@ function attachedStampsList(items: Item[], paperId: string): Item[] {
   return items.filter((i) => i.type === 'stamp' && i.parentId === paperId);
 }
 
-/* ─── 普通纸 note ─── */
+/* ─── 普通纸 note（文字随 Paper 同比缩放，支持颜色/图片纸面） ─── */
 function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: string, text: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const assets = useAssetStore((s) => s.assets);
+  // 缩放比例（相对默认宽 180）
+  const ratio = Math.max(0.5, item.width / 180);
+  const bg = item.color ?? '#FFFFFF';
+  // 上传素材作为纸面背景
+  const bgAsset = item.assetId ? assets.find((a) => a.id === item.assetId) : undefined;
 
   const handleBlur = useCallback(() => {
     if (ref.current) {
@@ -167,8 +181,11 @@ function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
       style={{
         width: '100%',
         height: '100%',
-        background: '#FFFFFF',
-        padding: 16,
+        background: bg,
+        backgroundImage: bgAsset?.dataUrl ? `url(${bgAsset.dataUrl})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: 16 * ratio,
         boxSizing: 'border-box',
         overflow: 'auto',
       }}
@@ -183,7 +200,7 @@ function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
           height: '100%',
           outline: 'none',
           fontFamily: '"LXGW WenKai", "Caveat", cursive, sans-serif',
-          fontSize: 16,
+          fontSize: Math.max(9, 16 * ratio),
           lineHeight: 1.6,
           color: '#333',
           wordBreak: 'break-word',
@@ -195,9 +212,11 @@ function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
   );
 }
 
-/* ─── 撕边纸 torn ─── */
+/* ─── 撕边纸 torn（文字同比缩放，支持颜色） ─── */
 function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: string, text: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const ratio = Math.max(0.5, item.width / 180);
+  const bg = item.color ?? '#F5F0E8';
 
   const handleBlur = useCallback(() => {
     if (ref.current) {
@@ -205,18 +224,39 @@ function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
     }
   }, [item.id, onTextChange]);
 
-  // 生成撕边 clip-path（上下边缘不规则锯齿）
+  // 生成撕边 clip-path（确定性伪随机，避免重渲染抖动）
   const clipId = `torn-clip-${item.id}`;
-  const topPoints = generateTornEdge(item.width, 0, 3, 5);
-  const bottomPoints = generateTornEdge(item.width, item.height, 3, 5);
-  // 构建 SVG path: M topStart L topPoints... L bottomEnd L bottomPoints(reversed) Z
-  const pathD = [
-    `M ${topPoints[0].x} ${topPoints[0].y}`,
-    ...topPoints.slice(1).map((p) => `L ${p.x} ${p.y}`),
-    `L ${bottomPoints[bottomPoints.length - 1].x} ${bottomPoints[bottomPoints.length - 1].y}`,
-    ...bottomPoints.slice(0, -1).reverse().map((p) => `L ${p.x} ${p.y}`),
-    'Z',
-  ].join(' ');
+  const pathD = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < item.id.length; i++) {
+      hash = (hash << 5) - hash + item.id.charCodeAt(i);
+      hash |= 0;
+    }
+    const rng = () => {
+      hash = (hash * 16807 + 0) % 2147483647;
+      return (hash - 1) / 2147483646;
+    };
+    const genEdge = (baseY: number) => {
+      const segments = Math.ceil(item.width / 8);
+      const points: { x: number; y: number }[] = [];
+      for (let i = 0; i <= segments; i++) {
+        const x = (i / segments) * item.width;
+        const amp = 3 + rng() * 2;
+        const y = baseY + (i % 2 === 0 ? -amp : amp);
+        points.push({ x, y });
+      }
+      return points;
+    };
+    const topPoints = genEdge(0);
+    const bottomPoints = genEdge(item.height);
+    return [
+      `M ${topPoints[0].x} ${topPoints[0].y}`,
+      ...topPoints.slice(1).map((p) => `L ${p.x} ${p.y}`),
+      `L ${bottomPoints[bottomPoints.length - 1].x} ${bottomPoints[bottomPoints.length - 1].y}`,
+      ...bottomPoints.slice(0, -1).reverse().map((p) => `L ${p.x} ${p.y}`),
+      'Z',
+    ].join(' ');
+  }, [item.id, item.width, item.height]);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -231,9 +271,9 @@ function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
         style={{
           width: '100%',
           height: '100%',
-          background: '#F5F0E8',
+          background: bg,
           clipPath: `url(#${clipId})`,
-          padding: 16,
+          padding: 16 * ratio,
           boxSizing: 'border-box',
           overflow: 'auto',
         }}
@@ -248,7 +288,7 @@ function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
             height: '100%',
             outline: 'none',
             fontFamily: '"LXGW WenKai", "Caveat", cursive, sans-serif',
-            fontSize: 16,
+            fontSize: Math.max(9, 16 * ratio),
             lineHeight: 1.6,
             color: '#333',
             wordBreak: 'break-word',
@@ -261,23 +301,11 @@ function TornPaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
   );
 }
 
-/** 生成撕边锯齿路径的点序列 */
-function generateTornEdge(width: number, baseY: number, minAmp: number, maxAmp: number): { x: number; y: number }[] {
-  const segments = Math.ceil(width / 8);
-  const points: { x: number; y: number }[] = [];
-  for (let i = 0; i <= segments; i++) {
-    const x = (i / segments) * width;
-    const amp = minAmp + Math.random() * (maxAmp - minAmp);
-    const y = baseY + (i % 2 === 0 ? -amp : amp);
-    points.push({ x, y });
-  }
-  return points;
-}
-
-/* ─── 便利贴 sticky ─── */
+/* ─── 便利贴 sticky（跟随物件尺寸，文字同比缩放） ─── */
 function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: string, text: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const bgColor = item.color ?? '#FFF3B0';
+  const ratio = Math.max(0.5, item.width / 130);
 
   const handleBlur = useCallback(() => {
     if (ref.current) {
@@ -288,10 +316,10 @@ function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: st
   return (
     <div
       style={{
-        width: 140,
-        height: 140,
+        width: '100%',
+        height: '100%',
         background: bgColor,
-        padding: 12,
+        padding: 12 * ratio,
         boxSizing: 'border-box',
         position: 'relative',
       }}
@@ -306,7 +334,7 @@ function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: st
           height: '100%',
           outline: 'none',
           fontFamily: '"LXGW WenKai", "Caveat", cursive, sans-serif',
-          fontSize: 14,
+          fontSize: Math.max(9, 14 * ratio),
           lineHeight: 1.5,
           color: '#333',
           wordBreak: 'break-word',

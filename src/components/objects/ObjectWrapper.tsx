@@ -166,6 +166,8 @@ export function ObjectWrapper({
   /* ── 统一 pointer 事件分发 ── */
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
+      // Rope 连线模式下：不选中不拖拽（由 App 根节点处理连线点击）
+      if (isRopeCreating) return;
       // 如果点击的是 Pin 区域，跳过物件拖拽
       const target = e.target as HTMLElement;
       if (target.closest('[data-pin-item-id]')) return;
@@ -176,7 +178,7 @@ export function ObjectWrapper({
       activeModeRef.current = 'drag';
       drag.handlePointerDown(e);
     },
-    [item.id, onSelect, drag],
+    [item.id, onSelect, drag, isRopeCreating],
   );
 
   const handlePointerMove = useCallback(
@@ -226,6 +228,7 @@ export function ObjectWrapper({
   return (
     <div
       ref={wrapperRef}
+      data-item-id={item.id}
       style={{
         position: 'absolute',
         left: displayX,
@@ -296,39 +299,45 @@ export function ObjectWrapper({
             },
           )}
 
-          {/* 旋转手柄：顶部上方 20px，⊙ 图标 16px */}
+          {/* 旋转触发区：选中框顶部区域，长按后拖动旋转（v0.2 修订） */}
           <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: -28,
-              transform: 'translateX(-50%)',
-              width: 16,
-              height: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'grab',
-              fontSize: 16,
-              color: '#4A90D9',
-              userSelect: 'none',
-              zIndex: 20,
-            }}
             onPointerDown={(e) => {
               activeModeRef.current = 'rotate';
               rotate.handleRotateStart(e);
             }}
+            title="Long press & drag to rotate"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: -22,
+              height: 22,
+              cursor: 'grab',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 20,
+            }}
           >
-            ⊙
+            <span
+              style={{
+                fontSize: 14,
+                color: rotate.isArmed || rotate.isRotating ? '#2E7D32' : '#4A90D9',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+            >
+              ⊙
+            </span>
           </div>
           {/* 旋转手柄连线 */}
           <div
             style={{
               position: 'absolute',
               left: '50%',
-              top: -12,
+              top: -8,
               width: 1,
-              height: 12,
+              height: 8,
               background: '#4A90D9',
               transform: 'translateX(-50%)',
               pointerEvents: 'none',
@@ -360,7 +369,7 @@ export function ObjectWrapper({
         </div>
       )}
 
-      {/* 旋转角度反馈 */}
+      {/* 旋转角度反馈（吸附整角时变绿） */}
       {rotate.isRotating && (
         <div
           style={{
@@ -369,17 +378,18 @@ export function ObjectWrapper({
             top: -48,
             transform: 'translateX(-50%)',
             background: '#fff',
-            border: '1px solid #4A90D9',
+            border: `1px solid ${rotate.isSnapped ? '#2E7D32' : '#4A90D9'}`,
             borderRadius: 3,
             padding: '1px 6px',
             fontSize: 11,
-            color: '#4A90D9',
+            fontWeight: rotate.isSnapped ? 700 : 400,
+            color: rotate.isSnapped ? '#2E7D32' : '#4A90D9',
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             zIndex: 30,
           }}
         >
-          {Math.round(displayRotation % 360)}°
+          {Math.round(((displayRotation % 360) + 360) % 360)}°
         </div>
       )}
 

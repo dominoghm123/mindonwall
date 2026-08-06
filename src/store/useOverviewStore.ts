@@ -55,7 +55,7 @@ export const useOverviewStore = create<OverviewState>()(
       wallData: {},
       initialized: false,
 
-      addWall: (id: string, name: string, wallpaper: WallpaperType = 'beige') => {
+      addWall: (id: string, name: string, wallpaper: WallpaperType = 'white') => {
         const { walls } = get();
         if (walls.some((w) => w.id === id)) return;
         set({
@@ -105,6 +105,21 @@ export const useOverviewStore = create<OverviewState>()(
 
       initIfNeeded: () => {
         const { walls, initialized } = get();
+        // v0.2 墙纸迁移（幂等）：默认墙墙纸 beige → white（用户要求默认白色）
+        if (walls.some((w) => w.id === DEFAULT_WALL_ID && w.wallpaper === 'beige')) {
+          set({
+            walls: walls.map((w) =>
+              w.id === DEFAULT_WALL_ID && w.wallpaper === 'beige'
+                ? { ...w, wallpaper: 'white' as WallpaperType }
+                : w,
+            ),
+          });
+          // 同步当前编辑中的墙（若仍是旧 beige）
+          const ws = useWallStore.getState();
+          if (ws.wallId === DEFAULT_WALL_ID && ws.wallpaper === 'beige') {
+            useWallStore.setState({ wallpaper: 'white' });
+          }
+        }
         if (initialized) return;
         if (walls.length === 0) {
           set({

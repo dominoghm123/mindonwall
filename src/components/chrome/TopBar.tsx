@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
+import { AvatarMenu } from '../shared/AvatarMenu';
 
 /**
  * 40px 高顶部栏，默认隐藏，鼠标触顶滑入。
@@ -199,26 +200,8 @@ export function TopBar({ zoom }: { zoom?: number }) {
           Share
         </button>
 
-        {/* 用户头像（28px 圆形，字母 U） */}
-        <div
-          title="User"
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: '#F0F0F0',
-            border: '1px solid #E0E0E0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: '#666',
-            cursor: 'pointer',
-          }}
-        >
-          U
-        </div>
+        {/* 用户头像入口（v0.2：下拉 Profile / Materials / Settings） */}
+        <AvatarMenu />
       </div>
     </div>
   );

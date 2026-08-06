@@ -48,6 +48,9 @@ export function Pin({
   const dragging = useRef(false);
   const pinRef = useRef<HTMLDivElement>(null);
 
+  // Rope 连线模式下放大命中区域，更容易点中
+  const size = isRopeCreating ? 22 : PIN_SIZE;
+
   const pixelX = offset.x * parentWidth;
   const pixelY = offset.y * parentHeight;
 
@@ -121,17 +124,17 @@ export function Pin({
       data-pin-item-id={itemId}
       style={{
         position: 'absolute',
-        left: pixelX - PIN_SIZE / 2,
-        top: pixelY - PIN_SIZE / 2,
-        width: PIN_SIZE,
-        height: PIN_SIZE,
+        left: pixelX - size / 2,
+        top: pixelY - size / 2,
+        width: size,
+        height: size,
         borderRadius: '50%',
         background: '#F8F8F8',
-        border: '1px solid #E0E0E0',
+        border: isRopeCreating ? '2px solid #4A90D9' : '1px solid #E0E0E0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: 'grab',
+        cursor: isRopeCreating ? 'pointer' : 'grab',
         zIndex: 10,
         pointerEvents: 'auto',
         transform: hovered ? 'scale(1.1)' : 'scale(1)',

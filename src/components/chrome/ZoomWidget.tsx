@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { InfiniteCanvasHandle } from '../canvas/InfiniteCanvas';
 import { useUIStore } from '../../store/useUIStore';
 
@@ -7,15 +8,34 @@ interface ZoomWidgetProps {
 }
 
 /**
- * 右下角页面级浮窗（v0.2，参考 Magnific 布局）。
+ * 右下角页面级浮窗（v0.2 修订）。
+ * 位置不变，静止时默认隐藏，hover 右下角时由右向左浮出。
  * 缩放百分比（点击重置 100%）+ Fit 按钮 + Map 图标按钮。
  * 纯白实色 + 1px border，无阴影。
  */
 export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
   const showToast = useUIStore((s) => s.showToast);
+  const [visible, setVisible] = useState(false);
+
+  // 鼠标接近右下角时显示
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (e.clientX >= window.innerWidth - 90 && e.clientY >= window.innerHeight - 80) {
+        setVisible(true);
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    return () => document.removeEventListener('mousemove', onMove);
+  }, []);
 
   return (
     <div
+      onMouseLeave={(e) => {
+        // 离开浮窗且不在右下角触发区时隐藏
+        const inCorner =
+          e.clientX >= window.innerWidth - 90 && e.clientY >= window.innerHeight - 80;
+        if (!inCorner) setVisible(false);
+      }}
       style={{
         position: 'fixed',
         right: 16,
@@ -30,6 +50,8 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
         height: 36,
         zIndex: 1000,
         userSelect: 'none',
+        transform: visible ? 'translateX(0)' : 'translateX(150%)',
+        transition: 'transform 0.25s ease',
       }}
     >
       {/* Zoom out */}
