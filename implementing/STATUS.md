@@ -16,6 +16,7 @@
 | manifest.json | 2026-08-06 | 样例清单 + Paper 文字 + Stamp 引用 |
 | HANDOVER.md | 2026-08-06 | `planning/HANDOVER.md` — 上下文衔接文档 |
 | Multi-Agent 协作方案 | 2026-08-06 | `planning/MULTI_AGENT_PLAN.md` — 角色/Slice/并行/汇报 |
+| UI 组件设计细化 | 2026-08-06 | `planning/UI_COMPONENT_DESIGN.md` — 组件树/状态机/浮窗/Map/快捷键 |
 
 ## Next session
 

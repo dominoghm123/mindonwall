@@ -1,7 +1,7 @@
 # Handover — Pin & Paper Journal v0.1
 
 **最后更新：** 2026-08-06  
-**当前阶段：** Planning 完成（PRD 已冻结），准备进入 Implementation
+**当前阶段：** Planning 完成（PRD 已冻结 + UI 组件设计细化完成），准备进入 Implementation
 
 ## 项目一句话
 
@@ -54,7 +54,9 @@ mindonwall/
 ├── planning/
 │   ├── PRD.md              ← 需求真源（已冻结 v0.1）
 │   ├── HANDOVER.md         ← 本文件
-│   └── README.md           ← 阶段说明与版本规则
+│   ├── README.md           ← 阶段说明与版本规则
+│   ├── MULTI_AGENT_PLAN.md ← Multi-Agent 协作方案
+│   └── UI_COMPONENT_DESIGN.md ← UI 组件详细设计（组件树/状态机/浮窗/快捷键）
 ├── researching/
 │   ├── FEATURE_MAP.md      ← 功能边界
 │   ├── VIBE_MOODBOARD.md   ← 视觉不可违背约束
@@ -78,6 +80,7 @@ mindonwall/
 | 需求调研 + Grill-Me 确认 | ✅ 完成 |
 | PRD v0.1 冻结 | ✅ 完成 |
 | 视觉 Spec 包 | ✅ 完成 |
+| UI 组件设计细化 | ✅ 完成 |
 | 样例图片 6 张 | ✅ 已复制到 public/demo-assets/ |
 | Stamp 素材 5 个 | ✅ 已生成到 public/demo-assets/stamps/（白底，需 `mix-blend-mode: multiply`） |
 | manifest.json | ✅ 完成 |
