@@ -160,7 +160,7 @@ export function ObjectWrapper({
 
       if (e.button !== 0) return;
       e.stopPropagation();
-      onSelect?.(item.id, e.shiftKey);
+      onSelect?.(item.id, e.ctrlKey || e.metaKey);
       drag.handlePointerDown(e);
     },
     [item.id, onSelect, drag],

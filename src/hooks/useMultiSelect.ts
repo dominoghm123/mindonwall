@@ -11,7 +11,7 @@ interface UseMultiSelectOptions {
 
 /**
  * 多选 hook。
- * - Shift+click 物件 → 切换选中状态
+ * - Ctrl/Cmd+click to toggle selection
  * - Ctrl+A → 全选当前墙面所有物件
  * - 矩形框选（通过 SelectionBox 组件）
  * - Delete/Backspace → 批量删除选中物件

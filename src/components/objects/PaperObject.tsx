@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import type { Item } from '../../store/types';
 import { useWallStore } from '../../store/useWallStore';
 import { StampObject } from './StampObject';
@@ -26,7 +26,7 @@ export function PaperObject({ item, onTextChange }: PaperObjectProps) {
       case 'sticky':
         return <StickyNote item={item} onTextChange={onTextChange} />;
       case 'tape':
-        return <TapeStrip />;
+        return <TapeStrip item={item} />;
       case 'note':
       default:
         return <NotePaper item={item} onTextChange={onTextChange} />;
@@ -191,21 +191,8 @@ function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: st
         padding: 12,
         boxSizing: 'border-box',
         position: 'relative',
-        overflow: 'hidden',
       }}
     >
-      {/* 右上角微卷效果 */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: 24,
-          height: 24,
-          background: `linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.06) 50%)`,
-          pointerEvents: 'none',
-        }}
-      />
       <div
         ref={ref}
         contentEditable
@@ -228,19 +215,78 @@ function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: st
   );
 }
 
-/* ─── 胶带 tape ─── */
-function TapeStrip() {
+/* ─── Tape (washi/masking tape) ─── */
+/**
+ * Tape 变体：半透明胶带条，自然撕边，可叠加在其他物件上。
+ * 参考 researching/tape_sample/ 中的质感：
+ * - 半透明（opacity 0.55-0.7）
+ * - 自然不规则撕边（非直线切割）
+ * - 轻微褶皱/纹理
+ * - 支持多色：米白/浅蓝/浅黄/浅绿等
+ */
+function TapeStrip({ item }: { item: Item }) {
+  const color = item.color ?? 'rgba(232,224,200,0.6)';
+
+  // 基于 id 生成确定性伪随机撕边形状
+  const tearShape = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < item.id.length; i++) {
+      hash = (hash << 5) - hash + item.id.charCodeAt(i);
+      hash |= 0;
+    }
+    const rng = () => {
+      hash = (hash * 16807 + 0) % 2147483647;
+      return (hash - 1) / 2147483646;
+    };
+    // 生成 4 个角的撕边偏移
+    return {
+      tl: rng() * 6 - 3,
+      tr: rng() * 6 - 3,
+      bl: rng() * 6 - 3,
+      br: rng() * 6 - 3,
+      // 轻微斜角
+      skew: (rng() - 0.5) * 4,
+    };
+  }, [item.id]);
+
   return (
     <div
       style={{
-        width: 180,
-        height: 30,
-        opacity: 0.7,
-        backgroundImage:
-          'repeating-linear-gradient(90deg, rgba(200,180,140,0.4) 0px, rgba(200,180,140,0.4) 4px, transparent 4px, transparent 8px)',
-        backgroundColor: 'rgba(220,210,180,0.5)',
-        borderRadius: 1,
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        overflow: 'visible',
       }}
-    />
+    >
+      {/* SVG 撕边胶带形状 */}
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', top: 0, left: 0 }}
+      >
+        <defs>
+          {/* 胶带纹理：轻微噪点 */}
+          <filter id={`tape-noise-${item.id}`}>
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" />
+            <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+            <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply" />
+          </filter>
+        </defs>
+        {/* 胶带主体：不规则四边形模拟撕边 */}
+        <polygon
+          points={`
+            ${2 + tearShape.tl},${8 + tearShape.skew}
+            ${98 + tearShape.tr},${6 - tearShape.skew}
+            ${97 - tearShape.br},${94 + tearShape.skew}
+            ${3 - tearShape.bl},${92 - tearShape.skew}
+          `}
+          fill={color}
+          filter={`url(#tape-noise-${item.id})`}
+          opacity="0.85"
+        />
+      </svg>
+    </div>
   );
 }

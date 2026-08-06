@@ -4,7 +4,7 @@ function App() {
   return (
     <div className="app">
       <h1>Mind on Wall</h1>
-      <p>MVP 开发中...</p>
+      <p>MVP in development...</p>
     </div>
   )
 }
