@@ -3,6 +3,8 @@ import { useRef, useCallback, useState } from 'react';
 interface UseDragOptions {
   x: number;
   y: number;
+  /** 画布缩放（屏幕像素 delta 需除以 zoom 才是画布坐标位移） */
+  zoom?: number;
   /** 拖拽结束时回调，返回新位置和起始位置（用于 undo） */
   onDragEnd?: (newPos: { x: number; y: number }, startPos: { x: number; y: number }) => void;
 }
@@ -11,18 +13,24 @@ interface UseDragOptions {
  * 物件拖拽 hook。
  * - 拖拽过程中通过返回值提供实时位置（本地状态，不触发 undo）
  * - 拖拽结束时通过 onDragEnd 回调，由父组件记录 undo
+ * - 屏幕像素 delta 除以 zoom 转换为画布坐标，实现任意缩放下零延迟跟随
  */
-export function useDrag({ x, y, onDragEnd }: UseDragOptions) {
+export function useDrag({ x, y, zoom = 1, onDragEnd }: UseDragOptions) {
   const [pos, setPos] = useState({ x, y });
   const dragRef = useRef<{
     startX: number;
     startY: number;
     itemX: number;
     itemY: number;
+    zoom: number;
     moved: boolean;
   } | null>(null);
   const onDragEndRef = useRef(onDragEnd);
   onDragEndRef.current = onDragEnd;
+
+  // zoom 通过 ref 保持最新，供 pointerdown 时快照
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
 
   // 同步外部 prop 变化
   const prevXY = useRef({ x, y });
@@ -42,6 +50,7 @@ export function useDrag({ x, y, onDragEnd }: UseDragOptions) {
         startY: e.clientY,
         itemX: pos.x,
         itemY: pos.y,
+        zoom: zoomRef.current || 1,
         moved: false,
       };
       (e.target as Element).setPointerCapture(e.pointerId);
@@ -52,9 +61,10 @@ export function useDrag({ x, y, onDragEnd }: UseDragOptions) {
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const d = dragRef.current;
     if (!d) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) d.moved = true;
+    // 屏幕像素 delta 除以 zoom 得到画布坐标位移
+    const dx = (e.clientX - d.startX) / d.zoom;
+    const dy = (e.clientY - d.startY) / d.zoom;
+    if (Math.abs(dx) > 2 / d.zoom || Math.abs(dy) > 2 / d.zoom) d.moved = true;
     setPos({ x: d.itemX + dx, y: d.itemY + dy });
   }, []);
 

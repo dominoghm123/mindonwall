@@ -146,6 +146,7 @@ function App() {
                   item={item}
                   selected={selectedIds.includes(item.id)}
                   zIndex={index + 2}
+                  zoom={canvasView.zoom}
                   onSelect={multiSelect.handleSelect}
                   onPinDragEnd={handlePinDragEnd}
                   isRopeCreating={ropeCreating}
@@ -154,7 +155,7 @@ function App() {
                 >
                   {item.type === 'picture' && <PictureObject item={item} />}
                   {item.type === 'paper' && (
-                    <PaperObject item={item} onTextChange={handleTextChange} />
+                    <PaperObject item={item} onTextChange={handleTextChange} zoom={canvasView.zoom} />
                   )}
                   {item.type === 'stamp' && <StampObject item={item} />}
                 </ObjectWrapper>

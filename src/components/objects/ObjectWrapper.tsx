@@ -13,6 +13,8 @@ interface ObjectWrapperProps {
   selected: boolean;
   zIndex: number;
   children: ReactNode;
+  /** 画布缩放，传给 drag/resize 做坐标换算 */
+  zoom?: number;
   onSelect?: (id: string, multi: boolean) => void;
   onMove?: (id: string, x: number, y: number) => void;
   onResize?: (id: string, w: number, h: number) => void;
@@ -52,6 +54,7 @@ export function ObjectWrapper({
   selected,
   zIndex,
   children,
+  zoom = 1,
   onSelect,
   onMove,
   onResize,
@@ -62,11 +65,14 @@ export function ObjectWrapper({
   onPinRopeStart,
 }: ObjectWrapperProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  /** 当前活跃交互模式（ref 避免闭包 stale state） */
+  const activeModeRef = useRef<'none' | 'drag' | 'resize' | 'rotate'>('none');
 
   /* ── Drag hook ── */
   const drag = useDrag({
     x: item.x,
     y: item.y,
+    zoom,
     onDragEnd: useCallback(
       (newPos: { x: number; y: number }, startPos: { x: number; y: number }) => {
         // 直接设置最终位置并记录正确的 undo（before=startPos, after=newPos）
@@ -89,6 +95,7 @@ export function ObjectWrapper({
     height: item.height,
     x: item.x,
     y: item.y,
+    zoom,
     onResizeEnd: useCallback(
       (
         newSize: { width: number; height: number },
@@ -161,6 +168,7 @@ export function ObjectWrapper({
       if (e.button !== 0) return;
       e.stopPropagation();
       onSelect?.(item.id, e.ctrlKey || e.metaKey);
+      activeModeRef.current = 'drag';
       drag.handlePointerDown(e);
     },
     [item.id, onSelect, drag],
@@ -169,12 +177,16 @@ export function ObjectWrapper({
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       // 分发给当前活跃的交互
-      if (rotate.isRotating) {
+      const mode = activeModeRef.current;
+      if (mode === 'rotate') {
         rotate.handlePointerMove(e);
-      } else if (resize.isResizing) {
+      } else if (mode === 'resize') {
         resize.handlePointerMove(e);
-      } else if (drag.isDragging) {
+      } else if (mode === 'drag') {
         drag.handlePointerMove(e);
+      } else if (rotate.isArmed || rotate.isRotating) {
+        // 旋转长按激活后首次 move
+        rotate.handlePointerMove(e);
       }
     },
     [drag, resize, rotate],
@@ -182,13 +194,15 @@ export function ObjectWrapper({
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
-      if (rotate.isRotating) {
+      const mode = activeModeRef.current;
+      if (mode === 'rotate') {
         rotate.handlePointerUp(e);
-      } else if (resize.isResizing) {
+      } else if (mode === 'resize') {
         resize.handlePointerUp(e);
       } else {
         drag.handlePointerUp(e);
       }
+      activeModeRef.current = 'none';
     },
     [drag, resize, rotate],
   );
@@ -200,7 +214,8 @@ export function ObjectWrapper({
   const displayH = resize.isResizing ? resize.resizeHeight : item.height;
   const displayRotation = rotate.currentRotation;
 
-  const showPin = item.type !== 'stamp';
+  // Pin 只出现在 picture 和非 tape 的 paper 上
+  const showPin = item.type === 'picture' || (item.type === 'paper' && item.variant !== 'tape');
   const pinOffset = item.pinOffset ?? { x: 0.5, y: 0 };
 
   return (
@@ -267,7 +282,10 @@ export function ObjectWrapper({
                     cursor: HANDLE_CURSORS[dir],
                     zIndex: 20,
                   }}
-                  onPointerDown={resize.handleResizeStart(dir)}
+                  onPointerDown={(e) => {
+                    activeModeRef.current = 'resize';
+                    resize.handleResizeStart(dir)(e);
+                  }}
                 />
               );
             },
@@ -291,7 +309,10 @@ export function ObjectWrapper({
               userSelect: 'none',
               zIndex: 20,
             }}
-            onPointerDown={rotate.handleRotateStart}
+            onPointerDown={(e) => {
+              activeModeRef.current = 'rotate';
+              rotate.handleRotateStart(e);
+            }}
           >
             ⊙
           </div>
