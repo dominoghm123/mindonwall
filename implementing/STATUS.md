@@ -1,8 +1,8 @@
 # Implementation Status
 
-**Overall:** v0.1 MVP complete; v0.2 in progress
-**Active version:** v0.2 — Interactions & Chrome Refinement
-**Last updated:** 2026-08-06
+**Overall:** v0.1 MVP complete; v0.2 complete ✅
+**Active version:** v0.2 — Interactions & Chrome Refinement (ready for review)
+**Last updated:** 2026-08-07
 
 ## v0.1 Completed
 
@@ -42,10 +42,14 @@
 | 3: Stamp双状态 | ✅ 完成 | attach/detach + context menu |
 | 4: UI浮窗 v0.1 | ✅ 完成 | TopBar + BottomToolbar (basic) |
 | 5: 多墙面+托盘 | ✅ 完成 | OverviewPage + wall CRUD (basic) |
-| **v0.2-A1**: 物件交互完善 |  进行中 | resize fix + stamp edit + drag + rotate |
-| **v0.2-A2**: 底部工具栏深化 |  待启动 | height fix + 3 secondary panels + rope mode |
-| **v0.2-A3**: 顶部栏重布局 | ⏳ 待启动 | Magnific-style layout |
-| **v0.2-B**: 总览页管理功能 | ⏳ 待启动 | batch ops + 3-dot menu + export |
+| **v0.2-A1**: 物件交互完善 | ✅ 完成 | ac9fdb3 — resize 缩小修复、附着 Stamp 拖拽、drag÷zoom 零延迟、长按旋转、Pin 规则 |
+| **v0.2-A2**: 底部工具栏深化 | ✅ 完成 | a62a2eb — 48px 工具栏 + Image/Paper/Stamp 三面板 + rope 点击连线 + 上传 |
+| **v0.2-A3**: 顶部栏重布局 | ✅ 完成 | e66375e — Share+头像、右下角缩放/Fit/Map 浮窗、Toast 层 |
+| **v0.2-B**: 总览页管理功能 | ✅ 完成 | a715ed1 — Manage 多选删除、三点菜单、Duplicate/Export JSON、多墙数据切换 |
+
+## v0.2 QA 结果（2026-08-07 浏览器全流程验证）
+
+17/17 PASS：总览卡片/三点菜单/Duplicate/Rename/Manage 批量删除、顶栏布局、三面板添加物件、rope 点击连线、resize 放大+缩小、拖拽同步、长按旋转、缩放浮窗、返回保存数据。Console 无 error。
 
 ## Known Blockers
 - 曼谷第3张样例图分辨率仅 477×358

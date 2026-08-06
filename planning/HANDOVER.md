@@ -1,7 +1,7 @@
 # Handover — Mind on Wall v0.2
 
-**最后更新：** 2026-08-06 深夜
-**当前阶段：** v0.1 已完成并合入 main；v0.2 开发中（范围已确认，编码待推进）
+**最后更新：** 2026-08-07
+**当前阶段：** ✅ v0.2 已完成（A1/A2/A3/B 全部实现，17/17 浏览器验证通过，待合入 main）
 
 ## 项目一句话
 
@@ -12,7 +12,20 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 | 分支 | 状态 |
 |---|---|
 | `main` | ✅ v0.1 最终版，commit `5ae57bf`，已推送远程，**不可改动** |
-| `feature/v0.2-interactions-chrome` | 🔄 **当前工作分支**，从 main 切出，仅含 STATUS.md 更新（commit `4ce028b`），已推送远程 |
+| `feature/v0.2-interactions-chrome` | ✅ v0.2 完成，已推送远程 |
+
+## v0.2 完成记录（2026-08-07）
+
+| Commit | 内容 |
+|---|---|
+| `ac9fdb3` | A1: drag÷zoom 零延迟、resize 缩小修复、附着 Stamp 拖拽、长按旋转、Pin 规则 |
+| `a62a2eb` | A2: 48px 工具栏 + Image/Paper/Stamp 三面板 + 图片上传 + rope 点击连线 |
+| `e66375e` | A3: TopBar Share+头像、右下角缩放/Fit/Map 浮窗、ToastLayer |
+| `a715ed1` | B: Manage 多选删除、三点菜单（Rename/Duplicate/Export JSON/Share/Delete）、多墙数据切换、默认墙名 Wall 01 |
+
+QA：浏览器全流程 17/17 PASS，console 无 error。验收截图：`/tmp/mindonwall-overview.png`、`/tmp/mindonwall-editor-final.png`。
+
+**v0.3 待办**：Project 层级、真实分享后端、PDF 导出、Connection Map；次要优化：resize 超 800px 宽高比保持、窄视口总览网格自适应、viewMode 默认总览。
 
 - v0.2 所有改动在 `feature/v0.2-interactions-chrome` 上进行，**不动 main**
 - 回滚方式：`git checkout main` 即回到 v0.1

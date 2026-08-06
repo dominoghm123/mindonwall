@@ -344,7 +344,7 @@ function WallCard({
           {wall.itemCount} {wall.itemCount === 1 ? 'item' : 'items'}
         </span>
       </div>
-      {/* 三点菜单按钮（右下角） */}
+      {/* 三点菜单按钮（右上角，规格要求） */}
       {!manageMode && (
         <button
           onClick={(e) => {
@@ -355,15 +355,15 @@ function WallCard({
           style={{
             position: 'absolute',
             right: 8,
-            bottom: 8,
-            width: 24,
-            height: 24,
-            border: 'none',
-            background: 'none',
+            top: 8,
+            width: 26,
+            height: 26,
+            border: '1px solid #E5E5E5',
+            background: 'rgba(255,255,255,0.92)',
             cursor: 'pointer',
             fontSize: 14,
-            color: '#999',
-            borderRadius: 4,
+            color: '#666',
+            borderRadius: 13,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
