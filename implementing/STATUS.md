@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Overall:** Planning complete; PRD frozen; ready for implementation  
-**Active slice:** none (awaiting Day 1 startup)  
+**Overall:** Planning complete; UI component design finalized; project scaffolded; ready for Slice 0  
+**Active slice:** Slice 0 (数据层基础)  
 **Last updated:** 2026-08-06
 
 ## Completed (pre-implementation)
@@ -17,6 +17,7 @@
 | HANDOVER.md | 2026-08-06 | `planning/HANDOVER.md` — 上下文衔接文档 |
 | Multi-Agent 协作方案 | 2026-08-06 | `planning/MULTI_AGENT_PLAN.md` — 角色/Slice/并行/汇报 |
 | UI 组件设计细化 | 2026-08-06 | `planning/UI_COMPONENT_DESIGN.md` — 组件树/状态机/浮窗/Map/快捷键 |
+| 项目脚手架 | 2026-08-06 | Vite + React 19 + TS + Zustand + html-to-image，dev server 验证通过 |
 
 ## Next session
 
@@ -29,8 +30,8 @@
 
 | Slice | Status | Evidence / notes |
 |---|---|---|
-| 0: 数据层基础 | not started | Zustand + Storage Adapter + 撤销栈 |
-| 1: 画布渲染 | not started | 物件组件 + Pin + 缩放平移 |
+| 0: 数据层基础 | ✅ 完成 | `feature/slice0-data-layer` — 11 stores + adapters + undo + initialData |
+| 1: 画布渲染 | ✅ 完成 | `feature/slice1-canvas-render` — InfiniteCanvas + 5 object components + Pin + RopeLayer |
 | 2: 交互层 | not started | Rope创建 + 多选 + 键盘 |
 | 3: Stamp双状态 | not started | 附着/独立 + 右键菜单 |
 | 4: UI浮窗 | not started | 底部工具栏 + 左侧托盘 + 顶部 |
