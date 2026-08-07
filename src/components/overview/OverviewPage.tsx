@@ -6,7 +6,7 @@ import { useAssetStore } from '../../store/useAssetStore';
 import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { AvatarMenu } from '../shared/AvatarMenu';
 import { buildShareUrl, copyShareUrl, shareWallServer } from '../../utils/shareWall';
-import type { WallSummary } from '../../store/types';
+import type { WallSummary, Project } from '../../store/types';
 import { useT } from '../../i18n/useT';
 import { track } from '../../utils/analytics';
 
@@ -18,12 +18,15 @@ import { track } from '../../utils/analytics';
  */
 export function OverviewPage() {
   const walls = useOverviewStore((s) => s.walls);
+  const projects = useOverviewStore((s) => s.projects);
   const addWall = useOverviewStore((s) => s.addWall);
+  const addProject = useOverviewStore((s) => s.addProject);
   const openWall = useOverviewStore((s) => s.openWall);
   const duplicateWall = useOverviewStore((s) => s.duplicateWall);
   const exportWallJSON = useOverviewStore((s) => s.exportWallJSON);
   const removeWalls = useOverviewStore((s) => s.removeWalls);
   const captureCurrentWall = useOverviewStore((s) => s.captureCurrentWall);
+  const moveWallToProject = useOverviewStore((s) => s.moveWallToProject);
   const homeBackground = useOverviewStore((s) => s.homeBackground);
   const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
   const showToast = useUIStore((s) => s.showToast);
@@ -35,6 +38,8 @@ export function OverviewPage() {
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
   const [menu, setMenu] = useState<{ wallId: string; x: number; y: number } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [newProjectInput, setNewProjectInput] = useState(false);
 
   // 进入总览页时快照当前编辑的墙
   useEffect(() => {
@@ -208,30 +213,116 @@ export function OverviewPage() {
         </div>
       </div>
 
-      {/* 卡片网格 */}
+      {/* v0.4: 按 Project 分组的卡片网格 */}
       <div
         style={{
           flex: 1,
           overflow: 'auto',
-          padding: 24,
-          display: 'grid',
-          // v0.3: 窄视口自适应列数（宽视口最多 280px 卡片，窄视口自动减列）
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 280px))',
-          gap: 20,
-          justifyContent: 'center',
-          alignContent: 'start',
+          padding: '16px 24px',
         }}
       >
-        {walls.map((wall) => (
-          <WallCard
-            key={wall.id}
-            wall={wall}
-            manageMode={manageMode}
-            checked={selected.includes(wall.id)}
-            onClick={() => handleCardClick(wall)}
-            onMenuOpen={(x, y) => setMenu({ wallId: wall.id, x, y })}
-          />
-        ))}
+        {projects.length > 0 ? (
+          projects.map((project) => {
+            const projectWalls = walls.filter((w) => project.wallIds.includes(w.id));
+            const isCollapsed = collapsed[project.id];
+            return (
+              <div key={project.id} style={{ marginBottom: 20 }}>
+                {/* Project 标题栏 */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 12,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
+                  onClick={() => setCollapsed((prev) => ({ ...prev, [project.id]: !prev[project.id] }))}
+                >
+                  <span style={{ fontSize: 12, color: '#999', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', display: 'inline-block' }}>▼</span>
+                  {project.color && (
+                    <span style={{ width: 10, height: 10, borderRadius: 2, background: project.color, flexShrink: 0 }} />
+                  )}
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>{project.name}</span>
+                  <span style={{ fontSize: 11, color: '#BBB' }}>({projectWalls.length})</span>
+                </div>
+                {/* 墙卡片网格 */}
+                {!isCollapsed && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 280px))',
+                      gap: 20,
+                      justifyContent: 'center',
+                      alignContent: 'start',
+                    }}
+                  >
+                    {projectWalls.map((wall) => (
+                      <WallCard
+                        key={wall.id}
+                        wall={wall}
+                        manageMode={manageMode}
+                        checked={selected.includes(wall.id)}
+                        onClick={() => handleCardClick(wall)}
+                        onMenuOpen={(x, y) => setMenu({ wallId: wall.id, x, y })}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          // 无 project 时直接显示所有墙（兼容旧数据未迁移场景）
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 280px))',
+              gap: 20,
+              justifyContent: 'center',
+              alignContent: 'start',
+            }}
+          >
+            {walls.map((wall) => (
+              <WallCard
+                key={wall.id}
+                wall={wall}
+                manageMode={manageMode}
+                checked={selected.includes(wall.id)}
+                onClick={() => handleCardClick(wall)}
+                onMenuOpen={(x, y) => setMenu({ wallId: wall.id, x, y })}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* v0.4: New Project 按钮 */}
+        {!manageMode && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, marginBottom: 24 }}>
+            {newProjectInput ? (
+              <NewProjectInline
+                onDone={(name) => { addProject(name); track('project_created'); setNewProjectInput(false); }}
+                onCancel={() => setNewProjectInput(false)}
+              />
+            ) : (
+              <button
+                onClick={() => setNewProjectInput(true)}
+                style={{
+                  height: 32,
+                  padding: '0 20px',
+                  fontSize: 12,
+                  color: '#999',
+                  background: 'transparent',
+                  border: '1px dashed #CCC',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                }}
+              >
+                + {t('project.new')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 三点菜单 */}
@@ -239,6 +330,7 @@ export function OverviewPage() {
         <CardMenu
           x={menu.x}
           y={menu.y}
+          wallId={menu.wallId}
           onClose={() => setMenu(null)}
           onAction={(action) => {
             const wall = walls.find((w) => w.id === menu.wallId);
@@ -468,18 +560,23 @@ function WallCard({
 function CardMenu({
   x,
   y,
+  wallId,
   onClose,
   onAction,
   onRename,
 }: {
   x: number;
   y: number;
+  wallId: string;
   onClose: () => void;
   onAction: (action: string) => void;
   onRename: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useT();
+  const projects = useOverviewStore((s) => s.projects);
+  const moveWallToProject = useOverviewStore((s) => s.moveWallToProject);
+  const [showMoveTo, setShowMoveTo] = useState(false);
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -504,12 +601,16 @@ function CardMenu({
     { key: 'delete', label: t('common.delete'), danger: true },
   ];
 
+  // 当前墙所属的 project
+  const currentProject = projects.find((p) => p.wallIds.includes(wallId));
+  const otherProjects = projects.filter((p) => p.id !== currentProject?.id);
+
   return (
     <div
       ref={ref}
       style={{
         position: 'fixed',
-        left: Math.min(x, window.innerWidth - 180),
+        left: Math.min(x, window.innerWidth - 200),
         top: Math.max(y - 160, 8),
         background: '#FFFFFF',
         border: '1px solid #E0E0E0',
@@ -520,29 +621,78 @@ function CardMenu({
         userSelect: 'none',
       }}
     >
-      {items.map((it) => (
-        <div
-          key={it.key}
-          onClick={() => (it.key === 'rename' ? onRename() : onAction(it.key))}
-          style={{
-            height: 32,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 14px',
-            fontSize: 13,
-            color: it.danger ? '#C0392B' : '#333',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-          }}
-        >
-          {it.label}
-        </div>
-      ))}
+      {items.map((it) => {
+        // "Move to" 插入在 share 后面
+        const showMoveAfter = it.key === 'share' && otherProjects.length > 0;
+        return (
+          <div key={it.key}>
+            <div
+              onClick={() => (it.key === 'rename' ? onRename() : onAction(it.key))}
+              style={{
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 14px',
+                fontSize: 13,
+                color: it.danger ? '#C0392B' : '#333',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5';
+                if (showMoveAfter) setShowMoveTo(true);
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+                if (showMoveAfter) setShowMoveTo(false);
+              }}
+            >
+              {it.label}
+              {showMoveAfter && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#999' }}>▸</span>}
+            </div>
+            {showMoveAfter && showMoveTo && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '100%',
+                  top: 0,
+                  background: '#FFFFFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: 8,
+                  padding: '4px 0',
+                  minWidth: 140,
+                  zIndex: 10000,
+                }}
+              >
+                {otherProjects.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      moveWallToProject(wallId, p.id);
+                      track('wall_moved_to_project', { projectId: p.id });
+                      onClose();
+                    }}
+                    style={{
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '0 14px',
+                      fontSize: 13,
+                      color: '#333',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                  >
+                    {p.color && <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color }} />}
+                    {p.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -604,6 +754,56 @@ function dialogBtnStyle(primary: boolean): React.CSSProperties {
     borderRadius: 6,
     cursor: 'pointer',
   };
+}
+
+/* ─── v0.4: 新建 Project 内联输入 ─── */
+function NewProjectInline({
+  onDone,
+  onCancel,
+}: {
+  onDone: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const commit = () => {
+    const v = value.trim();
+    if (v) onDone(v);
+    else onCancel();
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') onCancel();
+        }}
+        placeholder={t('project.newPlaceholder')}
+        style={{
+          height: 30,
+          width: 180,
+          boxSizing: 'border-box',
+          fontSize: 12,
+          padding: '0 10px',
+          border: '1px solid #D0D0D0',
+          borderRadius: 6,
+          outline: 'none',
+        }}
+      />
+      <button onClick={commit} style={{ ...dialogBtnStyle(true), background: '#333' }}>{t('common.save')}</button>
+      <button onClick={onCancel} style={dialogBtnStyle(false)}>{t('common.cancel')}</button>
+    </div>
+  );
 }
 
 function HeaderButton({
