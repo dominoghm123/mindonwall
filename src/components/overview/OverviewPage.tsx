@@ -140,7 +140,8 @@ export function OverviewPage() {
           overflow: 'auto',
           padding: 24,
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 280px)',
+          // v0.3: 窄视口自适应列数（宽视口最多 280px 卡片，窄视口自动减列）
+          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 280px))',
           gap: 20,
           justifyContent: 'center',
           alignContent: 'start',
@@ -296,7 +297,8 @@ function WallCard({
     <div
       onClick={onClick}
       style={{
-        width: 280,
+        // v0.3: 宽度跟随网格列自适应
+        width: '100%',
         height: 200,
         background: '#FFFFFF',
         border: checked ? '2px solid #4A90D9' : '1px solid #E8E8E8',

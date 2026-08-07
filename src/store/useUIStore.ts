@@ -187,10 +187,14 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'mindonwall-ui',
-      partialize: (state) => ({
-        viewMode: state.viewMode,
-        // selectedIds 和 toasts 不持久化
-      }),
+      // v0.3: viewMode 不再持久化，刷新后始终回到总览页
+      version: 1,
+      migrate: (persisted) => {
+        const p = persisted as Record<string, unknown>;
+        delete p.viewMode;
+        return p;
+      },
+      partialize: () => ({}),
     },
   ),
 );

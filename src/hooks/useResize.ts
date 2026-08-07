@@ -86,16 +86,24 @@ export function useResize({ width, height, x, y, zoom = 1, onResizeEnd }: UseRes
 
     if (isCorner) {
       // 角手柄：两轴独立缩放（不联动）
-      if (r.dir.includes('e')) newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w + dx));
-      else if (r.dir.includes('w')) {
-        newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w - dx));
-        newX = r.ix + (r.w - newW);
+      let rawW = r.w;
+      let rawH = r.h;
+      if (r.dir.includes('e')) rawW = r.w + dx;
+      else if (r.dir.includes('w')) rawW = r.w - dx;
+      if (r.dir.includes('s')) rawH = r.h + dy;
+      else if (r.dir.includes('n')) rawH = r.h - dy;
+
+      if (rawW > MAX_SIZE || rawH > MAX_SIZE) {
+        // v0.3: 超过 800px 时锁定宽高比，避免大物件拉伸变形
+        const scale = MAX_SIZE / Math.max(rawW, rawH);
+        newW = Math.max(MIN_SIZE, rawW * scale);
+        newH = Math.max(MIN_SIZE, rawH * scale);
+      } else {
+        newW = Math.max(MIN_SIZE, rawW);
+        newH = Math.max(MIN_SIZE, rawH);
       }
-      if (r.dir.includes('s')) newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h + dy));
-      else if (r.dir.includes('n')) {
-        newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h - dy));
-        newY = r.iy + (r.h - newH);
-      }
+      if (r.dir.includes('w')) newX = r.ix + (r.w - newW);
+      if (r.dir.includes('n')) newY = r.iy + (r.h - newH);
     } else {
       // 边手柄：单独拉伸
       if (r.dir === 'e') newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w + dx));
