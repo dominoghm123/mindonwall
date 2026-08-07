@@ -26,6 +26,7 @@ export function OverviewPage() {
   const exportWallJSON = useOverviewStore((s) => s.exportWallJSON);
   const removeWalls = useOverviewStore((s) => s.removeWalls);
   const captureCurrentWall = useOverviewStore((s) => s.captureCurrentWall);
+  const moveWallToProject = useOverviewStore((s) => s.moveWallToProject);
   const homeBackground = useOverviewStore((s) => s.homeBackground);
   const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
   const showToast = useUIStore((s) => s.showToast);
@@ -39,6 +40,7 @@ export function OverviewPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [newProjectInput, setNewProjectInput] = useState(false);
+  const [manageMoveOpen, setManageMoveOpen] = useState(false);
 
   // 进入总览页时快照当前编辑的墙
   useEffect(() => {
@@ -151,6 +153,7 @@ export function OverviewPage() {
   const exitManage = useCallback(() => {
     setManageMode(false);
     setSelected([]);
+    setManageMoveOpen(false);
   }, []);
 
   return (
@@ -185,7 +188,58 @@ export function OverviewPage() {
           {manageMode ? (
             <>
               <span style={{ fontSize: 12, color: '#999' }}>{t('common.selected', { n: selected.length })}</span>
-              {/* v0.3: Manage 模式新增 Share 链接（单选墙时可用） */}
+              {/* v0.4: Manage 模式 Move-to 批量归类 */}
+              {projects.length > 1 && (
+                <div style={{ position: 'relative' }}>
+                  <HeaderButton
+                    label={t('project.moveTo')}
+                    disabled={selected.length === 0}
+                    onClick={() => setManageMoveOpen((v) => !v)}
+                  />
+                  {manageMoveOpen && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '100%',
+                        marginTop: 4,
+                        background: '#FFFFFF',
+                        border: '1px solid #E0E0E0',
+                        borderRadius: 8,
+                        padding: '4px 0',
+                        minWidth: 140,
+                        zIndex: 10000,
+                      }}
+                    >
+                      {projects.map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            selected.forEach((id) => moveWallToProject(id, p.id));
+                            track('wall_moved_to_project', { projectId: p.id, count: selected.length });
+                            setManageMoveOpen(false);
+                          }}
+                          style={{
+                            height: 32,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '0 14px',
+                            fontSize: 13,
+                            color: '#333',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                        >
+                          {p.color && <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color }} />}
+                          {p.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <HeaderButton
                 label={t('common.share')}
                 disabled={selected.length !== 1}
@@ -202,6 +256,15 @@ export function OverviewPage() {
           ) : (
             <>
               <HeaderButton label={t('ov.manage')} onClick={() => setManageMode(true)} />
+              {/* v0.4: + New Project 移到 TopBar */}
+              {newProjectInput ? (
+                <NewProjectInline
+                  onDone={(name) => { addProject(name); track('project_created'); setNewProjectInput(false); }}
+                  onCancel={() => setNewProjectInput(false)}
+                />
+              ) : (
+                <HeaderButton label={`+ ${t('project.new')}`} onClick={() => setNewProjectInput(true)} />
+              )}
               <HeaderButton label={t('ov.newWall')} onClick={handleNewWall} />
               {/* 头像入口（v0.2：顶栏最右侧） */}
               <div style={{ marginLeft: 8 }}>
@@ -292,34 +355,6 @@ export function OverviewPage() {
                 onMenuOpen={(x, y) => setMenu({ wallId: wall.id, x, y })}
               />
             ))}
-          </div>
-        )}
-
-        {/* v0.4: New Project 按钮 */}
-        {!manageMode && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, marginBottom: 24 }}>
-            {newProjectInput ? (
-              <NewProjectInline
-                onDone={(name) => { addProject(name); track('project_created'); setNewProjectInput(false); }}
-                onCancel={() => setNewProjectInput(false)}
-              />
-            ) : (
-              <button
-                onClick={() => setNewProjectInput(true)}
-                style={{
-                  height: 32,
-                  padding: '0 20px',
-                  fontSize: 12,
-                  color: '#999',
-                  background: 'transparent',
-                  border: '1px dashed #CCC',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                }}
-              >
-                + {t('project.new')}
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -595,6 +630,7 @@ function CardMenu({
   const items = [
     { key: 'rename', label: t('common.rename') },
     { key: 'duplicate', label: t('ov.duplicate') },
+    { key: 'moveTo', label: t('project.moveTo'), hasSub: true },
     { key: 'export', label: t('ov.exportJson') },
     { key: 'share', label: t('common.share') },
     { key: 'delete', label: t('common.delete'), danger: true },
@@ -621,34 +657,33 @@ function CardMenu({
       }}
     >
       {items.map((it) => {
-        // "Move to" 插入在 share 后面
-        const showMoveAfter = it.key === 'share' && otherProjects.length > 0;
+        if (it.key === 'moveTo' && otherProjects.length === 0) return null;
         return (
-          <div key={it.key}>
-            <div
-              onClick={() => (it.key === 'rename' ? onRename() : onAction(it.key))}
-              style={{
-                height: 32,
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 14px',
-                fontSize: 13,
-                color: it.danger ? '#C0392B' : '#333',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5';
-                if (showMoveAfter) setShowMoveTo(true);
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-                if (showMoveAfter) setShowMoveTo(false);
-              }}
-            >
-              {it.label}
-              {showMoveAfter && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#999' }}>▸</span>}
-            </div>
-            {showMoveAfter && showMoveTo && (
+          <div
+            key={it.key}
+            onClick={() => (it.key === 'rename' ? onRename() : it.key !== 'moveTo' ? onAction(it.key) : undefined)}
+            style={{
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 14px',
+              fontSize: 13,
+              color: it.danger ? '#C0392B' : '#333',
+              cursor: 'pointer',
+              position: 'relative',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5';
+              if (it.hasSub) setShowMoveTo(true);
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+              if (it.hasSub) setShowMoveTo(false);
+            }}
+          >
+            {it.label}
+            {it.hasSub && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#999' }}>▸</span>}
+            {it.hasSub && showMoveTo && (
               <div
                 style={{
                   position: 'absolute',
@@ -665,7 +700,8 @@ function CardMenu({
                 {otherProjects.map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       moveWallToProject(wallId, p.id);
                       track('wall_moved_to_project', { projectId: p.id });
                       onClose();
