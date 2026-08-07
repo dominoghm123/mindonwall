@@ -43,6 +43,29 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
   const panning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
+  // v0.2 修订：用 ref 同步最新 zoom/pan，避免在 setState updater 内嵌套调 setState
+  // （StrictMode 下 updater 双调用会导致 pan 被应用两次，缩放后中心偏移）
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  useEffect(() => {
+    zoomRef.current = zoom;
+    panRef.current = pan;
+  }, [zoom, pan]);
+
+  /** 以屏幕点 (px, py) 为不动点缩放：compute 由当前 zoom 算出新 zoom */
+  const zoomAtPoint = useCallback((px: number, py: number, compute: (prev: number) => number) => {
+    const prevZoom = zoomRef.current;
+    const prevPan = panRef.current;
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, compute(prevZoom)));
+    if (newZoom === prevZoom) return;
+    const ratio = newZoom / prevZoom;
+    setZoom(newZoom);
+    setPan({
+      x: px - ratio * (px - prevPan.x),
+      y: py - ratio * (py - prevPan.y),
+    });
+  }, []);
+
   // 通知外部视图变化
   useEffect(() => {
     onViewChange?.({ zoom, panX: pan.x, panY: pan.y });
@@ -87,7 +110,7 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
     });
   }, [items]);
 
-  /* ── 缩放（鼠标滚轮） ── */
+  /* ── 缩放（鼠标滚轮，以鼠标位置为不动点） ── */
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const container = containerRef.current;
@@ -98,28 +121,21 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
     const mouseY = e.clientY - rect.top;
 
     const delta = -e.deltaY * 0.001;
-    setZoom((prevZoom) => {
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevZoom * (1 + delta)));
-      const ratio = newZoom / prevZoom;
+    zoomAtPoint(mouseX, mouseY, (prev) => prev * (1 + delta));
+  }, [zoomAtPoint]);
 
-      setPan((prevPan) => ({
-        x: mouseX - ratio * (mouseX - prevPan.x),
-        y: mouseY - ratio * (mouseY - prevPan.y),
-      }));
-
-      return newZoom;
-    });
-  }, []);
-
-  /* ── 平移（拖拽背景） ── */
+  /* ── 平移（拖拽背景：容器本体或墙纸层，v0.2 修订） ── */
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    // 仅在点击背景（canvas 容器本身）时开始平移
-    if (e.target !== containerRef.current) return;
+    // 背景 = canvas 容器本身或墙纸层（空白点击实际命中的是墙纸层 div）
+    const target = e.target as HTMLElement;
+    const isBackground =
+      target === containerRef.current || target.hasAttribute('data-canvas-bg');
+    if (!isBackground) return;
     if (e.button !== 0) return;
 
     panning.current = true;
     panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-    (e.target as Element).setPointerCapture(e.pointerId);
+    target.setPointerCapture(e.pointerId);
   }, [pan]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -139,58 +155,36 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
 
   const wallpaperStyle = getWallpaperStyle(wallpaper);
 
-  /* ── 外部缩放控制（v0.2） ── */
-  const applyZoomAtCenter = useCallback((factor: number | 'reset') => {
+  /* ── 外部缩放控制（v0.2 修订：以调整前的视图中心为不动点） ── */
+  const viewCenter = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    setZoom((prevZoom) => {
-      const newZoom = factor === 'reset'
-        ? 1
-        : Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevZoom * factor));
-      const ratio = newZoom / prevZoom;
-      setPan((prevPan) => ({
-        x: cx - ratio * (cx - prevPan.x),
-        y: cy - ratio * (cy - prevPan.y),
-      }));
-      return newZoom;
-    });
+    return {
+      x: container ? container.clientWidth / 2 : 0,
+      y: container ? container.clientHeight / 2 : 0,
+    };
   }, []);
 
   useImperativeHandle(ref, () => ({
-    zoomIn: () => applyZoomAtCenter(1.2),
-    zoomOut: () => applyZoomAtCenter(1 / 1.2),
+    zoomIn: () => {
+      const c = viewCenter();
+      zoomAtPoint(c.x, c.y, (prev) => prev * 1.2);
+    },
+    zoomOut: () => {
+      const c = viewCenter();
+      zoomAtPoint(c.x, c.y, (prev) => prev / 1.2);
+    },
     zoomStep: (deltaPct: number) => {
-      const container = containerRef.current;
-      const cx = container ? container.clientWidth / 2 : 0;
-      const cy = container ? container.clientHeight / 2 : 0;
-      setZoom((prevZoom) => {
-        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevZoom + deltaPct / 100));
-        const ratio = newZoom / prevZoom;
-        setPan((prevPan) => ({
-          x: cx - ratio * (cx - prevPan.x),
-          y: cy - ratio * (cy - prevPan.y),
-        }));
-        return newZoom;
-      });
+      const c = viewCenter();
+      zoomAtPoint(c.x, c.y, (prev) => prev + deltaPct / 100);
     },
     setZoomTo: (pct: number) => {
-      const container = containerRef.current;
-      const cx = container ? container.clientWidth / 2 : 0;
-      const cy = container ? container.clientHeight / 2 : 0;
-      setZoom((prevZoom) => {
-        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pct / 100));
-        const ratio = newZoom / prevZoom;
-        setPan((prevPan) => ({
-          x: cx - ratio * (cx - prevPan.x),
-          y: cy - ratio * (cy - prevPan.y),
-        }));
-        return newZoom;
-      });
+      const c = viewCenter();
+      zoomAtPoint(c.x, c.y, () => pct / 100);
     },
-    resetZoom: () => applyZoomAtCenter('reset'),
+    resetZoom: () => {
+      const c = viewCenter();
+      zoomAtPoint(c.x, c.y, () => 1);
+    },
     fitContent: () => {
       const container = containerRef.current;
       if (!container || items.length === 0) return;
@@ -217,7 +211,7 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
         y: ch / 2 - ((minY + maxY) / 2) * newZoom,
       });
     },
-  }), [applyZoomAtCenter, items]);
+  }), [viewCenter, zoomAtPoint, items]);
 
   return (
     <div
@@ -234,8 +228,9 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
-      {/* 墙纸层 */}
+      {/* 墙纸层（data-canvas-bg：空白拖拽平移的命中标记） */}
       <div
+        data-canvas-bg
         style={{
           position: 'absolute',
           inset: 0,

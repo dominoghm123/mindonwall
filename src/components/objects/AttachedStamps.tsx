@@ -24,6 +24,11 @@ export function AttachedStamps({ host, zoom = 1 }: { host: Item; zoom?: number }
     startAbsX: number;
     startAbsY: number;
     zoom: number;
+    /** 拖拽开始时宿主的几何（抬起时换算回比例坐标用） */
+    hostX: number;
+    hostY: number;
+    hostW: number;
+    hostH: number;
   } | null>(null);
 
   /** 将 stamp 坐标归一化为绝对画布坐标 */
@@ -51,10 +56,14 @@ export function AttachedStamps({ host, zoom = 1 }: { host: Item; zoom?: number }
         startAbsX: abs.x,
         startAbsY: abs.y,
         zoom,
+        hostX: host.x,
+        hostY: host.y,
+        hostW: host.width,
+        hostH: host.height,
       };
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
     },
-    [selectItem, toAbs, zoom],
+    [selectItem, toAbs, zoom, host.x, host.y, host.width, host.height],
   );
 
   const handleStampPointerMove = useCallback((e: React.PointerEvent) => {
@@ -76,14 +85,20 @@ export function AttachedStamps({ host, zoom = 1 }: { host: Item; zoom?: number }
     if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // 视为点击
     const newX = d.startAbsX + dx;
     const newY = d.startAbsY + dy;
-    // 更新 store（绝对坐标）并记录 undo
+    // v0.2 修订：附着中的 stamp 始终存比例坐标（否则 detach 时会把绝对坐标
+    // 再乘宿主宽高导致飞出屏幕，看起来像被删除）
+    const startRelX = (d.startAbsX - d.hostX) / d.hostW;
+    const startRelY = (d.startAbsY - d.hostY) / d.hostH;
+    const newRelX = (newX - d.hostX) / d.hostW;
+    const newRelY = (newY - d.hostY) / d.hostH;
+    // 更新 store（比例坐标）并记录 undo
     useWallStore.setState((state) => ({
       items: state.items.map((i) =>
-        i.id === d.stampId ? { ...i, x: newX, y: newY } : i,
+        i.id === d.stampId ? { ...i, x: newRelX, y: newRelY } : i,
       ),
       undoStack: pushUndo(
         state.undoStack,
-        makeMoveItemAction(d.stampId, { x: d.startAbsX, y: d.startAbsY }, { x: newX, y: newY }),
+        makeMoveItemAction(d.stampId, { x: startRelX, y: startRelY }, { x: newRelX, y: newRelY }),
       ),
       redoStack: [],
     }));

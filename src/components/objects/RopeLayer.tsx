@@ -64,7 +64,7 @@ export function RopeLayer({
             key={rope.id}
             d={path}
             fill="none"
-            stroke={isSelected ? '#6B5518' : '#8B6914'}
+            stroke={rope.color ?? (isSelected ? '#6B5518' : '#8B6914')}
             strokeWidth={isSelected ? 4 : 3}
             strokeLinecap="round"
             style={{ pointerEvents: 'auto', cursor: 'pointer' }}

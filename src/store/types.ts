@@ -51,6 +51,8 @@ export interface Rope {
   note?: string;
   /** 绳索自然长度（用于物理弧度计算） */
   naturalLength?: number;
+  /** v0.2: 绳索颜色（缺省为默认麻绳棕） */
+  color?: string;
 }
 
 /** 资源（素材库） */

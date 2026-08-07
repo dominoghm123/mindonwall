@@ -358,8 +358,10 @@ export const useWallStore = create<WallState>()(
         if (!paper) return;
 
         // 将局部坐标（百分比）转回绝对坐标
-        const absX = stamp.x * paper.width + paper.x;
-        const absY = stamp.y * paper.height + paper.y;
+        // 兼容旧数据：若已是绝对像素坐标（x/y > 1，早期版本拖拽写回），直接使用
+        const isAbs = stamp.x > 1 || stamp.y > 1;
+        const absX = isAbs ? stamp.x : stamp.x * paper.width + paper.x;
+        const absY = isAbs ? stamp.y : stamp.y * paper.height + paper.y;
 
         const before: Partial<Item> = { parentId: stamp.parentId, x: stamp.x, y: stamp.y };
         const after: Partial<Item> = { parentId: undefined, x: absX, y: absY };

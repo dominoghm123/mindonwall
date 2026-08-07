@@ -21,6 +21,9 @@ const PAPER_COLORS = [
 /** Tape 预设色 */
 const TAPE_COLORS = ['#FDE68A', '#FBCFE8', '#BBF7D0', '#BFDBFE', '#FCA5A5', '#DDD6FE'];
 
+/** Rope 预设色（v0.2：右键改绳子颜色） */
+const ROPE_COLORS = ['#8B6914', '#8B5E3C', '#6B7280', '#C0392B', '#2E7D32', '#3B82F6'];
+
 interface ContextMenuProps {
   /** 画布缩放（用于将屏幕坐标转为画布坐标） */
   zoom?: number;
@@ -38,6 +41,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
   const items = useWallStore((s) => s.items);
   const removeItem = useWallStore((s) => s.removeItem);
   const removeRope = useWallStore((s) => s.removeRope);
+  const updateRope = useWallStore((s) => s.updateRope);
   const updateItem = useWallStore((s) => s.updateItem);
   const detachStamp = useWallStore((s) => s.detachStamp);
   const bringToFront = useWallStore((s) => s.bringToFront);
@@ -72,8 +76,9 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
 
   if (!contextMenu) return null;
 
-  // Rope 右键菜单
+  // Rope 右键菜单（v0.2 修订：改绳色 + 删除）
   if (contextMenu.type === 'rope') {
+    const rope = useWallStore.getState().ropes.find((r) => r.id === contextMenu.ropeId);
     return (
       <div
         ref={menuRef}
@@ -92,15 +97,17 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <MenuItem
-          label="Edit Note"
-          onClick={handleItemClick(() => {
-            // TODO: 进入 Rope 文字编辑模式
-          })}
+        <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
+        <ColorRow
+          colors={ROPE_COLORS}
+          current={rope?.color}
+          onSelect={(color) => updateRope(contextMenu.ropeId, { color })}
+          onDone={closeContextMenu}
         />
         <Divider />
         <MenuItem
           label="Delete"
+          danger
           onClick={handleItemClick(() => {
             removeRope(contextMenu.ropeId);
           })}
