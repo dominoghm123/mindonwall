@@ -7,6 +7,16 @@ import type { WallpaperType } from '../store/types';
  */
 export function getWallpaperStyle(type: WallpaperType): CSSProperties {
   switch (type) {
+    case 'cream':
+      // v0.3 默认：米白（温暖纸感，极淡纤维纹理）
+      return {
+        backgroundColor: '#F7F3EA',
+        backgroundImage: [
+          'radial-gradient(ellipse at 25% 15%, rgba(214,196,161,0.06) 0%, transparent 55%)',
+          'radial-gradient(ellipse at 75% 85%, rgba(206,188,152,0.05) 0%, transparent 50%)',
+        ].join(', '),
+      };
+
     case 'none':
       return { background: '#FAFAF8' };
 

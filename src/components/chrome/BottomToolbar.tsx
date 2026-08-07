@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useAssetStore } from '../../store/useAssetStore';
-import type { Item, PaperVariant } from '../../store/types';
+import type { Item, PaperVariant, WallpaperType } from '../../store/types';
+import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { StampArt } from '../objects/StampObject';
 
 /* ─── 图标（20px，纯白底工具栏内使用） ─── */
@@ -70,6 +71,17 @@ const PAPER_TABS: { variant: PaperVariant; label: string; presets: { label: stri
   { variant: 'tape', label: 'Tape', presets: [{ label: 'Washi', color: 'rgba(232,224,200,0.6)' }, { label: 'White', color: 'rgba(255,255,255,0.6)' }, { label: 'Pink', color: 'rgba(244,194,194,0.6)' }, { label: 'Mint', color: 'rgba(198,228,206,0.6)' }, { label: 'Sky', color: 'rgba(196,220,238,0.6)' }, { label: 'Lemon', color: 'rgba(246,232,168,0.6)' }] },
 ];
 
+/** 墙纸预设（v0.3：参考 PRD 的 6 种 + 新增米白默认，UI 格式与其他 paper 预设一致） */
+const WALLPAPER_PRESETS: { type: WallpaperType; label: string }[] = [
+  { type: 'cream', label: 'Cream' },
+  { type: 'white', label: 'Grid' },
+  { type: 'none', label: 'Plain' },
+  { type: 'beige', label: 'Beige' },
+  { type: 'textured', label: 'Textured' },
+  { type: 'watercolor', label: 'Watercolor' },
+  { type: 'kraft', label: 'Kraft' },
+];
+
 const DEFAULT_SIZES: Record<PaperVariant, { w: number; h: number }> = {
   note: { w: 180, h: 90 },
   torn: { w: 180, h: 95 },
@@ -97,11 +109,14 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   const setRopeMode = useUIStore((s) => s.setRopeMode);
   const showToast = useUIStore((s) => s.showToast);
   const addItem = useWallStore((s) => s.addItem);
+  const setWallpaper = useWallStore((s) => s.setWallpaper);
+  const currentWallpaper = useWallStore((s) => s.wallpaper);
   const assets = useAssetStore((s) => s.assets);
   const addAsset = useAssetStore((s) => s.addAsset);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadKindRef = useRef<'picture' | 'paper' | 'stamp'>('picture');
-  const [paperTab, setPaperTab] = useState<PaperVariant>('note');
+  // v0.3: paper 面板新增 wallpaper 子 tab
+  const [paperTab, setPaperTab] = useState<PaperVariant | 'wallpaper'>('note');
 
   /* ── hover 浮出（v0.2 修订：默认隐藏，离开即收回） ── */
   const [hoverVisible, setHoverVisible] = useState(false);
@@ -328,8 +343,8 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
 
       {toolbarPanel === 'paper' && (
         <Panel title="Add Paper">
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+          {/* Tabs（v0.3: 新增 Wallpaper 子 tab） */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
             {PAPER_TABS.map((t) => (
               <button
                 key={t.variant}
@@ -348,37 +363,86 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
                 {t.label}
               </button>
             ))}
+            <button
+              onClick={() => setPaperTab('wallpaper')}
+              style={{
+                padding: '4px 10px',
+                fontSize: 12,
+                border: '1px solid',
+                borderColor: paperTab === 'wallpaper' ? '#4A90D9' : '#E5E5E5',
+                color: paperTab === 'wallpaper' ? '#4A90D9' : '#666',
+                background: '#FFFFFF',
+                borderRadius: 6,
+                cursor: 'pointer',
+              }}
+            >
+              Wallpaper
+            </button>
           </div>
-          {/* 上传 + 素材库（v0.2 修订） */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-            <UploadTile onClick={() => openUpload('paper')} />
-            {assets.filter((a) => a.dataUrl && a.kind === 'paper').map((a) => (
-              <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddPaperAsset(a.id)} />
-            ))}
-          </div>
-          {/* 变体 */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            {PAPER_TABS.find((t) => t.variant === paperTab)!.presets.map((p) => (
-              <div
-                key={p.label}
-                onClick={() => handleAddPaper(paperTab, p.color)}
-                style={{ cursor: 'pointer', textAlign: 'center' }}
-                title={p.label}
-              >
+          {paperTab === 'wallpaper' ? (
+            /* v0.3: 更换墙纸（当前样式保留为可选素材） */
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {WALLPAPER_PRESETS.map((wp) => (
                 <div
-                  style={{
-                    width: 64,
-                    height: paperTab === 'tape' ? 20 : paperTab === 'sticky' ? 56 : 44,
-                    background: p.color ?? '#FFFFFF',
-                    border: '1px solid #DDD',
-                    borderRadius: paperTab === 'torn' ? 2 : 4,
-                    marginBottom: 4,
+                  key={wp.type}
+                  onClick={() => {
+                    setWallpaper(wp.type);
+                    showToast('Wallpaper updated', 'success', 1500);
                   }}
-                />
-                <span style={{ fontSize: 10, color: '#999' }}>{p.label}</span>
+                  style={{ cursor: 'pointer', textAlign: 'center' }}
+                  title={wp.label}
+                >
+                  <div
+                    style={{
+                      width: 64,
+                      height: 44,
+                      border: currentWallpaper === wp.type ? '2px solid #4A90D9' : '1px solid #DDD',
+                      borderRadius: 4,
+                      marginBottom: 4,
+                      boxSizing: 'border-box',
+                      ...getWallpaperStyle(wp.type),
+                    }}
+                  />
+                  <span style={{ fontSize: 10, color: currentWallpaper === wp.type ? '#4A90D9' : '#999' }}>
+                    {wp.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* 上传 + 素材库（v0.2 修订） */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                <UploadTile onClick={() => openUpload('paper')} />
+                {assets.filter((a) => a.dataUrl && a.kind === 'paper').map((a) => (
+                  <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddPaperAsset(a.id)} />
+                ))}
               </div>
-            ))}
-          </div>
+              {/* 变体（v0.3: 支持换行，修复色块溢出面板边框） */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {PAPER_TABS.find((t) => t.variant === paperTab)!.presets.map((p) => (
+                  <div
+                    key={p.label}
+                    onClick={() => handleAddPaper(paperTab as PaperVariant, p.color)}
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    title={p.label}
+                  >
+                    <div
+                      style={{
+                        width: 64,
+                        height: paperTab === 'tape' ? 20 : paperTab === 'sticky' ? 56 : 44,
+                        background: p.color ?? '#FFFFFF',
+                        border: '1px solid #DDD',
+                        borderRadius: paperTab === 'torn' ? 2 : 4,
+                        marginBottom: 4,
+                      }}
+                    />
+                    <span style={{ fontSize: 10, color: '#999' }}>{p.label}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </Panel>
       )}
 

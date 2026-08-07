@@ -58,9 +58,15 @@ export async function captureWallSpreadPng(items: Item[]): Promise<string> {
   const w = maxX - minX + PAD * 2;
   const h = maxY - minY + PAD * 2;
 
-  // 离屏容器：墙纸层 + 变换层（重置平移/缩放）
+  // 离屏 holder：只负责把舞台移出可视区。
+  // 注意：被截图的 stage 自身绝不能带负偏移/position:fixed 样式，
+  // html-to-image 克隆节点时会保留这些样式，导致内容绘出 SVG 视口 → 导出空白（v0.3 修复）
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;left:-100000px;top:0;pointer-events:none;';
+
   const stage = document.createElement('div');
-  stage.style.cssText = `position:fixed;left:-100000px;top:0;width:${w}px;height:${h}px;overflow:hidden;`;
+  stage.style.cssText = `position:relative;width:${w}px;height:${h}px;overflow:hidden;`;
+  holder.appendChild(stage);
 
   const wallpaperLayer = canvasRoot.querySelector('[data-canvas-bg]');
   const transformLayer = canvasRoot.querySelector('[data-transform-layer]');
@@ -74,10 +80,10 @@ export async function captureWallSpreadPng(items: Item[]): Promise<string> {
   tfClone.style.transform = `translate(${-minX + PAD}px, ${-minY + PAD}px) scale(1)`;
   stage.appendChild(tfClone);
 
-  document.body.appendChild(stage);
+  document.body.appendChild(holder);
   try {
     return await captureNodePng(stage, { pixelRatio: 2 });
   } finally {
-    document.body.removeChild(stage);
+    document.body.removeChild(holder);
   }
 }

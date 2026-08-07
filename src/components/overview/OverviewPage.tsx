@@ -22,6 +22,7 @@ export function OverviewPage() {
   const exportWallJSON = useOverviewStore((s) => s.exportWallJSON);
   const removeWalls = useOverviewStore((s) => s.removeWalls);
   const captureCurrentWall = useOverviewStore((s) => s.captureCurrentWall);
+  const homeBackground = useOverviewStore((s) => s.homeBackground);
   const showToast = useUIStore((s) => s.showToast);
   const setViewMode = useUIStore((s) => s.setViewMode);
 
@@ -98,6 +99,29 @@ export function OverviewPage() {
     [duplicateWall, exportWallJSON, showToast],
   );
 
+  /** v0.3: Manage 模式批量分享（单选时复制分享链接） */
+  const handleManageShare = useCallback(async () => {
+    if (selected.length !== 1) return;
+    const wallId = selected[0];
+    const overview = useOverviewStore.getState();
+    if (useWallStore.getState().wallId === wallId) overview.captureCurrentWall();
+    const data = useOverviewStore.getState().wallData[wallId];
+    const wall = useOverviewStore.getState().walls.find((w) => w.id === wallId);
+    if (!data || !wall) {
+      showToast('Nothing to share yet', 'warning');
+      return;
+    }
+    const url = buildShareUrl({
+      name: data.name,
+      wallpaper: data.wallpaper,
+      items: data.items,
+      ropes: data.ropes,
+      assets: useAssetStore.getState().assets,
+    });
+    const ok = await copyShareUrl(url);
+    showToast(ok ? 'Share link copied' : 'Copy failed', ok ? 'success' : 'error');
+  }, [selected, showToast]);
+
   const exitManage = useCallback(() => {
     setManageMode(false);
     setSelected([]);
@@ -108,7 +132,8 @@ export function OverviewPage() {
       style={{
         width: '100%',
         height: '100%',
-        background: '#FAFAF8',
+        // v0.3 P3: 总览页背景可在 Settings 中更换
+        background: homeBackground,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -132,6 +157,12 @@ export function OverviewPage() {
           {manageMode ? (
             <>
               <span style={{ fontSize: 12, color: '#999' }}>{selected.length} selected</span>
+              {/* v0.3: Manage 模式新增 Share 链接（单选墙时可用） */}
+              <HeaderButton
+                label="Share"
+                disabled={selected.length !== 1}
+                onClick={handleManageShare}
+              />
               <HeaderButton
                 label={`Delete${selected.length > 0 ? ` (${selected.length})` : ''}`}
                 danger={selected.length > 0}

@@ -7,9 +7,12 @@ import { pushUndo, popUndo } from './undoMiddleware';
 export interface MapViewSnapshot {
   nodePositions: Record<string, { x: number; y: number }>;
   hiddenChildren: string[];
+  /** v0.3: Map 内编辑的节点文本（不写回白墙） */
+  nodeLabels?: Record<string, string>;
 }
 
-interface MapState extends MapViewSnapshot {
+interface MapState extends Required<Pick<MapViewSnapshot, 'nodePositions' | 'hiddenChildren'>> {
+  nodeLabels: Record<string, string>;
   /** Map 独立撤销栈 */
   undoStack: UndoAction[];
   /** Map 独立重做栈 */
@@ -21,6 +24,10 @@ interface MapState extends MapViewSnapshot {
   getSnapshot: () => MapViewSnapshot;
   /** 更新节点位置（实时拖拽，入撤销栈） */
   updateNodePosition: (nodeId: string, position: { x: number; y: number }) => void;
+  /** v0.3: 清除节点手动位置（回到自动布局，入撤销栈） */
+  clearNodePosition: (nodeId: string) => void;
+  /** v0.3: 更新节点文本标签（入撤销栈） */
+  updateNodeLabel: (nodeId: string, label: string) => void;
   /** 切换子节点隐藏状态（入撤销栈） */
   toggleHideChild: (childId: string) => void;
   /** Map 撤销 */
@@ -40,6 +47,7 @@ export const useMapStore = create<MapState>()(
     (set, get) => ({
       nodePositions: {},
       hiddenChildren: [],
+      nodeLabels: {},
       undoStack: [],
       redoStack: [],
 
@@ -47,14 +55,15 @@ export const useMapStore = create<MapState>()(
         set({
           nodePositions: snapshot?.nodePositions ?? {},
           hiddenChildren: snapshot?.hiddenChildren ?? [],
+          nodeLabels: snapshot?.nodeLabels ?? {},
           undoStack: [],
           redoStack: [],
         });
       },
 
       getSnapshot: () => {
-        const { nodePositions, hiddenChildren } = get();
-        return { nodePositions, hiddenChildren };
+        const { nodePositions, hiddenChildren, nodeLabels } = get();
+        return { nodePositions, hiddenChildren, nodeLabels };
       },
 
       updateNodePosition: (nodeId: string, position: { x: number; y: number }) => {
@@ -71,6 +80,49 @@ export const useMapStore = create<MapState>()(
 
         set({
           nodePositions: { ...nodePositions, [nodeId]: position },
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      clearNodePosition: (nodeId: string) => {
+        const { nodePositions, undoStack } = get();
+        if (!nodePositions[nodeId]) return;
+        const before = nodePositions[nodeId];
+
+        const action: UndoAction = {
+          type: 'move',
+          itemId: nodeId,
+          before: { x: before.x, y: before.y },
+          after: null,
+          timestamp: Date.now(),
+        };
+
+        const next = { ...nodePositions };
+        delete next[nodeId];
+        set({
+          nodePositions: next,
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      updateNodeLabel: (nodeId: string, label: string) => {
+        const { nodeLabels, undoStack } = get();
+        const before = nodeLabels[nodeId] ?? null;
+        if (before === label) return;
+
+        // v0.3: 文本编辑复用 'editRope' 类型 + itemId（与白墙的 rope 编辑互不干扰）
+        const action: UndoAction = {
+          type: 'editRope',
+          itemId: nodeId,
+          before: before !== null ? { text: before } : null,
+          after: { text: label },
+          timestamp: Date.now(),
+        };
+
+        set({
+          nodeLabels: { ...nodeLabels, [nodeId]: label },
           undoStack: pushUndo(undoStack, action),
           redoStack: [],
         });
@@ -98,7 +150,7 @@ export const useMapStore = create<MapState>()(
       },
 
       mapUndo: () => {
-        const { undoStack, redoStack, nodePositions, hiddenChildren } = get();
+        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels } = get();
         const result = popUndo(undoStack);
         if (!result) return;
         const { action, remaining } = result;
@@ -125,6 +177,15 @@ export const useMapStore = create<MapState>()(
               ? [...hiddenChildren.filter((id) => id !== action.itemId), action.itemId]
               : hiddenChildren.filter((id) => id !== action.itemId),
           });
+        } else if (action.type === 'editRope' && action.itemId) {
+          // v0.3: 恢复节点文本
+          const newLabels = { ...nodeLabels };
+          if (action.before) {
+            newLabels[action.itemId] = (action.before as { text?: string }).text ?? '';
+          } else {
+            delete newLabels[action.itemId];
+          }
+          set({ nodeLabels: newLabels });
         }
 
         set({
@@ -134,7 +195,7 @@ export const useMapStore = create<MapState>()(
       },
 
       mapRedo: () => {
-        const { undoStack, redoStack, nodePositions, hiddenChildren } = get();
+        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels } = get();
         const result = popUndo(redoStack);
         if (!result) return;
         const { action, remaining } = result;
@@ -158,6 +219,15 @@ export const useMapStore = create<MapState>()(
               ? [...hiddenChildren.filter((id) => id !== action.itemId), action.itemId]
               : hiddenChildren.filter((id) => id !== action.itemId),
           });
+        } else if (action.type === 'editRope' && action.itemId) {
+          // v0.3: 重做节点文本
+          const newLabels = { ...nodeLabels };
+          if (action.after) {
+            newLabels[action.itemId] = (action.after as { text?: string }).text ?? '';
+          } else {
+            delete newLabels[action.itemId];
+          }
+          set({ nodeLabels: newLabels });
         }
 
         set({
@@ -170,6 +240,7 @@ export const useMapStore = create<MapState>()(
         set({
           nodePositions: {},
           hiddenChildren: [],
+          nodeLabels: {},
           undoStack: [],
           redoStack: [],
         });
@@ -181,6 +252,7 @@ export const useMapStore = create<MapState>()(
       partialize: (state) => ({
         nodePositions: state.nodePositions,
         hiddenChildren: state.hiddenChildren,
+        nodeLabels: state.nodeLabels,
       }),
     },
   ),

@@ -351,7 +351,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
                 position: 'absolute',
                 top: 32,
                 right: 0,
-                minWidth: 170,
+                minWidth: 180,
                 background: '#FFFFFF',
                 border: '1px solid #E0E0E0',
                 borderRadius: 8,
@@ -361,34 +361,25 @@ export function TopBar({ zoom }: { zoom?: number }) {
               }}
             >
               {isMap ? (
-                <ExportMenuItem label="Use the Map toolbar below" disabled />
+                <ExportMenuItem label="PNG/PDF: use Map toolbar" disabled />
               ) : (
                 <>
                   <ExportMenuItem label="Spread PNG" onClick={() => handleExport('png')} />
                   <ExportMenuItem label="Spread PDF" onClick={() => handleExport('pdf')} />
+                  <div style={{ height: 1, background: '#F0F0F0', margin: '4px 0' }} />
                 </>
               )}
+              {/* v0.3: Share 并入 Export 菜单（通过链接导出该墙） */}
+              <ExportMenuItem
+                label="Share link…"
+                onClick={() => {
+                  setExportOpen(false);
+                  handleShare();
+                }}
+              />
             </div>
           )}
         </div>
-
-        {/* Share 按钮（v0.3：复制真实分享链接） */}
-        <button
-          onClick={handleShare}
-          style={{
-            height: 28,
-            padding: '0 12px',
-            fontSize: 12,
-            color: '#333',
-            background: '#FFFFFF',
-            border: '1px solid #D0D0D0',
-            borderRadius: 6,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Share
-        </button>
 
         {/* 用户头像入口（v0.2：下拉 Profile / Materials / Settings） */}
         <AvatarMenu />

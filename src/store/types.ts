@@ -2,8 +2,8 @@
 // Mind on Wall — 全局类型定义（跨 Slice 共享）
 // ============================================================
 
-/** 墙纸类型 */
-export type WallpaperType = 'none' | 'white' | 'beige' | 'textured' | 'watercolor' | 'kraft';
+/** 墙纸类型（v0.3：新增 cream 米白为默认） */
+export type WallpaperType = 'cream' | 'none' | 'white' | 'beige' | 'textured' | 'watercolor' | 'kraft';
 
 /** Paper 变体 */
 export type PaperVariant = 'note' | 'torn' | 'sticky' | 'tape';
