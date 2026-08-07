@@ -6,6 +6,7 @@ import type { Asset } from '../../store/types';
 import { useT } from '../../i18n/useT';
 import { LANGUAGES } from '../../i18n';
 import type { TKey } from '../../i18n/en';
+import { track } from '../../utils/analytics';
 
 /**
  * v0.3 r2: 全屏用户页面（Library / Settings）。
@@ -391,7 +392,7 @@ function SettingsPage() {
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}
-              onClick={() => setLanguage(lang.code)}
+              onClick={() => { setLanguage(lang.code); track('language_changed', { lang: lang.code }); }}
               style={{
                 height: 30,
                 padding: '0 14px',

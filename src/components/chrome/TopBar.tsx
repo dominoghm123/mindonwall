@@ -7,8 +7,9 @@ import { useAssetStore } from '../../store/useAssetStore';
 import { AvatarMenu } from '../shared/AvatarMenu';
 import { captureWallSpreadPng, downloadDataUrl } from '../../utils/exportImage';
 import { exportPdfFromDataUrl } from '../../utils/exportPdf';
-import { buildShareUrl, copyShareUrl } from '../../utils/shareWall';
+import { buildShareUrl, copyShareUrl, shareWallServer } from '../../utils/shareWall';
 import { useT } from '../../i18n/useT';
+import { track } from '../../utils/analytics';
 
 /**
  * 40px 高顶部栏，默认隐藏，鼠标触顶滑入。
@@ -67,8 +68,10 @@ export function TopBar({ zoom }: { zoom?: number }) {
         const dataUrl = await captureWallSpreadPng(items);
         if (kind === 'png') {
           downloadDataUrl(dataUrl, `${fileBase}-spread.png`);
+          track('export_png');
         } else {
           await exportPdfFromDataUrl(dataUrl, `${fileBase}-spread.pdf`);
+          track('export_pdf');
         }
         showToast(kind === 'png' ? t('toast.pngExported') : t('toast.pdfExported'), 'success');
       } catch {
@@ -82,13 +85,21 @@ export function TopBar({ zoom }: { zoom?: number }) {
 
   const handleShare = useCallback(async () => {
     const w = useWallStore.getState();
-    const url = buildShareUrl({
+    const shareData = {
       name: w.name,
       wallpaper: w.wallpaper,
       items: w.items,
       ropes: w.ropes,
       assets: useAssetStore.getState().assets,
-    });
+    };
+    let url: string;
+    try {
+      url = await shareWallServer(shareData);
+      track('wall_shared', { method: 'shortlink' });
+    } catch {
+      url = buildShareUrl(shareData);
+      track('wall_shared', { method: 'urlhash' });
+    }
     const ok = await copyShareUrl(url);
     showToast(ok ? t('toast.shareCopied') : t('toast.copyFailed'), ok ? 'success' : 'error');
   }, [showToast, t]);

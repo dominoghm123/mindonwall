@@ -25,6 +25,7 @@ import { SharedWallBanner } from './components/shared/SharedWallBanner';
 import { UserPageOverlay } from './components/pages/UserPages';
 import { parseShareHash, parseSharePath, fetchSharedWall } from './utils/shareWall';
 import { useT } from './i18n/useT';
+import { track } from './utils/analytics';
 
 function App() {
   // Store selectors
@@ -74,6 +75,7 @@ function App() {
     (fromItemId: string, toItemId: string, naturalLength: number) => {
       const id = `rope-${Date.now()}`;
       wallStore.addRope({ id, fromItemId, toItemId, naturalLength });
+      track('rope_created');
       // 连线完成后自动退出连线模式
       uiStore.setRopeMode(false);
       uiStore.showToast(t('toast.ropeConnected'), 'success', 2000);

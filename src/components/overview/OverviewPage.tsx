@@ -5,9 +5,10 @@ import { useWallStore } from '../../store/useWallStore';
 import { useAssetStore } from '../../store/useAssetStore';
 import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { AvatarMenu } from '../shared/AvatarMenu';
-import { buildShareUrl, copyShareUrl } from '../../utils/shareWall';
+import { buildShareUrl, copyShareUrl, shareWallServer } from '../../utils/shareWall';
 import type { WallSummary } from '../../store/types';
 import { useT } from '../../i18n/useT';
+import { track } from '../../utils/analytics';
 
 /**
  * 总览页（v0.2）。
@@ -44,6 +45,7 @@ export function OverviewPage() {
     const id = `wall-${Date.now()}`;
     const name = `Wall ${String(walls.length + 1).padStart(2, '0')}`;
     addWall(id, name);
+    track('wall_created', { wallId: id });
   }, [walls.length, addWall]);
 
   const handleCardClick = useCallback(
@@ -66,6 +68,7 @@ export function OverviewPage() {
       switch (action) {
         case 'duplicate':
           duplicateWall(wall.id);
+          track('wall_duplicated', { wallId: wall.id });
           showToast(t('toast.wallDuplicated'), 'success');
           break;
         case 'export':
@@ -73,7 +76,7 @@ export function OverviewPage() {
           showToast(t('toast.jsonExported'), 'success');
           break;
         case 'share': {
-          // v0.3: 生成真实分享链接（当前编辑中的墙先快照）
+          // v0.4: 优先服务端短链，失败降级 URL hash
           const overview = useOverviewStore.getState();
           if (useWallStore.getState().wallId === wall.id) overview.captureCurrentWall();
           const data = useOverviewStore.getState().wallData[wall.id];
@@ -81,13 +84,21 @@ export function OverviewPage() {
             showToast(t('toast.nothingToShare'), 'warning');
             break;
           }
-          const url = buildShareUrl({
+          const shareData = {
             name: data.name,
             wallpaper: data.wallpaper,
             items: data.items,
             ropes: data.ropes,
             assets: useAssetStore.getState().assets,
-          });
+          };
+          let url: string;
+          try {
+            url = await shareWallServer(shareData);
+            track('wall_shared', { method: 'shortlink', wallId: wall.id });
+          } catch {
+            url = buildShareUrl(shareData);
+            track('wall_shared', { method: 'urlhash', wallId: wall.id });
+          }
           const ok = await copyShareUrl(url);
           showToast(ok ? t('toast.shareCopied') : t('toast.copyFailed'), ok ? 'success' : 'error');
           break;
@@ -102,7 +113,7 @@ export function OverviewPage() {
     [duplicateWall, exportWallJSON, showToast, t],
   );
 
-  /** v0.3: Manage 模式批量分享（单选时复制分享链接） */
+  /** v0.4: Manage 模式批量分享（优先短链，降级 URL hash） */
   const handleManageShare = useCallback(async () => {
     if (selected.length !== 1) return;
     const wallId = selected[0];
@@ -114,13 +125,21 @@ export function OverviewPage() {
       showToast(t('toast.nothingToShare'), 'warning');
       return;
     }
-    const url = buildShareUrl({
+    const shareData = {
       name: data.name,
       wallpaper: data.wallpaper,
       items: data.items,
       ropes: data.ropes,
       assets: useAssetStore.getState().assets,
-    });
+    };
+    let url: string;
+    try {
+      url = await shareWallServer(shareData);
+      track('wall_shared', { method: 'shortlink', wallId });
+    } catch {
+      url = buildShareUrl(shareData);
+      track('wall_shared', { method: 'urlhash', wallId });
+    }
     const ok = await copyShareUrl(url);
     showToast(ok ? t('toast.shareCopied') : t('toast.copyFailed'), ok ? 'success' : 'error');
   }, [selected, showToast, t]);
@@ -243,6 +262,7 @@ export function OverviewPage() {
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             removeWalls(confirm.ids);
+            track('wall_deleted', { count: confirm.ids.length });
             setSelected([]);
             setConfirm(null);
             showToast(t('toast.deleted'), 'success');
