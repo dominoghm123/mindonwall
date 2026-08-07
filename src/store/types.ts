@@ -51,15 +51,21 @@ export interface Rope {
   note?: string;
   /** 绳索自然长度（用于物理弧度计算） */
   naturalLength?: number;
+  /** v0.2: 绳索颜色（缺省为默认麻绳棕） */
+  color?: string;
 }
 
-/** 资源（图片） */
+/** 资源（素材库） */
 export interface Asset {
   id: string;
   mimeType: string;
   byteSize: number;
   /** IndexedDB 中的 key */
   storageKey: string;
+  /** v0.2: base64 data URL（本地存储模式下直接作为图片源） */
+  dataUrl?: string;
+  /** v0.2 修订：素材类型（对应上传面板），缺省为 picture */
+  kind?: 'picture' | 'paper' | 'stamp';
 }
 
 /** 撤销动作 */

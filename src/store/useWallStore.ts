@@ -319,7 +319,8 @@ export const useWallStore = create<WallState>()(
       attachStamp: (stampId: string, paperId: string) => {
         const { items, undoStack } = get();
         const stamp = items.find((i) => i.id === stampId && i.type === 'stamp');
-        const paper = items.find((i) => i.id === paperId && i.type === 'paper');
+        // v0.2：宿主可以是 Paper 或 Picture
+        const paper = items.find((i) => i.id === paperId && (i.type === 'paper' || i.type === 'picture'));
         if (!stamp || !paper) return;
 
         // 计算 Stamp 相对于 Paper 的局部坐标（百分比）
@@ -357,8 +358,10 @@ export const useWallStore = create<WallState>()(
         if (!paper) return;
 
         // 将局部坐标（百分比）转回绝对坐标
-        const absX = stamp.x * paper.width + paper.x;
-        const absY = stamp.y * paper.height + paper.y;
+        // 兼容旧数据：若已是绝对像素坐标（x/y > 1，早期版本拖拽写回），直接使用
+        const isAbs = stamp.x > 1 || stamp.y > 1;
+        const absX = isAbs ? stamp.x : stamp.x * paper.width + paper.x;
+        const absY = isAbs ? stamp.y : stamp.y * paper.height + paper.y;
 
         const before: Partial<Item> = { parentId: stamp.parentId, x: stamp.x, y: stamp.y };
         const after: Partial<Item> = { parentId: undefined, x: absX, y: absY };

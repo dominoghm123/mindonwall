@@ -13,6 +13,8 @@ interface ObjectWrapperProps {
   selected: boolean;
   zIndex: number;
   children: ReactNode;
+  /** 画布缩放，传给 drag/resize 做坐标换算 */
+  zoom?: number;
   onSelect?: (id: string, multi: boolean) => void;
   onMove?: (id: string, x: number, y: number) => void;
   onResize?: (id: string, w: number, h: number) => void;
@@ -20,8 +22,11 @@ interface ObjectWrapperProps {
   onPinDragEnd?: (id: string, offset: PinOffset) => void;
   /** Rope 创建相关 */
   isRopeTarget?: boolean;
+  isRopeSource?: boolean;
   isRopeCreating?: boolean;
   onPinRopeStart?: (itemId: string, e: React.PointerEvent) => void;
+  /** v0.2: Rope 点击连线模式下 Pin 被点击 */
+  onPinRopeClick?: (itemId: string) => void;
 }
 
 /** 手柄光标映射 */
@@ -52,21 +57,38 @@ export function ObjectWrapper({
   selected,
   zIndex,
   children,
+  zoom = 1,
   onSelect,
   onMove,
   onResize,
   onRotate,
   onPinDragEnd,
   isRopeTarget,
+  isRopeSource,
   isRopeCreating,
   onPinRopeStart,
+  onPinRopeClick,
 }: ObjectWrapperProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  /** 当前活跃交互模式（ref 避免闭包 stale state） */
+  const activeModeRef = useRef<'none' | 'drag' | 'resize' | 'rotate'>('none');
 
   /* ── Drag hook ── */
   const drag = useDrag({
     x: item.x,
     y: item.y,
+    zoom,
+    // v0.2：拖拽中实时写 store（不碰 undo 栈），让 rope 跟随移动
+    onDragMove: useCallback(
+      (pos: { x: number; y: number }) => {
+        useWallStore.setState((state) => ({
+          items: state.items.map((i) =>
+            i.id === item.id ? { ...i, x: pos.x, y: pos.y } : i,
+          ),
+        }));
+      },
+      [item.id],
+    ),
     onDragEnd: useCallback(
       (newPos: { x: number; y: number }, startPos: { x: number; y: number }) => {
         // 直接设置最终位置并记录正确的 undo（before=startPos, after=newPos）
@@ -89,6 +111,7 @@ export function ObjectWrapper({
     height: item.height,
     x: item.x,
     y: item.y,
+    zoom,
     onResizeEnd: useCallback(
       (
         newSize: { width: number; height: number },
@@ -131,6 +154,7 @@ export function ObjectWrapper({
   const openContextMenu = useUIStore((s) => s.openContextMenu);
   const attachMode = useUIStore((s) => s.attachMode);
   const cancelAttachMode = useUIStore((s) => s.cancelAttachMode);
+  const showToast = useUIStore((s) => s.showToast);
   const attachStamp = useWallStore((s) => s.attachStamp);
 
   /* ── 右键菜单 ── */
@@ -143,17 +167,23 @@ export function ObjectWrapper({
     [item.id, openContextMenu],
   );
 
-  /* ── 附着模式：点击 Paper 完成附着 ── */
+  /* ── 附着模式：点击 Paper / Picture 完成附着（v0.2 修订：带反馈） ── */
   const handleClickForAttach = useCallback(() => {
-    if (attachMode && item.type === 'paper') {
+    if (!attachMode) return;
+    if (item.type === 'paper' || item.type === 'picture') {
       attachStamp(attachMode, item.id);
       cancelAttachMode();
+      showToast('Stamp attached', 'success', 2000);
+    } else {
+      showToast('Stamp can only attach to a paper or photo', 'warning', 2000);
     }
-  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode]);
+  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode, showToast]);
 
   /* ── 统一 pointer 事件分发 ── */
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
+      // Rope 连线模式下：不选中不拖拽（由 App 根节点处理连线点击）
+      if (isRopeCreating) return;
       // 如果点击的是 Pin 区域，跳过物件拖拽
       const target = e.target as HTMLElement;
       if (target.closest('[data-pin-item-id]')) return;
@@ -161,20 +191,25 @@ export function ObjectWrapper({
       if (e.button !== 0) return;
       e.stopPropagation();
       onSelect?.(item.id, e.ctrlKey || e.metaKey);
+      activeModeRef.current = 'drag';
       drag.handlePointerDown(e);
     },
-    [item.id, onSelect, drag],
+    [item.id, onSelect, drag, isRopeCreating],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       // 分发给当前活跃的交互
-      if (rotate.isRotating) {
+      const mode = activeModeRef.current;
+      if (mode === 'rotate') {
         rotate.handlePointerMove(e);
-      } else if (resize.isResizing) {
+      } else if (mode === 'resize') {
         resize.handlePointerMove(e);
-      } else if (drag.isDragging) {
+      } else if (mode === 'drag') {
         drag.handlePointerMove(e);
+      } else if (rotate.isArmed || rotate.isRotating) {
+        // 旋转长按激活后首次 move
+        rotate.handlePointerMove(e);
       }
     },
     [drag, resize, rotate],
@@ -182,13 +217,15 @@ export function ObjectWrapper({
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
-      if (rotate.isRotating) {
+      const mode = activeModeRef.current;
+      if (mode === 'rotate') {
         rotate.handlePointerUp(e);
-      } else if (resize.isResizing) {
+      } else if (mode === 'resize') {
         resize.handlePointerUp(e);
       } else {
         drag.handlePointerUp(e);
       }
+      activeModeRef.current = 'none';
     },
     [drag, resize, rotate],
   );
@@ -200,12 +237,14 @@ export function ObjectWrapper({
   const displayH = resize.isResizing ? resize.resizeHeight : item.height;
   const displayRotation = rotate.currentRotation;
 
-  const showPin = item.type !== 'stamp';
+  // Pin 只出现在 picture 和非 tape 的 paper 上
+  const showPin = item.type === 'picture' || (item.type === 'paper' && item.variant !== 'tape');
   const pinOffset = item.pinOffset ?? { x: 0.5, y: 0 };
 
   return (
     <div
       ref={wrapperRef}
+      data-item-id={item.id}
       style={{
         position: 'absolute',
         left: displayX,
@@ -215,9 +254,9 @@ export function ObjectWrapper({
         transform: `rotate(${displayRotation}deg)`,
         zIndex,
         cursor:
-          attachMode && item.type === 'paper' ? 'crosshair' : 'move',
+          attachMode && (item.type === 'paper' || item.type === 'picture') ? 'crosshair' : 'move',
         outline:
-          attachMode && item.type === 'paper'
+          attachMode && (item.type === 'paper' || item.type === 'picture')
             ? '2px dashed #4A90D9'
             : undefined,
       }}
@@ -267,42 +306,54 @@ export function ObjectWrapper({
                     cursor: HANDLE_CURSORS[dir],
                     zIndex: 20,
                   }}
-                  onPointerDown={resize.handleResizeStart(dir)}
+                  onPointerDown={(e) => {
+                    activeModeRef.current = 'resize';
+                    resize.handleResizeStart(dir)(e);
+                  }}
                 />
               );
             },
           )}
 
-          {/* 旋转手柄：顶部上方 20px，⊙ 图标 16px */}
+          {/* 旋转触发区：选中框顶部区域，长按后拖动旋转（v0.2 修订） */}
           <div
+            onPointerDown={(e) => {
+              activeModeRef.current = 'rotate';
+              rotate.handleRotateStart(e);
+            }}
+            title="Long press & drag to rotate"
             style={{
               position: 'absolute',
-              left: '50%',
-              top: -28,
-              transform: 'translateX(-50%)',
-              width: 16,
-              height: 16,
+              left: 0,
+              right: 0,
+              top: -22,
+              height: 22,
+              cursor: 'grab',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'grab',
-              fontSize: 16,
-              color: '#4A90D9',
-              userSelect: 'none',
               zIndex: 20,
             }}
-            onPointerDown={rotate.handleRotateStart}
           >
-            ⊙
+            <span
+              style={{
+                fontSize: 14,
+                color: rotate.isArmed || rotate.isRotating ? '#2E7D32' : '#4A90D9',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+            >
+              ⊙
+            </span>
           </div>
           {/* 旋转手柄连线 */}
           <div
             style={{
               position: 'absolute',
               left: '50%',
-              top: -12,
+              top: -8,
               width: 1,
-              height: 12,
+              height: 8,
               background: '#4A90D9',
               transform: 'translateX(-50%)',
               pointerEvents: 'none',
@@ -334,7 +385,7 @@ export function ObjectWrapper({
         </div>
       )}
 
-      {/* 旋转角度反馈 */}
+      {/* 旋转角度反馈（吸附整角时变绿） */}
       {rotate.isRotating && (
         <div
           style={{
@@ -343,17 +394,18 @@ export function ObjectWrapper({
             top: -48,
             transform: 'translateX(-50%)',
             background: '#fff',
-            border: '1px solid #4A90D9',
+            border: `1px solid ${rotate.isSnapped ? '#2E7D32' : '#4A90D9'}`,
             borderRadius: 3,
             padding: '1px 6px',
             fontSize: 11,
-            color: '#4A90D9',
+            fontWeight: rotate.isSnapped ? 700 : 400,
+            color: rotate.isSnapped ? '#2E7D32' : '#4A90D9',
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             zIndex: 30,
           }}
         >
-          {Math.round(displayRotation % 360)}°
+          {Math.round(((displayRotation % 360) + 360) % 360)}°
         </div>
       )}
 
@@ -366,8 +418,10 @@ export function ObjectWrapper({
           onDragEnd={(offset) => onPinDragEnd?.(item.id, offset)}
           itemId={item.id}
           isRopeTarget={isRopeTarget}
+          isRopeSource={isRopeSource}
           isRopeCreating={isRopeCreating}
           onRopeStart={onPinRopeStart}
+          onRopePinClick={onPinRopeClick}
         />
       )}
     </div>

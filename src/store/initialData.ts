@@ -1,9 +1,9 @@
 import type { Item, Rope, WallpaperType } from './types';
 
 /** 默认墙名 */
-export const DEFAULT_WALL_NAME = 'First Mind';
+export const DEFAULT_WALL_NAME = 'Wall 01';
 export const DEFAULT_WALL_ID = 'wall-first-mind';
-export const DEFAULT_WALLPAPER: WallpaperType = 'beige';
+export const DEFAULT_WALLPAPER: WallpaperType = 'white';
 
 /** 样例图片 Item 配置（引用 manifest.json 中的 asset ID） */
 export const INITIAL_PICTURE_ITEMS: Item[] = [
@@ -77,6 +77,19 @@ export const INITIAL_PICTURE_ITEMS: Item[] = [
 
 /** 样例 Paper Item 配置 */
 export const INITIAL_PAPER_ITEMS: Item[] = [
+  // 标题卡（storytelling 起点：整面墙的主题）
+  {
+    id: 'item-paper-title',
+    type: 'paper',
+    variant: 'note',
+    x: 330,
+    y: -110,
+    width: 220,
+    height: 70,
+    rotation: -1,
+    text: 'Thailand Trip — Chiang Mai & Bangkok',
+    pinOffset: { x: 0.5, y: 0 },
+  },
   // 普通纸 note
   {
     id: 'item-paper-note-01',
@@ -261,8 +274,22 @@ export const INITIAL_ITEMS: Item[] = [
   ...INITIAL_STAMP_ITEMS,
 ];
 
-/** 样例 Rope 连接 */
+/** 样例 Rope 连接（形成完整 storytelling：标题 → 北线 → 曼谷线） */
 export const INITIAL_ROPES: Rope[] = [
+  {
+    id: 'rope-title-north',
+    fromItemId: 'item-paper-title',
+    toItemId: 'item-pic-north-01',
+    note: 'North begins',
+    naturalLength: 260,
+  },
+  {
+    id: 'rope-title-bangkok',
+    fromItemId: 'item-paper-title',
+    toItemId: 'item-pic-bangkok-01',
+    note: 'Then Bangkok',
+    naturalLength: 520,
+  },
   {
     id: 'rope-01',
     fromItemId: 'item-pic-north-01',
@@ -297,5 +324,12 @@ export const INITIAL_ROPES: Rope[] = [
     toItemId: 'item-paper-torn-02',
     note: '7-11 finds',
     naturalLength: 230,
+  },
+  {
+    id: 'rope-06',
+    fromItemId: 'item-pic-bangkok-03',
+    toItemId: 'item-paper-torn-03',
+    note: 'Bangkok nights',
+    naturalLength: 240,
   },
 ];

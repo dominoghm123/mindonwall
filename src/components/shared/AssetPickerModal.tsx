@@ -39,6 +39,7 @@ export function AssetPickerModal() {
 
   return (
     <div
+      data-menu-layer
       onClick={handleBackdropClick}
       style={{
         position: 'fixed',
@@ -96,7 +97,7 @@ export function AssetPickerModal() {
         {/* 素材网格 */}
         <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
           {/* 样例素材 */}
-          <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>样例素材</div>
+          <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>Sample Photos</div>
           <div
             style={{
               display: 'grid',
@@ -137,7 +138,7 @@ export function AssetPickerModal() {
           {/* 用户上传素材 */}
           {userAssets.length > 0 && (
             <>
-              <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>上传图片</div>
+              <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>Uploaded</div>
               <div
                 style={{
                   display: 'grid',
@@ -159,7 +160,7 @@ export function AssetPickerModal() {
                     }}
                   >
                     <img
-                      src={`/api/assets/${asset.storageKey}`}
+                      src={asset.dataUrl ?? `/api/assets/${asset.storageKey}`}
                       alt=""
                       draggable={false}
                       style={{

@@ -11,6 +11,8 @@ interface UseResizeOptions {
   height: number;
   x: number;
   y: number;
+  /** 画布缩放（屏幕像素 delta 需除以 zoom） */
+  zoom?: number;
   /** 缩放结束回调 */
   onResizeEnd?: (
     newSize: { width: number; height: number },
@@ -20,11 +22,11 @@ interface UseResizeOptions {
 
 /**
  * 物件缩放 hook。
- * - 四角手柄：等比缩放（默认）
+ * - 四角手柄：两轴独立缩放（v0.2 修订：单向拉伸不联动另一轴）
  * - 四边手柄：单独拉伸宽或高
  * - 拖拽手柄时提供实时尺寸反馈
  */
-export function useResize({ width, height, x, y, onResizeEnd }: UseResizeOptions) {
+export function useResize({ width, height, x, y, zoom = 1, onResizeEnd }: UseResizeOptions) {
   const [size, setSize] = useState({ width, height, x, y });
   const resizeRef = useRef<{
     dir: ResizeDir;
@@ -34,9 +36,14 @@ export function useResize({ width, height, x, y, onResizeEnd }: UseResizeOptions
     h: number;
     ix: number;
     iy: number;
+    zoom: number;
   } | null>(null);
   const onResizeEndRef = useRef(onResizeEnd);
   onResizeEndRef.current = onResizeEnd;
+
+  // zoom 通过 ref 保持最新
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
 
   // 同步外部 prop
   const prev = useRef({ width, height, x, y });
@@ -56,6 +63,7 @@ export function useResize({ width, height, x, y, onResizeEnd }: UseResizeOptions
         h: size.height,
         ix: size.x,
         iy: size.y,
+        zoom: zoomRef.current || 1,
       };
       (e.target as Element).setPointerCapture(e.pointerId);
     },
@@ -66,8 +74,9 @@ export function useResize({ width, height, x, y, onResizeEnd }: UseResizeOptions
     const r = resizeRef.current;
     if (!r) return;
 
-    const dx = e.clientX - r.startX;
-    const dy = e.clientY - r.startY;
+    // 屏幕像素 delta 除以 zoom 得到画布坐标 delta
+    const dx = (e.clientX - r.startX) / r.zoom;
+    const dy = (e.clientY - r.startY) / r.zoom;
     const isCorner = r.dir.length === 2;
 
     let newW = r.w;
@@ -76,21 +85,17 @@ export function useResize({ width, height, x, y, onResizeEnd }: UseResizeOptions
     let newY = r.iy;
 
     if (isCorner) {
-      // 等比缩放：取较大轴的缩放比例
-      let scaleX = 0;
-      let scaleY = 0;
-      if (r.dir.includes('e')) scaleX = dx / r.w;
-      else if (r.dir.includes('w')) scaleX = -dx / r.w;
-      if (r.dir.includes('s')) scaleY = dy / r.h;
-      else if (r.dir.includes('n')) scaleY = -dy / r.h;
-
-      const scale = Math.max(scaleX, scaleY);
-      newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w * (1 + scale)));
-      newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h * (1 + scale)));
-
-      // 锚定对角
-      if (r.dir.includes('w')) newX = r.ix + (r.w - newW);
-      if (r.dir.includes('n')) newY = r.iy + (r.h - newH);
+      // 角手柄：两轴独立缩放（不联动）
+      if (r.dir.includes('e')) newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w + dx));
+      else if (r.dir.includes('w')) {
+        newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w - dx));
+        newX = r.ix + (r.w - newW);
+      }
+      if (r.dir.includes('s')) newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h + dy));
+      else if (r.dir.includes('n')) {
+        newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h - dy));
+        newY = r.iy + (r.h - newH);
+      }
     } else {
       // 边手柄：单独拉伸
       if (r.dir === 'e') newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w + dx));

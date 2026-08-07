@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useWallStore } from './store/useWallStore';
 import { useUIStore } from './store/useUIStore';
 import { useOverviewStore } from './store/useOverviewStore';
@@ -9,6 +9,8 @@ import { TopBar } from './components/chrome/TopBar';
 import { BottomToolbar } from './components/chrome/BottomToolbar';
 import { OverviewPage } from './components/overview/OverviewPage';
 import { InfiniteCanvas } from './components/canvas/InfiniteCanvas';
+import type { InfiniteCanvasHandle } from './components/canvas/InfiniteCanvas';
+import { ZoomWidget } from './components/chrome/ZoomWidget';
 import { SelectionBox } from './components/canvas/SelectionBox';
 import { RopeLayer } from './components/objects/RopeLayer';
 import { ObjectWrapper } from './components/objects/ObjectWrapper';
@@ -17,6 +19,7 @@ import { PaperObject } from './components/objects/PaperObject';
 import { StampObject } from './components/objects/StampObject';
 import { ContextMenu } from './components/shared/ContextMenu';
 import { AssetPickerModal } from './components/shared/AssetPickerModal';
+import { ToastLayer } from './components/shared/ToastLayer';
 
 function App() {
   // Store selectors
@@ -26,6 +29,7 @@ function App() {
   const wallpaper = useWallStore((s) => s.wallpaper);
   const selectedIds = useUIStore((s) => s.selectedIds);
   const ropeCreating = useUIStore((s) => s.ropeCreating);
+  const ropeMode = useUIStore((s) => s.ropeMode);
 
   // Store actions
   const uiStore = useUIStore();
@@ -33,6 +37,7 @@ function App() {
 
   // Canvas view state
   const [canvasView, setCanvasView] = useState({ zoom: 1, panX: 0, panY: 0 });
+  const canvasRef = useRef<InfiniteCanvasHandle>(null);
 
   // Initialize stores
   useEffect(() => {
@@ -43,25 +48,90 @@ function App() {
   // MultiSelect hook
   const multiSelect = useMultiSelect({ items, uiStore, wallStore });
 
-  // RopeCreation hook
+  // RopeCreation hook（v0.2 修订：尾巴线用画布坐标）
   const handleRopeCreate = useCallback(
     (fromItemId: string, toItemId: string, naturalLength: number) => {
       const id = `rope-${Date.now()}`;
       wallStore.addRope({ id, fromItemId, toItemId, naturalLength });
+      // 连线完成后自动退出连线模式
+      uiStore.setRopeMode(false);
+      uiStore.showToast('Rope connected', 'success', 2000);
     },
-    [wallStore],
+    [wallStore, uiStore],
   );
 
   const ropeCreation = useRopeCreation({
     items,
     onRopeCreate: handleRopeCreate,
+    zoom: canvasView.zoom,
+    panX: canvasView.panX,
+    panY: canvasView.panY,
   });
 
-  // Cancel rope creation
+  // Cancel rope creation / attach mode（ESC / 空白点击）
   const handleCancelRope = useCallback(() => {
     ropeCreation.cancelRopeCreation();
     uiStore.setRopeCreating(false);
+    uiStore.setRopeMode(false);
+    // v0.2 修订：ESC 同时退出附着模式
+    if (uiStore.attachMode) {
+      uiStore.cancelAttachMode();
+      uiStore.showToast('Attach canceled', 'info', 2000);
+    }
   }, [ropeCreation, uiStore]);
+
+  // ropeMode 下点击处理：点 Pin/带 Pin 物件 → 连线；点空白 → 取消（v0.2 修订：扩大命中范围）
+  const handleRootPointerDownCapture = useCallback(
+    (e: React.PointerEvent) => {
+      if (!useUIStore.getState().ropeMode) return;
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement;
+      // 直接点在 Pin 上：由 Pin 自己处理
+      if (target.closest('[data-pin-item-id]')) return;
+      // 点在带 Pin 的物件本体上：等同点击该物件的 Pin
+      const itemEl = target.closest('[data-item-id]');
+      if (itemEl) {
+        const itemId = itemEl.getAttribute('data-item-id');
+        const it = useWallStore.getState().items.find((i) => i.id === itemId);
+        const hasPin =
+          it && !it.parentId &&
+          (it.type === 'picture' || (it.type === 'paper' && it.variant !== 'tape'));
+        if (hasPin && itemId) {
+          ropeCreation.handlePinClick(itemId);
+        } else {
+          useUIStore.getState().showToast('This item has no pin', 'warning', 2000);
+        }
+        return;
+      }
+      // 空白处：取消并退出模式
+      ropeCreation.cancelRopeCreation();
+      useUIStore.getState().setRopeMode(false);
+    },
+    [ropeCreation],
+  );
+
+  // v0.2：点击空白处清除选中（尺寸框消失）。物件自身 pointerdown 已 stopPropagation，
+  // 这里只会收到空白/浮窗/菜单上的点击
+  const handleBlankPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest(
+          '[data-item-id], [data-toolbar-ui], [data-menu-layer], #top-bar',
+        )
+      ) {
+        return;
+      }
+      // v0.2 修订：附着模式下点空白 = 取消附着
+      if (uiStore.attachMode) {
+        uiStore.cancelAttachMode();
+        uiStore.showToast('Attach canceled', 'info', 2000);
+        return;
+      }
+      uiStore.clearSelection();
+    },
+    [uiStore],
+  );
 
   // Keyboard hook
   useKeyboard({
@@ -102,17 +172,26 @@ function App() {
 
   // Render overview page
   if (viewMode === 'overview') {
-    return <OverviewPage />;
+    return (
+      <>
+        <OverviewPage />
+        <ToastLayer />
+      </>
+    );
   }
 
   // Render wall editor
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div
+      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+      onPointerDownCapture={handleRootPointerDownCapture}
+      onPointerDown={handleBlankPointerDown}
+    >
       {/* TopBar */}
       <TopBar zoom={canvasView.zoom} />
 
       {/* BottomToolbar */}
-      <BottomToolbar />
+      <BottomToolbar zoom={canvasView.zoom} panX={canvasView.panX} panY={canvasView.panY} />
 
       {/* Canvas area */}
       <div style={{ position: 'absolute', inset: 0 }}>
@@ -124,6 +203,7 @@ function App() {
           onSelect={multiSelect.handleBoxSelect}
         >
           <InfiniteCanvas
+            ref={canvasRef}
             wallpaper={wallpaper}
             items={items}
             onViewChange={handleViewChange}
@@ -146,15 +226,17 @@ function App() {
                   item={item}
                   selected={selectedIds.includes(item.id)}
                   zIndex={index + 2}
+                  zoom={canvasView.zoom}
                   onSelect={multiSelect.handleSelect}
                   onPinDragEnd={handlePinDragEnd}
-                  isRopeCreating={ropeCreating}
+                  isRopeCreating={ropeMode || ropeCreating}
                   isRopeTarget={ropeCreation.ropeTargetId === item.id}
-                  onPinRopeStart={ropeCreation.handlePinMouseDown}
+                  isRopeSource={ropeCreation.ropeSourceId === item.id}
+                  onPinRopeClick={ropeCreation.handlePinClick}
                 >
-                  {item.type === 'picture' && <PictureObject item={item} />}
+                  {item.type === 'picture' && <PictureObject item={item} zoom={canvasView.zoom} />}
                   {item.type === 'paper' && (
-                    <PaperObject item={item} onTextChange={handleTextChange} />
+                    <PaperObject item={item} onTextChange={handleTextChange} zoom={canvasView.zoom} />
                   )}
                   {item.type === 'stamp' && <StampObject item={item} />}
                 </ObjectWrapper>
@@ -169,6 +251,12 @@ function App() {
 
       {/* Asset Picker Modal */}
       <AssetPickerModal />
+
+      {/* 右下角缩放/Map 浮窗（v0.2） */}
+      <ZoomWidget zoom={canvasView.zoom} canvasRef={canvasRef} />
+
+      {/* Toast */}
+      <ToastLayer />
     </div>
   );
 }

@@ -31,8 +31,10 @@ export function RopeLayer({
         position: 'absolute',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
+        // 注意：变换层 div 无固有尺寸（子元素全 absolute），
+        // 若用 width/height:100% 会得到 0×0 导致绳子不渲染，故用固定 1px + overflow visible
+        width: 1,
+        height: 1,
         pointerEvents: 'none',
         overflow: 'visible',
       }}
@@ -62,8 +64,8 @@ export function RopeLayer({
             key={rope.id}
             d={path}
             fill="none"
-            stroke={isSelected ? '#5D4E37' : '#8B7355'}
-            strokeWidth={isSelected ? 3 : 2}
+            stroke={rope.color ?? (isSelected ? '#6B5518' : '#8B6914')}
+            strokeWidth={isSelected ? 4 : 3}
             strokeLinecap="round"
             style={{ pointerEvents: 'auto', cursor: 'pointer' }}
             onClick={() => onRopeClick?.(rope.id)}

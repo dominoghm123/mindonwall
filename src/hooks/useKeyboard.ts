@@ -49,9 +49,11 @@ export function useKeyboard({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // 忽略输入框中的按键
-      const tag = (e.target as HTMLElement)?.tagName;
+      // 忽略输入框/可编辑区域中的按键（v0.2：paper 文本编辑态 Delete 只删字符）
+      const targetEl = e.target as HTMLElement;
+      const tag = targetEl?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (targetEl?.isContentEditable) return;
 
       const ctrl = e.ctrlKey || e.metaKey;
 
