@@ -1,7 +1,7 @@
 # Handover — Mind on Wall v0.2
 
-**最后更新：** 2026-08-07
-**当前阶段：** ✅ v0.2 已完成（A1/A2/A3/B 全部实现，17/17 浏览器验证通过，待合入 main）
+**最后更新：** 2026-08-07（v0.2 三轮修订全部完成）
+**当前阶段：** ✅ v0.2 完成（首版 A1/A2/A3/B + 两轮用户反馈修订，全部浏览器验证通过，待合入 main）
 
 ## 项目一句话
 
@@ -12,9 +12,11 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 | 分支 | 状态 |
 |---|---|
 | `main` | ✅ v0.1 最终版，commit `5ae57bf`，已推送远程，**不可改动** |
-| `feature/v0.2-interactions-chrome` | ✅ v0.2 完成，已推送远程 |
+| `feature/v0.2-interactions-chrome` | ✅ v0.2 完成（HEAD `49a2891`），已推送远程 |
 
 ## v0.2 完成记录（2026-08-07）
+
+### 首版
 
 | Commit | 内容 |
 |---|---|
@@ -23,9 +25,30 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 | `e66375e` | A3: TopBar Share+头像、右下角缩放/Fit/Map 浮窗、ToastLayer |
 | `a715ed1` | B: Manage 多选删除、三点菜单（Rename/Duplicate/Export JSON/Share/Delete）、多墙数据切换、默认墙名 Wall 01 |
 
-QA：浏览器全流程 17/17 PASS，console 无 error。验收截图：`/tmp/mindonwall-overview.png`、`/tmp/mindonwall-editor-final.png`。
+### 修订轮 1（用户审阅反馈：颜色/缩放/旋转/浮窗/物件/墙纸/rope + 主页）
 
-**v0.3 待办**：Project 层级、真实分享后端、PDF 导出、Connection Map；次要优化：resize 超 800px 宽高比保持、窄视口总览网格自适应、viewMode 默认总览。
+| Commit | 内容 |
+|---|---|
+| `25e514d` | docs: v0.2 修订记录 |
+| `b9cfd21` | feat(wall): rope 连线修复、旋转整角磁吸（0/90/180/270/360）、浮窗默认隐藏 hover 浮出、上传入素材库、SVG 透明 stamp、右键改色（预设+调色盘）、墙纸默认白色、文字同比缩放 |
+| `05c9584` | feat(overview): ⋮ 菜单移至卡片右下角 + 头像入口下拉（Profile/Materials/Settings，目前 toast 占位） |
+
+### 修订轮 2（A1-A9 + B1 反馈）
+
+| Commit | 内容 |
+|---|---|
+| `34a5e06` | fix(wall): rope 线渲染（svg 0×0 根因）、纸面可见化（边框+内阴影）、底部浮窗自动收回、stamp 附着扩展到 picture + Detach、单向拉伸（角手柄两轴独立）、TopBar 右上角 Undo/Redo、缩放 ±1% + 度数可编辑（20-300）、Fit 囊括全部物件、返回箭头精致化 |
+| `ef2650f` | fix(overview): 三点菜单去圈线边框 |
+
+### 修订轮 3（交互细节 4 项）
+
+| Commit | 内容 |
+|---|---|
+| `49a2891` | fix(wall): 次级浮窗点外部关闭、点空白清除选中（尺寸框消失）、拖拽中 rope 实时跟随（onDragMove 写 store 不入 undo）、文本编辑态 Delete 只删字符（isContentEditable 守卫） |
+
+QA：每轮均 tsc 无错 + Browser agent 逐项验证全 PASS，console 无 error。
+
+**v0.3 待办**：Project 层级、真实分享后端、PDF 导出、Connection Map；AvatarMenu 三项（Profile/Materials/Settings）接真实功能；次要优化：resize 超 800px 宽高比保持、窄视口总览网格自适应、viewMode 默认总览、清理 QA 残留数据（localStorage 中多出的 rope/改色，可 Undo 或 `localStorage.clear()`）。
 
 - v0.2 所有改动在 `feature/v0.2-interactions-chrome` 上进行，**不动 main**
 - 回滚方式：`git checkout main` 即回到 v0.1
@@ -104,29 +127,32 @@ QA：浏览器全流程 17/17 PASS，console 无 error。验收截图：`/tmp/mi
 
 ```
 src/
-├── App.tsx                          ← 主集成（注意 stamp parentId 跳过逻辑）
+├── App.tsx                          ← 主集成（stamp parentId 跳过、ropeMode 点击分发、点空白清选中）
 ├── store/
 │   ├── types.ts                     ← Item/Rope/WallSummary 类型
-│   ├── useWallStore.ts              ← 当前墙 items/ropes/undo
-│   ├── useUIStore.ts                ← viewMode/selectedIds/ropeCreating（需加 ropeMode）
-│   ├── useOverviewStore.ts          ← 墙列表（需加 duplicate/export/batch delete）
-│   └── initialData.ts               ← DEFAULT_WALL_NAME 需改 'Wall 01'
+│   ├── useWallStore.ts              ← 当前墙 items/ropes/undo，attachStamp 支持 paper+picture
+│   ├── useUIStore.ts                ← viewMode/selectedIds/ropeMode/toolbarPanel/attachMode
+│   ├── useOverviewStore.ts          ← 墙列表，initIfNeeded 含幂等墙纸迁移（beige→white）
+│   ├── undoMiddleware.ts            ← pushUndo/make*Action（ObjectWrapper 直接用）
+│   └── initialData.ts               ← DEFAULT_WALLPAPER='white'，DEFAULT_WALL_NAME='Wall 01'
 ├── hooks/
-│   ├── useDrag.ts                   ← 需加 zoom 参数
-│   ├── useResize.ts                 ← 排查缩小 bug
-│   ├── useRotate.ts                 ← 改长按激活
-│   └── useRopeCreation.ts           ← 加点击连线模式
+│   ├── useDrag.ts                   ← zoom 换算 + onDragMove 实时回调（rope 跟随）
+│   ├── useResize.ts                 ← 角手柄两轴独立、边手柄单向拉伸
+│   ├── useRotate.ts                 ← 长按激活 + 整角磁吸（SNAP_ENTER 6°/RELEASE 14°）
+│   ├── useKeyboard.ts               ← 快捷键（isContentEditable 守卫）
+│   └── useRopeCreation.ts           ← 点击连线模式
 ├── components/
-│   ├── canvas/InfiniteCanvas.tsx    ← zoom/pan 变换层
-│   ├── chrome/TopBar.tsx            ← 重布局
-│   ├── chrome/BottomToolbar.tsx     ← 重写（48px + 次级面板）
-│   ├── overview/OverviewPage.tsx    ← 管理功能 + 三点菜单
-│   ├── objects/ObjectWrapper.tsx    ← showPin 规则 + 事件分发
-│   ├── objects/Pin.tsx              ← data-pin-item-id 属性
-│   ├── objects/PaperObject.tsx      ← 附着 Stamp 渲染（需可拖拽）
-│   ├── objects/StampObject.tsx      ← STAMP_MAP（注意 stamp- 前缀处理）
-│   ├── objects/PictureObject.tsx    ← URL 需 .jpg 后缀
-│   └── shared/ContextMenu.tsx       ← 右键菜单
+│   ├── canvas/InfiniteCanvas.tsx    ← zoom/pan + zoomStep/setZoomTo/fitContent API
+│   ├── chrome/TopBar.tsx            ← 返回箭头 + 墙名 + Undo/Redo + Share + AvatarMenu
+│   ├── chrome/BottomToolbar.tsx     ← hover 浮出 + 4 面板 + 上传入素材库 + 点外部关面板
+│   ├── chrome/ZoomWidget.tsx        ← 右下角缩放浮窗（±1%、可编辑度数、Fit、Map 占位）
+│   ├── overview/OverviewPage.tsx    ← Manage + ⋮菜单（右下角无边框）+ AvatarMenu
+│   ├── objects/ObjectWrapper.tsx    ← 事件分发（drag/resize/rotate）+ 附着模式
+│   ├── objects/AttachedStamps.tsx   ← 附着 Stamp 共享渲染（paper/picture 宿主）
+│   ├── objects/RopeLayer.tsx        ← rope SVG（注意 1px+overflow:visible）
+│   ├── objects/PaperObject.tsx      ← 4 变体 + 文字同比缩放
+│   ├── shared/ContextMenu.tsx       ← 右键菜单（改色 ColorRow、Attach/Detach）
+│   └── shared/AvatarMenu.tsx        ← 头像下拉（Profile/Materials/Settings 占位）
 └── utils/wallpaperCSS.ts            ← 墙纸样式
 ```
 
@@ -150,5 +176,11 @@ src/
 
 - 图片 URL 必须带扩展名（`.jpg` / `.png`），Vite 对无扩展名路径返回 index.html
 - stampId 带 `stamp-` 前缀，STAMP_MAP key 不带，StampObject 已做 normalize
-- 附着 Stamp 的 x/y 是绝对坐标，PaperObject 渲染时已兼容（x > 1 判断）
+- 附着 Stamp 的 x/y 是绝对坐标，PaperObject 渲染时已兼容（x > 1 判断）；附着子物件用比例坐标，不计入 Fit/初始包围盒
 - 含 emoji 的项目路径在 shell 命令中必须完整引用
+- **画布变换层 div 无固有尺寸**（子元素全 absolute），内嵌 svg 用 `width:100%` 会得到 0×0，RopeLayer 已用固定 1px + `overflow:visible` 解决
+- **数据迁移必须放 `if (initialized) return;` 之前**：initialized 已持久化为 true，放在后面的一次性迁移永不执行（墙纸迁移已改为幂等前置检查）
+- **Vite HMR 假报错**：跨多文件编辑期间控制台可能出 "change in the order of Hooks" 等错误，干净加载（硬刷新）即消失，非真实 bug
+- **浮窗层标记约定**：`data-toolbar-ui`（底部工具栏/面板/ZoomWidget）、`data-menu-layer`（右键菜单/AssetPicker）、`data-item-id`（物件）、`data-pin-item-id`（Pin）；新增固定层 UI 时注意加入 App 的空白点击排除选择器
+- `pointerEvents:'none'` 的容器收不到 mouseleave，浮窗隐藏逻辑要用 document 级 mousemove 检测
+- QA 测试会往 localStorage 写入测试数据（rope/改色），验收后提醒用户 Undo 或清缓存
