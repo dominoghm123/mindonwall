@@ -247,6 +247,32 @@ export const useOverviewStore = create<OverviewState>()(
           }
           set({ projectsMigrated: true });
         }
+        // v0.4 defensive: 确保所有墙都在某个 project 中（防止迁移后墙被孤立）
+        {
+          const { walls, projects } = get();
+          const assignedIds = new Set(projects.flatMap((p) => p.wallIds));
+          const orphans = walls.filter((w) => !assignedIds.has(w.id));
+          if (orphans.length > 0) {
+            let uc = projects.find((p) => p.id === 'project-uncategorized');
+            if (uc) {
+              set({
+                projects: projects.map((p) =>
+                  p.id === 'project-uncategorized'
+                    ? { ...p, wallIds: [...p.wallIds, ...orphans.map((w) => w.id)] }
+                    : p,
+                ),
+              });
+            } else {
+              const newUc: Project = {
+                id: 'project-uncategorized',
+                name: 'Uncategorized',
+                wallIds: orphans.map((w) => w.id),
+                createdAt: Date.now(),
+              };
+              set({ projects: [newUc, ...projects] });
+            }
+          }
+        }
         // v0.3 r4 一次性迁移：默认背景 #FAFAF8 → White（未自定义过的用户）
         if (!get().bgMigrated) {
           const { homeBackground, homeBackgroundImage } = get();
