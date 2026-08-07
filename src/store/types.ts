@@ -2,8 +2,8 @@
 // Mind on Wall — 全局类型定义（跨 Slice 共享）
 // ============================================================
 
-/** 墙纸类型 */
-export type WallpaperType = 'none' | 'white' | 'beige' | 'textured' | 'watercolor' | 'kraft';
+/** 墙纸类型（v0.3：新增 cream 米白为默认） */
+export type WallpaperType = 'cream' | 'none' | 'white' | 'beige' | 'textured' | 'watercolor' | 'kraft';
 
 /** Paper 变体 */
 export type PaperVariant = 'note' | 'torn' | 'sticky' | 'tape';
@@ -70,20 +70,12 @@ export interface Asset {
 
 /** 撤销动作 */
 export interface UndoAction {
-  type: 'add' | 'remove' | 'move' | 'resize' | 'rotate' | 'edit' | 'addRope' | 'removeRope' | 'editRope';
+  type: 'add' | 'remove' | 'move' | 'resize' | 'rotate' | 'edit' | 'addRope' | 'removeRope' | 'editRope' | 'editEdgeColor';
   itemId?: string;
   ropeId?: string;
   before: Partial<Item> | Partial<Rope> | null;
   after: Partial<Item> | Partial<Rope> | null;
   timestamp: number;
-}
-
-/** Map 视图状态（独立编辑） */
-export interface MapViewState {
-  nodePositions: Record<string, { x: number; y: number }>;
-  hiddenChildren: string[];
-  undoStack: UndoAction[];
-  redoStack: UndoAction[];
 }
 
 /** 墙面 */
@@ -95,7 +87,6 @@ export interface Wall {
   ropes: Rope[];
   undoStack: UndoAction[];
   redoStack: UndoAction[];
-  mapViewState?: MapViewState;
 }
 
 /** 墙面列表项（总览页用） */

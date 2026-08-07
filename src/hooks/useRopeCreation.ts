@@ -79,7 +79,7 @@ export function useRopeCreation({ items, onRopeCreate, zoom = 1, panX = 0, panY 
         const dist = Math.sqrt(
           (toPin.x - fromPin.x) ** 2 + (toPin.y - fromPin.y) ** 2,
         );
-        onRopeCreateRef.current(sourceRef.current, itemId, dist * 1.2);
+        onRopeCreateRef.current(sourceRef.current, itemId, dist * 1.35);
       }
       sourceRef.current = null;
       setRopeSourceId(null);

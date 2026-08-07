@@ -7,6 +7,7 @@ import { useDrag } from '../../hooks/useDrag';
 import { useResize, type ResizeDir } from '../../hooks/useResize';
 import { useRotate } from '../../hooks/useRotate';
 import { pushUndo, makeMoveItemAction, makeResizeItemAction, makeRotateItemAction } from '../../store/undoMiddleware';
+import { useT } from '../../i18n/useT';
 
 interface ObjectWrapperProps {
   item: Item;
@@ -156,6 +157,7 @@ export function ObjectWrapper({
   const cancelAttachMode = useUIStore((s) => s.cancelAttachMode);
   const showToast = useUIStore((s) => s.showToast);
   const attachStamp = useWallStore((s) => s.attachStamp);
+  const t = useT();
 
   /* ── 右键菜单 ── */
   const handleContextMenu = useCallback(
@@ -173,11 +175,11 @@ export function ObjectWrapper({
     if (item.type === 'paper' || item.type === 'picture') {
       attachStamp(attachMode, item.id);
       cancelAttachMode();
-      showToast('Stamp attached', 'success', 2000);
+      showToast(t('toast.stampAttached'), 'success', 2000);
     } else {
-      showToast('Stamp can only attach to a paper or photo', 'warning', 2000);
+      showToast(t('toast.stampOnlyPaper'), 'warning', 2000);
     }
-  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode, showToast]);
+  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode, showToast, t]);
 
   /* ── 统一 pointer 事件分发 ── */
   const handlePointerDown = useCallback(
@@ -321,7 +323,7 @@ export function ObjectWrapper({
               activeModeRef.current = 'rotate';
               rotate.handleRotateStart(e);
             }}
-            title="Long press & drag to rotate"
+            title={t('common.rotateHint')}
             style={{
               position: 'absolute',
               left: 0,

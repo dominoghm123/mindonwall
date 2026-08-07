@@ -20,6 +20,11 @@ import { StampObject } from './components/objects/StampObject';
 import { ContextMenu } from './components/shared/ContextMenu';
 import { AssetPickerModal } from './components/shared/AssetPickerModal';
 import { ToastLayer } from './components/shared/ToastLayer';
+import { ConnectionMapPage } from './components/map/ConnectionMapPage';
+import { SharedWallBanner } from './components/shared/SharedWallBanner';
+import { UserPageOverlay } from './components/pages/UserPages';
+import { parseShareHash } from './utils/shareWall';
+import { useT } from './i18n/useT';
 
 function App() {
   // Store selectors
@@ -30,6 +35,7 @@ function App() {
   const selectedIds = useUIStore((s) => s.selectedIds);
   const ropeCreating = useUIStore((s) => s.ropeCreating);
   const ropeMode = useUIStore((s) => s.ropeMode);
+  const t = useT();
 
   // Store actions
   const uiStore = useUIStore();
@@ -43,6 +49,11 @@ function App() {
   useEffect(() => {
     useOverviewStore.getState().initIfNeeded();
     useWallStore.getState().initDefaultWall();
+    // v0.3: 检测分享链接（#/s/…）→ 弹出导入横幅
+    const shared = parseShareHash();
+    if (shared) {
+      useUIStore.getState().setSharedImport(shared);
+    }
   }, []);
 
   // MultiSelect hook
@@ -55,9 +66,9 @@ function App() {
       wallStore.addRope({ id, fromItemId, toItemId, naturalLength });
       // 连线完成后自动退出连线模式
       uiStore.setRopeMode(false);
-      uiStore.showToast('Rope connected', 'success', 2000);
+      uiStore.showToast(t('toast.ropeConnected'), 'success', 2000);
     },
-    [wallStore, uiStore],
+    [wallStore, uiStore, t],
   );
 
   const ropeCreation = useRopeCreation({
@@ -76,9 +87,9 @@ function App() {
     // v0.2 修订：ESC 同时退出附着模式
     if (uiStore.attachMode) {
       uiStore.cancelAttachMode();
-      uiStore.showToast('Attach canceled', 'info', 2000);
+      uiStore.showToast(t('toast.attachCanceled'), 'info', 2000);
     }
-  }, [ropeCreation, uiStore]);
+  }, [ropeCreation, uiStore, t]);
 
   // ropeMode 下点击处理：点 Pin/带 Pin 物件 → 连线；点空白 → 取消（v0.2 修订：扩大命中范围）
   const handleRootPointerDownCapture = useCallback(
@@ -99,7 +110,7 @@ function App() {
         if (hasPin && itemId) {
           ropeCreation.handlePinClick(itemId);
         } else {
-          useUIStore.getState().showToast('This item has no pin', 'warning', 2000);
+          useUIStore.getState().showToast(t('toast.noPin'), 'warning', 2000);
         }
         return;
       }
@@ -107,7 +118,7 @@ function App() {
       ropeCreation.cancelRopeCreation();
       useUIStore.getState().setRopeMode(false);
     },
-    [ropeCreation],
+    [ropeCreation, t],
   );
 
   // v0.2：点击空白处清除选中（尺寸框消失）。物件自身 pointerdown 已 stopPropagation，
@@ -125,12 +136,12 @@ function App() {
       // v0.2 修订：附着模式下点空白 = 取消附着
       if (uiStore.attachMode) {
         uiStore.cancelAttachMode();
-        uiStore.showToast('Attach canceled', 'info', 2000);
+        uiStore.showToast(t('toast.attachCanceled'), 'info', 2000);
         return;
       }
       uiStore.clearSelection();
     },
-    [uiStore],
+    [uiStore, t],
   );
 
   // Keyboard hook
@@ -175,8 +186,23 @@ function App() {
     return (
       <>
         <OverviewPage />
+        <SharedWallBanner />
+        <UserPageOverlay />
         <ToastLayer />
       </>
+    );
+  }
+
+  // v0.3: Render Connection Map view（不渲染画布与工具栏）
+  if (viewMode === 'map') {
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+        <TopBar />
+        <ConnectionMapPage />
+        <SharedWallBanner />
+        <UserPageOverlay />
+        <ToastLayer />
+      </div>
     );
   }
 
@@ -256,6 +282,8 @@ function App() {
       <ZoomWidget zoom={canvasView.zoom} canvasRef={canvasRef} />
 
       {/* Toast */}
+      <SharedWallBanner />
+      <UserPageOverlay />
       <ToastLayer />
     </div>
   );

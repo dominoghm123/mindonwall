@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUIStore } from '../../store/useUIStore';
+import { useOverviewStore } from '../../store/useOverviewStore';
+import { useT } from '../../i18n/useT';
 
 /**
  * 头像入口（v0.2）。
@@ -9,7 +11,10 @@ import { useUIStore } from '../../store/useUIStore';
 export function AvatarMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const showToast = useUIStore((s) => s.showToast);
+  const openPage = useUIStore((s) => s.openPage);
+  const userName = useOverviewStore((s) => s.userName);
+  const avatarDataUrl = useOverviewStore((s) => s.avatarDataUrl);
+  const t = useT();
 
   // 点击外部 / Esc 关闭
   useEffect(() => {
@@ -29,28 +34,27 @@ export function AvatarMenu() {
   }, [open]);
 
   const items = [
-    { key: 'profile', label: 'Profile', desc: 'Your home page' },
-    { key: 'materials', label: 'Materials', desc: 'Your material library' },
-    { key: 'settings', label: 'Settings', desc: 'Home background & more' },
+    { key: 'materials', label: t('av.library'), desc: t('av.libraryDesc') },
+    { key: 'settings', label: t('av.settings'), desc: t('av.settingsDesc') },
   ];
 
   const handleAction = (key: string) => {
     setOpen(false);
-    // v0.2：功能占位，后续迭代接入
-    showToast(`${items.find((i) => i.key === key)?.label ?? ''} coming soon`, 'info');
+    // v0.3 r2：打开全屏用户页面
+    openPage(key as 'materials' | 'settings');
   };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {/* 头像（28px 圆形，字母 U） */}
+      {/* 头像（28px 圆形：自定义头像或昵称首字母） */}
       <div
-        title="User"
+        title={userName}
         onClick={() => setOpen((o) => !o)}
         style={{
           width: 28,
           height: 28,
           borderRadius: '50%',
-          background: '#F0F0F0',
+          background: avatarDataUrl ? `center/cover no-repeat url("${avatarDataUrl}")` : '#F0F0F0',
           border: open ? '1px solid #4A90D9' : '1px solid #E0E0E0',
           display: 'flex',
           alignItems: 'center',
@@ -60,9 +64,10 @@ export function AvatarMenu() {
           color: '#666',
           cursor: 'pointer',
           boxSizing: 'border-box',
+          overflow: 'hidden',
         }}
       >
-        U
+        {avatarDataUrl ? null : (userName.trim()[0] ?? 'U').toUpperCase()}
       </div>
 
       {/* 下拉菜单 */}

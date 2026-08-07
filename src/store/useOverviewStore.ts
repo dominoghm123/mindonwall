@@ -3,6 +3,11 @@ import { persist } from 'zustand/middleware';
 import type { WallSummary, WallpaperType, Item, Rope } from './types';
 import { DEFAULT_WALL_ID, DEFAULT_WALL_NAME, DEFAULT_WALLPAPER } from './initialData';
 import { useWallStore } from './useWallStore';
+import { useMapStore } from './useMapStore';
+import { useAssetStore } from './useAssetStore';
+import type { MapViewSnapshot } from './useMapStore';
+import type { SharedWallPayload } from '../utils/shareWall';
+import type { Lang } from '../i18n';
 
 /** 持久化的墙数据（v0.2：多墙真正可切换） */
 export interface SavedWallData {
@@ -10,9 +15,18 @@ export interface SavedWallData {
   wallpaper: WallpaperType;
   items: Item[];
   ropes: Rope[];
+  /** v0.3: Connection Map 视图快照（不写回白墙） */
+  mapView?: MapViewSnapshot;
 }
 
 let dupCounter = 0;
+
+/** v0.3 r3: 素材收藏夹 */
+export interface AssetCollection {
+  id: string;
+  name: string;
+  assetIds: string[];
+}
 
 interface OverviewState {
   /** 墙面列表 */
@@ -21,6 +35,24 @@ interface OverviewState {
   wallData: Record<string, SavedWallData>;
   /** 是否已初始化 */
   initialized: boolean;
+  /** v0.3 墙纸迁移一次性标记（默认墙 white/beige → cream） */
+  creamMigrated?: boolean;
+  /** v0.3 r4 背景迁移一次性标记（#FAFAF8 → White） */
+  bgMigrated?: boolean;
+  /** v0.3 P3: 总览页背景色 */
+  homeBackground: string;
+  /** v0.3 r2: 总览页自定义背景图（data URL，优先于背景色） */
+  homeBackgroundImage: string | null;
+  /** v0.3 P3: 用户昵称 */
+  userName: string;
+  /** v0.3 r2: 用户头像（data URL，缺省显示昵称首字母） */
+  avatarDataUrl: string | null;
+  /** v0.3 r3: 用户自定义收藏夹 */
+  collections: AssetCollection[];
+  /** v0.3 r3: 已从 Library 删除的内置素材 id */
+  removedBuiltins: string[];
+  /** v0.3 r4: 界面语言（i18n） */
+  language: Lang;
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -46,6 +78,30 @@ interface OverviewState {
   duplicateWall: (id: string) => string | null;
   /** 导出墙 JSON（Blob 下载） */
   exportWallJSON: (id: string) => void;
+  /** v0.3: 导入分享链接中的墙（重映射 id，附带素材入素材库），返回新墙 id */
+  importSharedWall: (payload: SharedWallPayload) => string;
+  /** v0.3 P3: 设置总览页背景色 */
+  setHomeBackground: (color: string) => void;
+  /** v0.3 r2: 设置总览页自定义背景图 */
+  setHomeBackgroundImage: (dataUrl: string | null) => void;
+  /** v0.3 P3: 设置用户昵称 */
+  setUserName: (name: string) => void;
+  /** v0.3 r2: 设置用户头像 */
+  setAvatarDataUrl: (dataUrl: string | null) => void;
+  /** v0.3 r3: 新建收藏夹 */
+  addCollection: (name: string) => void;
+  /** v0.3 r3: 重命名收藏夹 */
+  renameCollection: (id: string, name: string) => void;
+  /** v0.3 r3: 删除收藏夹 */
+  removeCollection: (id: string) => void;
+  /** v0.3 r3: 设置收藏夹内素材 */
+  setCollectionAssets: (id: string, assetIds: string[]) => void;
+  /** v0.3 r3: 删除内置素材（隐藏，不影响已上墙物件） */
+  removeBuiltinAsset: (id: string) => void;
+  /** v0.3 r3: 恢复全部内置素材 */
+  restoreBuiltinAssets: () => void;
+  /** v0.3 r4: 设置界面语言 */
+  setLanguage: (lang: Lang) => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -54,8 +110,17 @@ export const useOverviewStore = create<OverviewState>()(
       walls: [],
       wallData: {},
       initialized: false,
+      creamMigrated: false,
+      bgMigrated: false,
+      homeBackground: '#FFFFFF',
+      homeBackgroundImage: null,
+      userName: 'Wall Keeper',
+      avatarDataUrl: null,
+      collections: [],
+      removedBuiltins: [],
+      language: 'en',
 
-      addWall: (id: string, name: string, wallpaper: WallpaperType = 'white') => {
+      addWall: (id: string, name: string, wallpaper: WallpaperType = 'none') => {
         const { walls } = get();
         if (walls.some((w) => w.id === id)) return;
         set({
@@ -104,21 +169,47 @@ export const useOverviewStore = create<OverviewState>()(
       },
 
       initIfNeeded: () => {
-        const { walls, initialized } = get();
-        // v0.2 墙纸迁移（幂等）：默认墙墙纸 beige → white（用户要求默认白色）
-        if (walls.some((w) => w.id === DEFAULT_WALL_ID && w.wallpaper === 'beige')) {
-          set({
-            walls: walls.map((w) =>
-              w.id === DEFAULT_WALL_ID && w.wallpaper === 'beige'
-                ? { ...w, wallpaper: 'white' as WallpaperType }
-                : w,
-            ),
-          });
-          // 同步当前编辑中的墙（若仍是旧 beige）
-          const ws = useWallStore.getState();
-          if (ws.wallId === DEFAULT_WALL_ID && ws.wallpaper === 'beige') {
-            useWallStore.setState({ wallpaper: 'white' });
+        const { walls, initialized, creamMigrated } = get();
+        // v0.3 墙纸迁移（一次性）：默认墙旧默认 white/beige → cream 米白（新默认）
+        if (!creamMigrated) {
+          const needMigrate = walls.some(
+            (w) => w.id === DEFAULT_WALL_ID && (w.wallpaper === 'white' || w.wallpaper === 'beige'),
+          );
+          if (needMigrate) {
+            set({
+              walls: walls.map((w) =>
+                w.id === DEFAULT_WALL_ID && (w.wallpaper === 'white' || w.wallpaper === 'beige')
+                  ? { ...w, wallpaper: 'cream' as WallpaperType }
+                  : w,
+              ),
+            });
+            const ws = useWallStore.getState();
+            if (
+              ws.wallId === DEFAULT_WALL_ID &&
+              (ws.wallpaper === 'white' || ws.wallpaper === 'beige')
+            ) {
+              useWallStore.setState({ wallpaper: 'cream' });
+            }
+            // 同步 wallData 中的墙纸
+            const wd = get().wallData[DEFAULT_WALL_ID];
+            if (wd && (wd.wallpaper === 'white' || wd.wallpaper === 'beige')) {
+              set({
+                wallData: {
+                  ...get().wallData,
+                  [DEFAULT_WALL_ID]: { ...wd, wallpaper: 'cream' as WallpaperType },
+                },
+              });
+            }
           }
+          set({ creamMigrated: true });
+        }
+        // v0.3 r4 一次性迁移：默认背景 #FAFAF8 → White（未自定义过的用户）
+        if (!get().bgMigrated) {
+          const { homeBackground, homeBackgroundImage } = get();
+          if (homeBackground === '#FAFAF8' && !homeBackgroundImage) {
+            set({ homeBackground: '#FFFFFF' });
+          }
+          set({ bgMigrated: true });
         }
         if (initialized) return;
         if (walls.length === 0) {
@@ -149,6 +240,8 @@ export const useOverviewStore = create<OverviewState>()(
           wallpaper: w.wallpaper,
           items: w.items,
           ropes: w.ropes,
+          // v0.3: 同步保存 Map 视图快照
+          mapView: useMapStore.getState().getSnapshot(),
         });
         // 同步摘要的名称与计数
         set({
@@ -174,16 +267,19 @@ export const useOverviewStore = create<OverviewState>()(
             items: data.items,
             ropes: data.ropes,
           });
+          // v0.3: 恢复目标墙的 Map 快照
+          useMapStore.getState().loadForWall(data.mapView);
         } else if (currentId !== id) {
           // 未保存过数据的墙（如新建）→ 空墙
           const wall = get().walls.find((w) => w.id === id);
           wallStore.loadWall({
             wallId: id,
             name: wall?.name ?? 'Wall',
-            wallpaper: wall?.wallpaper ?? 'beige',
+            wallpaper: wall?.wallpaper ?? 'cream',
             items: [],
             ropes: [],
           });
+          useMapStore.getState().loadForWall();
         }
       },
 
@@ -208,12 +304,52 @@ export const useOverviewStore = create<OverviewState>()(
             it.parentId = idMap.get(it.parentId);
           }
         }
-        const newRopes: Rope[] = (src?.ropes ?? []).map((r) => ({
-          ...r,
-          id: `rope-${Date.now()}-${++dupCounter}`,
-          fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
-          toItemId: idMap.get(r.toItemId) ?? r.toItemId,
-        }));
+        const ropeIdMap = new Map<string, string>();
+        const newRopes: Rope[] = (src?.ropes ?? []).map((r) => {
+          const nid = `rope-${Date.now()}-${++dupCounter}`;
+          ropeIdMap.set(r.id, nid);
+          return {
+            ...r,
+            id: nid,
+            fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
+            toItemId: idMap.get(r.toItemId) ?? r.toItemId,
+          };
+        });
+        // v0.3: Map 快照中的节点位置同步重映射 id
+        const srcMapView = src?.mapView;
+        const newMapView: MapViewSnapshot | undefined = srcMapView
+          ? {
+              nodePositions: Object.fromEntries(
+                Object.entries(srcMapView.nodePositions)
+                  .filter(([k]) => idMap.has(k))
+                  .map(([k, v]) => [idMap.get(k)!, v]),
+              ),
+              hiddenChildren: srcMapView.hiddenChildren
+                .filter((k) => idMap.has(k))
+                .map((k) => idMap.get(k)!),
+              // v0.3: 节点文本同步重映射
+              nodeLabels: srcMapView.nodeLabels
+                ? Object.fromEntries(
+                    Object.entries(srcMapView.nodeLabels)
+                      .filter(([k]) => idMap.has(k))
+                      .map(([k, v]) => [idMap.get(k)!, v]),
+                  )
+                : undefined,
+              // v0.3 r2: Map 新增连线与隐藏 rope 同步重映射
+              extraEdges: srcMapView.extraEdges
+                ? srcMapView.extraEdges.map((e) => ({
+                    ...e,
+                    from: idMap.get(e.from) ?? e.from,
+                    to: idMap.get(e.to) ?? e.to,
+                  }))
+                : undefined,
+              hiddenRopes: srcMapView.hiddenRopes
+                ? srcMapView.hiddenRopes
+                    .filter((rid) => ropeIdMap.has(rid))
+                    .map((rid) => ropeIdMap.get(rid)!)
+                : undefined,
+            }
+          : undefined;
 
         const newId = `wall-${Date.now()}-${++dupCounter}`;
         set({
@@ -228,6 +364,7 @@ export const useOverviewStore = create<OverviewState>()(
               wallpaper: src?.wallpaper ?? wall.wallpaper,
               items: newItems,
               ropes: newRopes,
+              mapView: newMapView,
             },
           },
         });
@@ -260,6 +397,112 @@ export const useOverviewStore = create<OverviewState>()(
         a.download = `${wall.name.replace(/\s+/g, '-').toLowerCase()}.json`;
         a.click();
         URL.revokeObjectURL(url);
+      },
+
+      importSharedWall: (payload: SharedWallPayload) => {
+        // 1) 附带的用户上传素材入素材库（尊重上限，跳过已存在 id）
+        const assetStore = useAssetStore.getState();
+        for (const asset of payload.assets ?? []) {
+          assetStore.addAsset(asset);
+        }
+
+        // 2) 重映射 item id，避免与本地数据冲突
+        const idMap = new Map<string, string>();
+        const newItems: Item[] = payload.items.map((it) => {
+          const nid = `item-${Date.now()}-${++dupCounter}`;
+          idMap.set(it.id, nid);
+          return { ...it, id: nid };
+        });
+        for (const it of newItems) {
+          if (it.parentId && idMap.has(it.parentId)) {
+            it.parentId = idMap.get(it.parentId);
+          }
+        }
+        const newRopes: Rope[] = payload.ropes.map((r) => ({
+          ...r,
+          id: `rope-${Date.now()}-${++dupCounter}`,
+          fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
+          toItemId: idMap.get(r.toItemId) ?? r.toItemId,
+        }));
+
+        // 3) 创建新墙
+        const newId = `wall-${Date.now()}-${++dupCounter}`;
+        const name = payload.name || 'Shared Wall';
+        set({
+          walls: [
+            ...get().walls,
+            { id: newId, name, wallpaper: payload.wallpaper ?? 'cream', itemCount: newItems.length },
+          ],
+          wallData: {
+            ...get().wallData,
+            [newId]: {
+              name,
+              wallpaper: payload.wallpaper ?? 'cream',
+              items: newItems,
+              ropes: newRopes,
+            },
+          },
+        });
+        return newId;
+      },
+
+      setHomeBackground: (color: string) => {
+        set({ homeBackground: color });
+      },
+
+      setHomeBackgroundImage: (dataUrl: string | null) => {
+        set({ homeBackgroundImage: dataUrl });
+      },
+
+      setUserName: (name: string) => {
+        set({ userName: name });
+      },
+
+      setAvatarDataUrl: (dataUrl: string | null) => {
+        set({ avatarDataUrl: dataUrl });
+      },
+
+      /* ── v0.3 r4: i18n ── */
+      setLanguage: (lang: Lang) => {
+        set({ language: lang });
+      },
+
+      /* ── v0.3 r3: 收藏夹 ── */
+      addCollection: (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const id = `collection-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+        set({ collections: [...get().collections, { id, name: trimmed, assetIds: [] }] });
+      },
+
+      renameCollection: (id: string, name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        set({
+          collections: get().collections.map((c) => (c.id === id ? { ...c, name: trimmed } : c)),
+        });
+      },
+
+      removeCollection: (id: string) => {
+        set({ collections: get().collections.filter((c) => c.id !== id) });
+      },
+
+      setCollectionAssets: (id: string, assetIds: string[]) => {
+        set({
+          collections: get().collections.map((c) => (c.id === id ? { ...c, assetIds } : c)),
+        });
+      },
+
+      /* ── v0.3 r3: 内置素材删除/恢复 ── */
+      removeBuiltinAsset: (id: string) => {
+        const { removedBuiltins } = get();
+        if (!removedBuiltins.includes(id)) {
+          set({ removedBuiltins: [...removedBuiltins, id] });
+        }
+      },
+
+      restoreBuiltinAssets: () => {
+        set({ removedBuiltins: [] });
       },
     }),
     {

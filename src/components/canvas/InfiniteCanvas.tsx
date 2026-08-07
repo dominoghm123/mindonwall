@@ -219,6 +219,7 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
 
   return (
     <div
+      id="canvas-root"
       ref={containerRef}
       style={{
         position: 'relative',
@@ -241,8 +242,9 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
         }}
       />
 
-      {/* 变换层（缩放 + 平移） */}
+      {/* 变换层（缩放 + 平移；data-transform-layer 供导出克隆） */}
       <div
+        data-transform-layer
         style={{
           position: 'absolute',
           top: 0,

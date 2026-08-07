@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ViewMode, ToastMessage } from './types';
+import type { SharedWallPayload } from '../utils/shareWall';
+import { getT } from '../i18n';
+import { useOverviewStore } from './useOverviewStore';
 
 /** 右键菜单位置 */
 export interface ContextMenuPosition {
@@ -29,6 +32,10 @@ export interface UIState {
   ropeMode: boolean;
   /** v0.2: 底部工具栏当前打开的次级面板（同时只能开一个） */
   toolbarPanel: 'image' | 'paper' | 'stamp' | null;
+  /** v0.3: 通过分享链接打开的墙数据（待用户确认导入） */
+  sharedImport: SharedWallPayload | null;
+  /** v0.3 r2: 全屏用户页面（Library / Settings，Profile 已并入 Settings） */
+  page: 'materials' | 'settings' | null;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -70,6 +77,10 @@ export interface UIState {
   toggleToolbarPanel: (panel: 'image' | 'paper' | 'stamp') => void;
   /** v0.2: 关闭次级面板 */
   closeToolbarPanel: () => void;
+  /** v0.3: 设置分享导入数据 */
+  setSharedImport: (payload: SharedWallPayload | null) => void;
+  /** v0.3 r2: 打开/关闭用户页面 */
+  openPage: (page: 'materials' | 'settings' | null) => void;
 }
 
 let toastCounter = 0;
@@ -87,6 +98,8 @@ export const useUIStore = create<UIState>()(
       ropeCreating: false,
       ropeMode: false,
       toolbarPanel: null,
+      sharedImport: null,
+      page: null,
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });
@@ -152,7 +165,8 @@ export const useUIStore = create<UIState>()(
       startAttachMode: (stampId: string) => {
         set({ attachMode: stampId, contextMenu: null });
         // v0.2 修订：进入附着模式时给出明确引导（否则用户不知道要点哪里）
-        get().showToast('Click a paper or photo to attach the stamp (Esc to cancel)', 'info', 4000);
+        const t = getT(useOverviewStore.getState().language);
+        get().showToast(t('toast.clickToAttach'), 'info', 4000);
       },
 
       cancelAttachMode: () => {
@@ -184,13 +198,25 @@ export const useUIStore = create<UIState>()(
       closeToolbarPanel: () => {
         set({ toolbarPanel: null });
       },
+
+      setSharedImport: (payload: SharedWallPayload | null) => {
+        set({ sharedImport: payload });
+      },
+
+      openPage: (page) => {
+        set({ page });
+      },
     }),
     {
       name: 'mindonwall-ui',
-      partialize: (state) => ({
-        viewMode: state.viewMode,
-        // selectedIds 和 toasts 不持久化
-      }),
+      // v0.3: viewMode 不再持久化，刷新后始终回到总览页
+      version: 1,
+      migrate: (persisted) => {
+        const p = persisted as Record<string, unknown>;
+        delete p.viewMode;
+        return p;
+      },
+      partialize: () => ({}),
     },
   ),
 );

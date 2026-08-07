@@ -232,18 +232,16 @@ function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: st
 
 /* ─── Tape (washi/masking tape) ─── */
 /**
- * Tape 变体：半透明胶带条，自然撕边，可叠加在其他物件上。
- * 参考 researching/tape_sample/ 中的质感：
- * - 半透明（opacity 0.55-0.7）
- * - 自然不规则撕边（非直线切割）
- * - 轻微褶皱/纹理
- * - 支持多色：米白/浅蓝/浅黄/浅绿等
+ * Tape 变体：半透明胶带条，两端自然锯齿撕边，可叠加在其他物件上。
+ * v0.3 修订：
+ * - 撕边改为多点锯齿（不再是内缩四角，边角完整不裁切）
+ * - 透明度提高 + 去掉 multiply 噪点（发脏），改用轻量低透明度颗粒，更清透
  */
 function TapeStrip({ item }: { item: Item }) {
   const color = item.color ?? 'rgba(232,224,200,0.6)';
 
-  // 基于 id 生成确定性伪随机撕边形状
-  const tearShape = useMemo(() => {
+  // 基于 id 的确定性伪随机：生成左右两端锯齿撕边（v0.3）
+  const points = useMemo(() => {
     let hash = 0;
     for (let i = 0; i < item.id.length; i++) {
       hash = (hash << 5) - hash + item.id.charCodeAt(i);
@@ -253,54 +251,81 @@ function TapeStrip({ item }: { item: Item }) {
       hash = (hash * 16807 + 0) % 2147483647;
       return (hash - 1) / 2147483646;
     };
-    // 生成 4 个角的撕边偏移
-    return {
-      tl: rng() * 6 - 3,
-      tr: rng() * 6 - 3,
-      bl: rng() * 6 - 3,
-      br: rng() * 6 - 3,
-      // 轻微斜角
-      skew: (rng() - 0.5) * 4,
-    };
+
+    const TOP = 6;
+    const BOTTOM = 94;
+    const pts: string[] = [];
+
+    // 顶边（左→右，轻微起伏）
+    const topSegs = 5;
+    for (let i = 0; i <= topSegs; i++) {
+      const x = (i / topSegs) * 100;
+      const y = TOP + (rng() - 0.5) * 2;
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    // 右端锯齿（上→下）
+    const rightSegs = 6;
+    for (let i = 1; i < rightSegs; i++) {
+      const y = TOP + (i / rightSegs) * (BOTTOM - TOP);
+      const x = 100 - (1.5 + rng() * 4);
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    // 底边（右→左）
+    for (let i = topSegs; i >= 0; i--) {
+      const x = (i / topSegs) * 100;
+      const y = BOTTOM + (rng() - 0.5) * 2;
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    // 左端锯齿（下→上）
+    for (let i = rightSegs - 1; i >= 1; i--) {
+      const y = TOP + (i / rightSegs) * (BOTTOM - TOP);
+      const x = 1.5 + rng() * 4;
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    return pts.join(' ');
   }, [item.id]);
 
+  const clipId = `tape-clip-${item.id}`;
+
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        overflow: 'visible',
-      }}
-    >
-      {/* SVG 撕边胶带形状 */}
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <svg
         width="100%"
         height="100%"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
-        style={{ position: 'absolute', top: 0, left: 0 }}
+        style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
       >
         <defs>
-          {/* 胶带纹理：轻微噪点 */}
-          <filter id={`tape-noise-${item.id}`}>
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" />
-            <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
-            <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply" />
-          </filter>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <polygon points={points} />
+          </clipPath>
         </defs>
-        {/* 胶带主体：不规则四边形模拟撕边 */}
-        <polygon
-          points={`
-            ${2 + tearShape.tl},${8 + tearShape.skew}
-            ${98 + tearShape.tr},${6 - tearShape.skew}
-            ${97 - tearShape.br},${94 + tearShape.skew}
-            ${3 - tearShape.bl},${92 - tearShape.skew}
-          `}
-          fill={color}
-          filter={`url(#tape-noise-${item.id})`}
-          opacity="0.85"
+        {/* 胶带主体：清透半透明 */}
+        <polygon points={points} fill={color} opacity={0.72} />
+        {/* 轻量颗粒纹理（低透明度叠加，不发脏） */}
+        <rect
+          x={0}
+          y={0}
+          width={100}
+          height={100}
+          clipPath={`url(#${clipId})`}
+          filter={`url(#tape-grain-${item.id})`}
+          opacity={0.18}
         />
+        {/* 上缘高光：胶带清透感 */}
+        <rect
+          x={0}
+          y={6}
+          width={100}
+          height={7}
+          clipPath={`url(#${clipId})`}
+          fill="rgba(255,255,255,0.35)"
+        />
+        <filter id={`tape-grain-${item.id}`}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
       </svg>
     </div>
   );

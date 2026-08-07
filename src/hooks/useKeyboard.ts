@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { UIState } from '../store/useUIStore';
 import type { WallState } from '../store/useWallStore';
+import { useMapStore } from '../store/useMapStore';
 
 interface UseKeyboardOptions {
   uiStore: UIState;
@@ -56,30 +57,36 @@ export function useKeyboard({
       if (targetEl?.isContentEditable) return;
 
       const ctrl = e.ctrlKey || e.metaKey;
+      // v0.3: Map 视图下部分快捷键走 Map 独立逻辑
+      const isMap = uiRef.current.viewMode === 'map';
 
-      // Space → 临时平移
+      // Space → 临时平移（仅白墙）
       if (e.code === 'Space' && !ctrl) {
+        if (isMap) return;
         e.preventDefault();
         setSpaceHeld(true);
         return;
       }
 
-      // Ctrl+Z → 撤销
+      // Ctrl+Z → 撤销（v0.3: Map 视图走独立撤销栈）
       if (ctrl && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        wallRef.current.undo();
+        if (isMap) useMapStore.getState().mapUndo();
+        else wallRef.current.undo();
         return;
       }
 
-      // Ctrl+Shift+Z → 重做
+      // Ctrl+Shift+Z → 重做（v0.3: Map 视图走独立重做栈）
       if (ctrl && e.key === 'z' && e.shiftKey) {
         e.preventDefault();
-        wallRef.current.redo();
+        if (isMap) useMapStore.getState().mapRedo();
+        else wallRef.current.redo();
         return;
       }
 
-      // Delete / Backspace → 删除选中
+      // Delete / Backspace → 删除选中（仅白墙）
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (isMap) return;
         e.preventDefault();
         onDeleteSelected?.();
         return;
@@ -93,8 +100,9 @@ export function useKeyboard({
         return;
       }
 
-      // Ctrl+A → 全选
+      // Ctrl+A → 全选（仅白墙）
       if (ctrl && e.key === 'a') {
+        if (isMap) return;
         e.preventDefault();
         onSelectAll?.();
         return;
@@ -108,22 +116,25 @@ export function useKeyboard({
         return;
       }
 
-      // + / = → 放大
+      // + / = → 放大（仅白墙）
       if ((e.key === '+' || e.key === '=') && !ctrl) {
+        if (isMap) return;
         e.preventDefault();
         onZoomIn?.();
         return;
       }
 
-      // - → 缩小
+      // - → 缩小（仅白墙）
       if (e.key === '-' && !ctrl) {
+        if (isMap) return;
         e.preventDefault();
         onZoomOut?.();
         return;
       }
 
-      // 0 → 重置缩放
+      // 0 → 重置缩放（仅白墙）
       if (e.key === '0' && !ctrl) {
+        if (isMap) return;
         e.preventDefault();
         onZoomReset?.();
         return;

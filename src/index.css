@@ -18,3 +18,15 @@ body {
   background: #FAFAF8;
   -webkit-font-smoothing: antialiased;
 }
+
+/* v0.3 r2: Connection Map 节点 hover 时浮现加号手柄 */
+.map-node-handle {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+
+.map-node:hover .map-node-handle {
+  opacity: 1;
+  pointer-events: auto;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
+import { useT } from '../../i18n/useT';
 import type { Item } from '../../store/types';
 
 /** Stamp 预设颜色（v0.2：颜色写入 item.color，不再切换 stampId） */
@@ -47,6 +48,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
   const detachStamp = useWallStore((s) => s.detachStamp);
   const bringToFront = useWallStore((s) => s.bringToFront);
   const sendToBack = useWallStore((s) => s.sendToBack);
+  const t = useT();
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -98,7 +100,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
+        <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>{t('ctx.changeColor')}</div>
         <ColorRow
           colors={ROPE_COLORS}
           current={rope?.color}
@@ -107,7 +109,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
         />
         <Divider />
         <MenuItem
-          label="Delete"
+          label={t('common.delete')}
           danger
           onClick={handleItemClick(() => {
             removeRope(contextMenu.ropeId);
@@ -259,7 +261,7 @@ function ColorRow({
       ))}
       {/* 自定义调色盘 */}
       <label
-        title="Custom color"
+        title={useT()('ctx.customColor')}
         onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: 20,
@@ -318,26 +320,27 @@ function StampMenuItems({
 }) {
   const isAttached = !!item.parentId;
   const showToast = useUIStore((s) => s.showToast);
+  const t = useT();
 
   return (
     <>
       {!isAttached && (
-        <MenuItem label="Attach to Paper / Photo" onClick={onItemClick(() => startAttachMode(item.id))} />
+        <MenuItem label={t('ctx.attach')} onClick={onItemClick(() => startAttachMode(item.id))} />
       )}
       {isAttached && (
         <MenuItem
-          label="Detach"
+          label={t('ctx.detach')}
           onClick={onItemClick(() => {
             detachStamp(item.id);
-            showToast('Stamp detached', 'success', 2000);
+            showToast(t('toast.stampDetached'), 'success', 2000);
           })}
         />
       )}
       <Divider />
-      <MenuItem label="Bring to Front" onClick={onItemClick(() => bringToFront(item.id))} />
-      <MenuItem label="Send to Back" onClick={onItemClick(() => sendToBack(item.id))} />
+      <MenuItem label={t('ctx.front')} onClick={onItemClick(() => bringToFront(item.id))} />
+      <MenuItem label={t('ctx.back')} onClick={onItemClick(() => sendToBack(item.id))} />
       <Divider />
-      <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
+      <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>{t('ctx.changeColor')}</div>
       <ColorRow
         colors={STAMP_COLORS}
         current={item.color}
@@ -345,7 +348,7 @@ function StampMenuItems({
         onDone={closeMenu}
       />
       <Divider />
-      <MenuItem label="Delete" danger onClick={onItemClick(() => removeItem(item.id))} />
+      <MenuItem label={t('common.delete')} danger onClick={onItemClick(() => removeItem(item.id))} />
     </>
   );
 }
@@ -366,14 +369,15 @@ function PictureMenuItems({
   sendToBack: (id: string) => void;
   removeItem: (id: string) => void;
 }) {
+  const t = useT();
   return (
     <>
-      <MenuItem label="Replace Image" onClick={onItemClick(() => openAssetPicker(item.id))} />
+      <MenuItem label={t('ctx.replaceImage')} onClick={onItemClick(() => openAssetPicker(item.id))} />
       <Divider />
-      <MenuItem label="Bring to Front" onClick={onItemClick(() => bringToFront(item.id))} />
-      <MenuItem label="Send to Back" onClick={onItemClick(() => sendToBack(item.id))} />
+      <MenuItem label={t('ctx.front')} onClick={onItemClick(() => bringToFront(item.id))} />
+      <MenuItem label={t('ctx.back')} onClick={onItemClick(() => sendToBack(item.id))} />
       <Divider />
-      <MenuItem label="Delete" onClick={onItemClick(() => removeItem(item.id))} />
+      <MenuItem label={t('common.delete')} onClick={onItemClick(() => removeItem(item.id))} />
     </>
   );
 }
@@ -401,10 +405,11 @@ function PaperMenuItems({
     item.variant === 'sticky' ? STICKY_COLORS
     : item.variant === 'tape' ? TAPE_COLORS
     : PAPER_COLORS;
+  const t = useT();
 
   return (
     <>
-      <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>Change Color</div>
+      <div style={{ padding: '4px 14px', fontSize: 13, color: '#333' }}>{t('ctx.changeColor')}</div>
       <ColorRow
         colors={colors}
         current={item.color}
@@ -412,10 +417,10 @@ function PaperMenuItems({
         onDone={closeMenu}
       />
       <Divider />
-      <MenuItem label="Bring to Front" onClick={onItemClick(() => bringToFront(item.id))} />
-      <MenuItem label="Send to Back" onClick={onItemClick(() => sendToBack(item.id))} />
+      <MenuItem label={t('ctx.front')} onClick={onItemClick(() => bringToFront(item.id))} />
+      <MenuItem label={t('ctx.back')} onClick={onItemClick(() => sendToBack(item.id))} />
       <Divider />
-      <MenuItem label="Delete" onClick={onItemClick(() => removeItem(item.id))} />
+      <MenuItem label={t('common.delete')} onClick={onItemClick(() => removeItem(item.id))} />
     </>
   );
 }

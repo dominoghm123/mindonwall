@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { InfiniteCanvasHandle } from '../canvas/InfiniteCanvas';
 import { useUIStore } from '../../store/useUIStore';
+import { useT } from '../../i18n/useT';
 
 interface ZoomWidgetProps {
   zoom: number;
@@ -14,7 +15,8 @@ interface ZoomWidgetProps {
  * 纯白实色 + 1px border，无阴影。
  */
 export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
-  const showToast = useUIStore((s) => s.showToast);
+  const setViewMode = useUIStore((s) => s.setViewMode);
+  const t = useT();
   const [visible, setVisible] = useState(false);
 
   /* ── 度数可编辑（v0.2 修订） ── */
@@ -77,7 +79,7 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
       }}
     >
       {/* Zoom out（v0.2 修订：每次 1%） */}
-      <WidgetButton title="Zoom out 1%" onClick={() => canvasRef.current?.zoomStep(-1)}>
+      <WidgetButton title={t('zm.out')} onClick={() => canvasRef.current?.zoomStep(-1)}>
         −
       </WidgetButton>
 
@@ -107,7 +109,7 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
         <div
           onClick={startEdit}
           onDoubleClick={() => canvasRef.current?.resetZoom()}
-          title="Click to edit, double-click to reset to 100%"
+          title={t('zm.editHint')}
           style={{
             minWidth: 44,
             textAlign: 'center',
@@ -121,7 +123,7 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
       )}
 
       {/* Zoom in（v0.2 修订：每次 1%） */}
-      <WidgetButton title="Zoom in 1%" onClick={() => canvasRef.current?.zoomStep(1)}>
+      <WidgetButton title={t('zm.in')} onClick={() => canvasRef.current?.zoomStep(1)}>
         +
       </WidgetButton>
 
@@ -130,7 +132,7 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
       {/* Fit */}
       <button
         onClick={() => canvasRef.current?.fitContent()}
-        title="Fit content"
+        title={t('zm.fit')}
         style={{
           height: 26,
           padding: '0 8px',
@@ -142,13 +144,13 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
           cursor: 'pointer',
         }}
       >
-        Fit
+        {t('zm.fitLabel')}
       </button>
 
-      {/* Map（v0.3 功能，先占位） */}
+      {/* Map（v0.3：切换到 Connection Map 视图） */}
       <WidgetButton
-        title="Connection Map (coming in v0.3)"
-        onClick={() => showToast('Connection Map coming in v0.3', 'info')}
+        title={t('top.map')}
+        onClick={() => setViewMode('map')}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="4" cy="4" r="2" stroke="#666" strokeWidth="1" />
