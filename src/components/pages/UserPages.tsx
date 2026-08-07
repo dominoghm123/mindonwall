@@ -792,7 +792,86 @@ function LibraryPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 过滤 + 操作区 */}
+      {/* v0.3 r3: 收藏夹 */}
+      {!manageMode && (
+        <section>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: '#999' }}>{t('lib.collections')}</span>
+            {!creating && (
+              <button
+                onClick={() => {
+                  setCreating(true);
+                  setNewName('');
+                }}
+                style={{ height: 22, padding: '0 10px', fontSize: 11, color: '#4A90D9', background: '#FFFFFF', border: '1px solid #BCD4EE', borderRadius: 5, cursor: 'pointer' }}
+              >
+                {t('lib.new')}
+              </button>
+            )}
+            {creating && (
+              <>
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newName.trim()) {
+                      addCollection(newName);
+                      setCreating(false);
+                      showToast(t('toast.collectionCreated'), 'success');
+                    }
+                    if (e.key === 'Escape') setCreating(false);
+                  }}
+                  placeholder={t('lib.colName')}
+                  maxLength={24}
+                  style={{ height: 22, width: 140, padding: '0 8px', fontSize: 11, border: '1px solid #D0D0D0', borderRadius: 5, outline: 'none' }}
+                />
+                <button
+                  onClick={() => {
+                    if (newName.trim()) {
+                      addCollection(newName);
+                      showToast(t('toast.collectionCreated'), 'success');
+                    }
+                    setCreating(false);
+                  }}
+                  style={{ height: 22, padding: '0 10px', fontSize: 11, color: '#FFFFFF', background: '#4A90D9', border: 'none', borderRadius: 5, cursor: 'pointer' }}
+                >
+                  {t('common.add')}
+                </button>
+                <button
+                  onClick={() => setCreating(false)}
+                  style={{ height: 22, padding: '0 8px', fontSize: 11, color: '#777', background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 5, cursor: 'pointer' }}
+                >
+                  {t('common.cancel')}
+                </button>
+              </>
+            )}
+          </div>
+          {visibleCollections.length === 0 && !creating ? (
+            <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 12, color: '#AAA', border: '1px dashed #DDDDDD', borderRadius: 10 }}>
+              {q ? t('lib.noMatch') : t('lib.noCollections')}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {visibleCollections.map((c) => (
+                <CollectionCard
+                  key={c.id}
+                  name={c.name}
+                  count={c.assetIds.length}
+                  thumbs={c.assetIds.slice(0, 3).map((id) => assetThumbSrc(id, assets))}
+                  onOpen={() => {
+                    setOpenCollectionId(c.id);
+                    setDraftName(c.name);
+                    setDraftIds([...c.assetIds]);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* v0.3 r5: 过滤 + 操作区（移至收藏夹下方，明确层级） */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         {FILTERS.map((f) => (
           <button
@@ -815,7 +894,6 @@ function LibraryPage() {
         <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>
           {t('lib.used', { a: assets.length, b: MAX_ASSETS })}
         </span>
-        {/* v0.3 r3: 搜索收藏夹与素材 */}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -918,85 +996,6 @@ function LibraryPage() {
           }}
         />
       </div>
-
-      {/* v0.3 r3: 收藏夹 */}
-      {!manageMode && (
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, color: '#999' }}>{t('lib.collections')}</span>
-            {!creating && (
-              <button
-                onClick={() => {
-                  setCreating(true);
-                  setNewName('');
-                }}
-                style={{ height: 22, padding: '0 10px', fontSize: 11, color: '#4A90D9', background: '#FFFFFF', border: '1px solid #BCD4EE', borderRadius: 5, cursor: 'pointer' }}
-              >
-                {t('lib.new')}
-              </button>
-            )}
-            {creating && (
-              <>
-                <input
-                  autoFocus
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newName.trim()) {
-                      addCollection(newName);
-                      setCreating(false);
-                      showToast(t('toast.collectionCreated'), 'success');
-                    }
-                    if (e.key === 'Escape') setCreating(false);
-                  }}
-                  placeholder={t('lib.colName')}
-                  maxLength={24}
-                  style={{ height: 22, width: 140, padding: '0 8px', fontSize: 11, border: '1px solid #D0D0D0', borderRadius: 5, outline: 'none' }}
-                />
-                <button
-                  onClick={() => {
-                    if (newName.trim()) {
-                      addCollection(newName);
-                      showToast(t('toast.collectionCreated'), 'success');
-                    }
-                    setCreating(false);
-                  }}
-                  style={{ height: 22, padding: '0 10px', fontSize: 11, color: '#FFFFFF', background: '#4A90D9', border: 'none', borderRadius: 5, cursor: 'pointer' }}
-                >
-                  {t('common.add')}
-                </button>
-                <button
-                  onClick={() => setCreating(false)}
-                  style={{ height: 22, padding: '0 8px', fontSize: 11, color: '#777', background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 5, cursor: 'pointer' }}
-                >
-                  {t('common.cancel')}
-                </button>
-              </>
-            )}
-          </div>
-          {visibleCollections.length === 0 && !creating ? (
-            <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 12, color: '#AAA', border: '1px dashed #DDDDDD', borderRadius: 10 }}>
-              {q ? t('lib.noMatch') : t('lib.noCollections')}
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              {visibleCollections.map((c) => (
-                <CollectionCard
-                  key={c.id}
-                  name={c.name}
-                  count={c.assetIds.length}
-                  thumbs={c.assetIds.slice(0, 3).map((id) => assetThumbSrc(id, assets))}
-                  onOpen={() => {
-                    setOpenCollectionId(c.id);
-                    setDraftName(c.name);
-                    setDraftIds([...c.assetIds]);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* 内置素材（v0.3 r4: 去掉 Built-in 小标题与标签） */}
       {builtinVisible.length > 0 && (
