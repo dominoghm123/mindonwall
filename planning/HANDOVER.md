@@ -1,7 +1,7 @@
 # Handover — Mind on Wall v0.2 → v0.3
 
-**最后更新：** 2026-08-07（v0.2 五轮修订全部完成，下一窗口进入 v0.3）
-**当前阶段：** ✅ v0.2 完成（首版 A1/A2/A3/B + 五轮用户反馈修订，全部浏览器验证通过，待合入 main）
+**最后更新：** 2026-08-07（v0.2 验收通过并合入 main，下一窗口进入 v0.3）
+**当前阶段：** ✅ v0.2 完成并已合入 main（五轮用户反馈修订全部验收通过）
 
 ## 项目一句话
 
@@ -11,8 +11,8 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 
 | 分支 | 状态 |
 |---|---|
-| `main` | ✅ v0.1 最终版，commit `5ae57bf`，已推送远程，**不可改动** |
-| `feature/v0.2-interactions-chrome` | ✅ v0.2 完成（HEAD `3da603f`），已推送远程 |
+| `main` | ✅ v0.2 验收版（合并 commit `d3e35c4`，tag `v0.2`），已推送远程 |
+| `feature/v0.2-interactions-chrome` | ✅ 已合入 main，可删除；v0.3 另开新分支（如 `feature/v0.3-*`） |
 
 ## v0.2 完成记录（2026-08-07）
 
@@ -67,9 +67,8 @@ QA：每轮均 tsc 无错 + Browser agent 逐项验证全 PASS，console 无 err
 
 **v0.3 待办**：Project 层级、真实分享后端、PDF 导出、Connection Map；AvatarMenu 三项（Profile/Materials/Settings）接真实功能；次要优化：resize 超 800px 宽高比保持、窄视口总览网格自适应、viewMode 默认总览、清理 QA 残留数据（QA 曾把 item-stamp-01 attach 到 item-paper-note-02，可 Undo 或 `localStorage.clear()`）。
 
-- v0.2 所有改动在 `feature/v0.2-interactions-chrome` 上进行，**不动 main**
-- 回滚方式：`git checkout main` 即回到 v0.1
-- 回滚远程分支：`git push origin feature/v0.2-interactions-chrome --force-with-lease`（重置到 `4ce028b`）
+- v0.2 已验收合入 main（`d3e35c4`，tag `v0.2`）；v0.3 开发从 main 新开 feature 分支，**不直接在 main 上改**
+- 回滚方式：`git checkout v0.1` 或 `git reset --hard 5ae57bf` 即回到 v0.1（v0.1 状态 commit `5ae57bf` 仍在历史中）
 
 ## 时间线
 
