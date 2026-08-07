@@ -1,7 +1,8 @@
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
-import { clearShareHash } from '../../utils/shareWall';
+import { clearShareHash, clearSharePath } from '../../utils/shareWall';
 import { useT } from '../../i18n/useT';
+import { track } from '../../utils/analytics';
 
 /**
  * v0.3: 分享链接导入横幅。
@@ -18,11 +19,13 @@ export function SharedWallBanner() {
 
   const dismiss = () => {
     clearShareHash();
+    clearSharePath();
     setSharedImport(null);
   };
 
   const handleSave = () => {
     const newId = useOverviewStore.getState().importSharedWall(sharedImport);
+    track('wall_shared_opened', { items: sharedImport.items.length });
     showToast(t('toast.wallSaved'), 'success');
     dismiss();
     void newId;

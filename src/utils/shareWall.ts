@@ -3,8 +3,7 @@ import type { Item, Rope, WallpaperType, Asset } from '../store/types';
 
 /**
  * v0.3: URL 编码分享（无后端）。
- * 墙数据 JSON → lz-string 压缩 → URL hash（#/s/<payload>）。
- * 接收方打开链接后导入为本地副本（只读演示，保存后归入自己的墙列表）。
+ * v0.4: 新增服务端短链分享（/api/share），旧方式保留为降级。
  */
 
 export interface SharedWallPayload {
@@ -88,5 +87,85 @@ export async function copyShareUrl(url: string): Promise<boolean> {
     const ok = document.execCommand('copy');
     document.body.removeChild(ta);
     return ok;
+  }
+}
+
+/* ================================================================
+ * v0.4: Server-side short-link sharing
+ * ================================================================ */
+
+/**
+ * Create a server-side share link via POST /api/share.
+ * Returns the full short URL (e.g. https://mindonwall.com/s/abc123).
+ * Throws on network/server error — caller should fallback to buildShareUrl().
+ */
+export async function shareWallServer(data: {
+  name: string;
+  wallpaper: WallpaperType;
+  items: Item[];
+  ropes: Rope[];
+  assets?: Asset[];
+}): Promise<string> {
+  // Build payload with asset budget (same as URL-hash version)
+  const includedAssets: Asset[] = [];
+  let budget = MAX_ASSET_CHARS;
+  for (const a of data.assets ?? []) {
+    if (!a.dataUrl) continue;
+    if (a.dataUrl.length > budget) break;
+    budget -= a.dataUrl.length;
+    includedAssets.push(a);
+  }
+
+  const payload: SharedWallPayload = {
+    app: 'mindonwall',
+    v: '0.4',
+    name: data.name,
+    wallpaper: data.wallpaper,
+    items: data.items,
+    ropes: data.ropes,
+    assets: includedAssets.length > 0 ? includedAssets : undefined,
+  };
+
+  const res = await fetch('/api/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Share API ${res.status}`);
+  const { id } = (await res.json()) as { id: string; url: string };
+  return `${window.location.origin}/s/${id}`;
+}
+
+/**
+ * Fetch shared wall data by short-link ID (GET /api/share?id=xxx).
+ * Returns the payload or null if not found / expired.
+ */
+export async function fetchSharedWall(id: string): Promise<SharedWallPayload | null> {
+  try {
+    const res = await fetch(`/api/share?id=${encodeURIComponent(id)}`);
+    if (!res.ok) return null;
+    const payload = (await res.json()) as SharedWallPayload;
+    if (payload.app !== 'mindonwall' || !Array.isArray(payload.items)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detect /s/:id in the current URL path.
+ * Returns the share ID or null.
+ */
+export function parseSharePath(): string | null {
+  const match = window.location.pathname.match(/\/s\/([A-Za-z0-9_-]{6})\/?$/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Clean /s/:id from the URL path after import (replace to root).
+ */
+export function clearSharePath() {
+  if (window.location.pathname.startsWith('/s/')) {
+    history.replaceState(null, '', '/');
   }
 }

@@ -23,7 +23,7 @@ import { ToastLayer } from './components/shared/ToastLayer';
 import { ConnectionMapPage } from './components/map/ConnectionMapPage';
 import { SharedWallBanner } from './components/shared/SharedWallBanner';
 import { UserPageOverlay } from './components/pages/UserPages';
-import { parseShareHash } from './utils/shareWall';
+import { parseShareHash, parseSharePath, fetchSharedWall } from './utils/shareWall';
 import { useT } from './i18n/useT';
 
 function App() {
@@ -53,6 +53,16 @@ function App() {
     const shared = parseShareHash();
     if (shared) {
       useUIStore.getState().setSharedImport(shared);
+      return;
+    }
+    // v0.4: 检测短链路径 /s/:id → 异步获取墙数据
+    const pathId = parseSharePath();
+    if (pathId) {
+      fetchSharedWall(pathId).then((payload) => {
+        if (payload) {
+          useUIStore.getState().setSharedImport(payload);
+        }
+      });
     }
   }, []);
 
