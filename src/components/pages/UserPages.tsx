@@ -22,7 +22,7 @@ export function UserPageOverlay() {
   const page = useUIStore((s) => s.page);
   if (!page) return null;
   return (
-    <PageShell title={PAGE_TITLES[page]}>
+    <PageShell title={PAGE_TITLES[page]} previewBg={page === 'settings'}>
       {page === 'materials' && <LibraryPage />}
       {page === 'settings' && <SettingsPage />}
     </PageShell>
@@ -30,8 +30,11 @@ export function UserPageOverlay() {
 }
 
 /* ─── 页面外壳 ─── */
-function PageShell({ title, children }: { title: string; children: React.ReactNode }) {
+function PageShell({ title, previewBg, children }: { title: string; previewBg?: boolean; children: React.ReactNode }) {
   const openPage = useUIStore((s) => s.openPage);
+  // v0.3 r3: Settings 页背景实时预览所选的 Home background
+  const homeBackground = useOverviewStore((s) => s.homeBackground);
+  const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,7 +51,11 @@ function PageShell({ title, children }: { title: string; children: React.ReactNo
         position: 'fixed',
         inset: 0,
         zIndex: 20000,
-        background: '#FAFAF8',
+        background: previewBg
+          ? homeBackgroundImage
+            ? `#F5F5F3 url("${homeBackgroundImage}") center/cover no-repeat`
+            : homeBackground
+          : '#FAFAF8',
         display: 'flex',
         flexDirection: 'column',
         userSelect: 'none',
@@ -96,9 +103,9 @@ function PageShell({ title, children }: { title: string; children: React.ReactNo
 
 /* ─── Settings 页（Profile 并入顶部） ─── */
 const BG_OPTIONS: { color: string; label: string }[] = [
-  { color: '#FAFAF8', label: 'Ivory' },
+  { color: '#FAF5E9', label: 'Ivory' },
   { color: '#FFFFFF', label: 'White' },
-  { color: '#F2F2F0', label: 'Light gray' },
+  { color: '#E8E6E1', label: 'Light gray' },
 ];
 
 function SettingsPage() {
@@ -225,6 +232,7 @@ function SettingsPage() {
         <div style={{ fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 4 }}>Home background</div>
         <div style={{ fontSize: 11, color: '#999', marginBottom: 12 }}>
           Pick a color or upload your own image (recommended 1920×1080 px or larger, max 3 MB).
+          This page previews your home background in real time.
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {BG_OPTIONS.map((opt) => {
@@ -441,16 +449,41 @@ function LibraryPage() {
   const addAsset = useAssetStore((s) => s.addAsset);
   const removeAsset = useAssetStore((s) => s.removeAsset);
   const wallData = useOverviewStore((s) => s.wallData);
+  // v0.3 r3: 收藏夹 + 内置素材可删
+  const collections = useOverviewStore((s) => s.collections);
+  const addCollection = useOverviewStore((s) => s.addCollection);
+  const renameCollection = useOverviewStore((s) => s.renameCollection);
+  const removeCollection = useOverviewStore((s) => s.removeCollection);
+  const setCollectionAssets = useOverviewStore((s) => s.setCollectionAssets);
+  const removedBuiltins = useOverviewStore((s) => s.removedBuiltins);
+  const removeBuiltinAsset = useOverviewStore((s) => s.removeBuiltinAsset);
+  const restoreBuiltinAssets = useOverviewStore((s) => s.restoreBuiltinAssets);
   const showToast = useUIStore((s) => s.showToast);
   const [filter, setFilter] = useState<MaterialFilter>('all');
+  const [search, setSearch] = useState('');
   const [manageMode, setManageMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState(false);
+  const [openCollectionId, setOpenCollectionId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [removeColId, setRemoveColId] = useState<string | null>(null);
+  const [addAssetsFor, setAddAssetsFor] = useState<string | null>(null);
+  const [addSel, setAddSel] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const idCounter = useRef(0);
 
-  const builtinVisible = BUILTIN_ASSETS.filter((b) => filter === 'all' || b.kind === filter);
-  const userVisible = assets.filter((a) => filter === 'all' || (a.kind ?? 'picture') === filter);
+  const q = search.trim().toLowerCase();
+  const matchQ = (text: string) => !q || text.toLowerCase().includes(q);
+  const builtinVisible = BUILTIN_ASSETS.filter(
+    (b) => (filter === 'all' || b.kind === filter) && !removedBuiltins.includes(b.id) && matchQ(b.label),
+  );
+  const userVisible = assets.filter(
+    (a) => (filter === 'all' || (a.kind ?? 'picture') === filter) && matchQ(`${(a.kind ?? 'picture')} ${a.byteSize}`),
+  );
+  const visibleCollections = collections.filter((c) => matchQ(c.name));
 
   /** 素材是否被任一墙使用 */
   const isUsed = (assetId: string) =>
@@ -488,16 +521,21 @@ function LibraryPage() {
   };
 
   const handleDeleteSelected = () => {
-    // 过滤掉被使用的素材
-    const blocked = selected.filter((id) => isUsed(id));
-    const deletable = selected.filter((id) => !isUsed(id));
+    const builtinIds = new Set(BUILTIN_ASSETS.map((b) => b.id));
+    const builtinSel = selected.filter((id) => builtinIds.has(id));
+    const userSel = selected.filter((id) => !builtinIds.has(id));
+    // 用户素材：过滤掉被使用的；内置素材：直接隐藏（不影响已上墙物件）
+    const blocked = userSel.filter((id) => isUsed(id));
+    const deletable = userSel.filter((id) => !isUsed(id));
     deletable.forEach((id) => removeAsset(id));
+    builtinSel.forEach((id) => removeBuiltinAsset(id));
     setSelected([]);
     setConfirm(false);
+    const removedCount = deletable.length + builtinSel.length;
     if (blocked.length > 0) {
-      showToast(`${deletable.length} removed · ${blocked.length} in use and kept`, 'warning');
+      showToast(`${removedCount} removed · ${blocked.length} in use and kept`, 'warning');
     } else {
-      showToast(`${deletable.length} material(s) removed`, 'success');
+      showToast(`${removedCount} material(s) removed`, 'success');
     }
   };
 
@@ -531,6 +569,24 @@ function LibraryPage() {
         <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>
           {assets.length}/{MAX_ASSETS} used
         </span>
+        {/* v0.3 r3: 搜索收藏夹与素材 */}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search collections & materials"
+          style={{
+            height: 28,
+            width: 200,
+            padding: '0 10px',
+            fontSize: 12,
+            color: '#333',
+            background: '#FFFFFF',
+            border: '1px solid #D0D0D0',
+            borderRadius: 6,
+            outline: 'none',
+            marginLeft: 8,
+          }}
+        />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {manageMode ? (
@@ -617,10 +673,110 @@ function LibraryPage() {
         />
       </div>
 
+      {/* v0.3 r3: 收藏夹 */}
+      {!manageMode && (
+        <section>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: '#999' }}>Collections</span>
+            {!creating && (
+              <button
+                onClick={() => {
+                  setCreating(true);
+                  setNewName('');
+                }}
+                style={{ height: 22, padding: '0 10px', fontSize: 11, color: '#4A90D9', background: '#FFFFFF', border: '1px solid #BCD4EE', borderRadius: 5, cursor: 'pointer' }}
+              >
+                + New
+              </button>
+            )}
+            {creating && (
+              <>
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newName.trim()) {
+                      addCollection(newName);
+                      setCreating(false);
+                      showToast('Collection created', 'success');
+                    }
+                    if (e.key === 'Escape') setCreating(false);
+                  }}
+                  placeholder="Collection name"
+                  maxLength={24}
+                  style={{ height: 22, width: 140, padding: '0 8px', fontSize: 11, border: '1px solid #D0D0D0', borderRadius: 5, outline: 'none' }}
+                />
+                <button
+                  onClick={() => {
+                    if (newName.trim()) {
+                      addCollection(newName);
+                      showToast('Collection created', 'success');
+                    }
+                    setCreating(false);
+                  }}
+                  style={{ height: 22, padding: '0 10px', fontSize: 11, color: '#FFFFFF', background: '#4A90D9', border: 'none', borderRadius: 5, cursor: 'pointer' }}
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => setCreating(false)}
+                  style={{ height: 22, padding: '0 8px', fontSize: 11, color: '#777', background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 5, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+          {visibleCollections.length === 0 && !creating ? (
+            <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 12, color: '#AAA', border: '1px dashed #DDDDDD', borderRadius: 10 }}>
+              {q ? 'No collections match your search.' : 'No collections yet. Create one to group your materials.'}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {visibleCollections.map((c) => (
+                <CollectionCard
+                  key={c.id}
+                  name={c.name}
+                  count={c.assetIds.length}
+                  thumbs={c.assetIds.slice(0, 3).map((id) => assetThumbSrc(id, assets))}
+                  renaming={renamingId === c.id}
+                  renameVal={renameVal}
+                  onRenameChange={setRenameVal}
+                  onRenameStart={() => {
+                    setRenamingId(c.id);
+                    setRenameVal(c.name);
+                  }}
+                  onRenameCommit={() => {
+                    if (renameVal.trim()) renameCollection(c.id, renameVal);
+                    setRenamingId(null);
+                  }}
+                  onDelete={() => setRemoveColId(c.id)}
+                  onOpen={() => setOpenCollectionId(c.id)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* 内置素材 */}
       {builtinVisible.length > 0 && (
         <section>
-          <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>Built-in · from your first wall</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: '#999' }}>Built-in · from your first wall</span>
+            {removedBuiltins.length > 0 && !manageMode && (
+              <button
+                onClick={() => {
+                  restoreBuiltinAssets();
+                  showToast('Built-in materials restored', 'success');
+                }}
+                style={{ height: 20, padding: '0 8px', fontSize: 10, color: '#4A90D9', background: '#FFFFFF', border: '1px solid #BCD4EE', borderRadius: 5, cursor: 'pointer' }}
+              >
+                Restore removed ({removedBuiltins.length})
+              </button>
+            )}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {builtinVisible.map((b) => (
               <LibraryCard
@@ -629,6 +785,10 @@ function LibraryPage() {
                 badge={b.kind === 'stamp' ? 'Stamp' : 'Picture'}
                 label={b.label}
                 builtin
+                manageMode={manageMode}
+                selectable={manageMode}
+                selected={selected.includes(b.id)}
+                onToggle={() => manageMode && toggleSelect(b.id)}
               />
             ))}
           </div>
@@ -696,7 +856,8 @@ function LibraryPage() {
             }}
           >
             <div style={{ fontSize: 13, color: '#333', marginBottom: 14 }}>
-              Delete {selected.length} material(s)? Materials in use on a wall will be kept. This cannot be undone.
+              Delete {selected.length} material(s)? Materials in use on a wall will be kept; built-in items will be
+              hidden. This cannot be undone.
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button
@@ -715,6 +876,162 @@ function LibraryPage() {
           </div>
         </div>
       )}
+
+      {/* v0.3 r3: 删除收藏夹确认 */}
+      {removeColId && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 21000, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: 10, padding: 16, width: 320 }}>
+            <div style={{ fontSize: 13, color: '#333', marginBottom: 14 }}>
+              Delete this collection? Materials inside will not be deleted.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button onClick={() => setRemoveColId(null)} style={{ height: 28, padding: '0 12px', fontSize: 12, background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 6, cursor: 'pointer', color: '#555' }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  removeCollection(removeColId);
+                  setRemoveColId(null);
+                  if (openCollectionId === removeColId) setOpenCollectionId(null);
+                  showToast('Collection deleted', 'success');
+                }}
+                style={{ height: 28, padding: '0 12px', fontSize: 12, background: '#E25C5C', border: 'none', borderRadius: 6, cursor: 'pointer', color: '#FFFFFF' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* v0.3 r3: 收藏夹详情 */}
+      {openCollectionId && (() => {
+        const col = collections.find((c) => c.id === openCollectionId);
+        if (!col) return null;
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 21000, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setOpenCollectionId(null)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: 10, padding: 16, width: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 12 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>{col.name}</span>
+                <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>{col.assetIds.length} material(s)</span>
+                <button onClick={() => setOpenCollectionId(null)} style={{ marginLeft: 'auto', height: 24, padding: '0 10px', fontSize: 11, color: '#555', background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 5, cursor: 'pointer' }}>
+                  Close
+                </button>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1, minHeight: 120 }}>
+                {col.assetIds.length === 0 ? (
+                  <div style={{ padding: '28px 0', textAlign: 'center', fontSize: 12, color: '#AAA', border: '1px dashed #DDDDDD', borderRadius: 10 }}>
+                    Empty collection. Add materials below.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                    {col.assetIds.map((id) => {
+                      const meta = assetMeta(id, assets);
+                      if (!meta) return null;
+                      return (
+                        <div key={id} style={{ position: 'relative', background: '#FFFFFF', border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden' }}>
+                          <div style={{ height: 80, background: `center/cover no-repeat url("${meta.src}")`, backgroundColor: '#F5F5F5' }} />
+                          <div style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 9, color: '#777', background: '#F2F2F0', borderRadius: 3, padding: '1px 5px' }}>{meta.badge}</span>
+                            <span style={{ fontSize: 9, color: '#AAA', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta.label}</span>
+                          </div>
+                          <span
+                            onClick={() => setCollectionAssets(col.id, col.assetIds.filter((x) => x !== id))}
+                            style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', color: '#FFFFFF', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          >
+                            ×
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setAddAssetsFor(col.id);
+                    setAddSel(col.assetIds);
+                  }}
+                  style={{ height: 28, padding: '0 14px', fontSize: 12, color: '#FFFFFF', background: '#4A90D9', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  + Add materials
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* v0.3 r3: 向收藏夹添加素材 */}
+      {addAssetsFor && (() => {
+        const all: { id: string; src: string; badge: string; label: string }[] = [
+          ...BUILTIN_ASSETS.filter((b) => !removedBuiltins.includes(b.id)).map((b) => ({ id: b.id, src: b.src, badge: b.kind === 'stamp' ? 'Stamp' : 'Picture', label: b.label })),
+          ...assets.map((a) => ({ id: a.id, src: a.dataUrl ?? '', badge: (a.kind ?? 'picture')[0].toUpperCase() + (a.kind ?? 'picture').slice(1), label: `${(a.byteSize / 1024).toFixed(0)} KB` })),
+        ];
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 22000, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setAddAssetsFor(null)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: 10, padding: 16, width: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 12 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>Add materials</span>
+                <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>{addSel.length} selected</span>
+                <button onClick={() => setAddAssetsFor(null)} style={{ marginLeft: 'auto', height: 24, padding: '0 10px', fontSize: 11, color: '#555', background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 5, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                  {all.map((m) => {
+                    const on = addSel.includes(m.id);
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => setAddSel((prev) => (on ? prev.filter((x) => x !== m.id) : [...prev, m.id]))}
+                        style={{ position: 'relative', background: '#FFFFFF', border: on ? '2px solid #4A90D9' : '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden', cursor: 'pointer' }}
+                      >
+                        <div style={{ height: 80, background: `center/cover no-repeat url("${m.src}")`, backgroundColor: '#F5F5F5' }} />
+                        <div style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 9, color: '#777', background: '#F2F2F0', borderRadius: 3, padding: '1px 5px' }}>{m.badge}</span>
+                          <span style={{ fontSize: 9, color: '#AAA', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
+                        </div>
+                        {on && (
+                          <span style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%', background: '#4A90D9', color: '#FFFFFF', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setCollectionAssets(addAssetsFor, addSel);
+                    setAddAssetsFor(null);
+                    showToast('Collection updated', 'success');
+                  }}
+                  style={{ height: 28, padding: '0 14px', fontSize: 12, color: '#FFFFFF', background: '#4A90D9', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -814,4 +1131,126 @@ function LibraryCard({
       )}
     </div>
   );
+}
+
+/* ─── v0.3 r3: 收藏夹卡片 ─── */
+function CollectionCard({
+  name,
+  count,
+  thumbs,
+  renaming,
+  renameVal,
+  onRenameChange,
+  onRenameStart,
+  onRenameCommit,
+  onDelete,
+  onOpen,
+}: {
+  name: string;
+  count: number;
+  thumbs: string[];
+  renaming: boolean;
+  renameVal: string;
+  onRenameChange: (v: string) => void;
+  onRenameStart: () => void;
+  onRenameCommit: () => void;
+  onDelete: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        position: 'relative',
+        background: '#FFFFFF',
+        border: '1px solid #E8E8E8',
+        borderRadius: 10,
+        overflow: 'hidden',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ height: 84, display: 'flex', gap: 3, background: '#F5F5F5', padding: 6 }}>
+        {thumbs.length === 0 ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#BBB' }}>
+            Empty
+          </div>
+        ) : (
+          thumbs.map((src, i) => (
+            <div
+              key={i}
+              style={{ flex: 1, background: `center/cover no-repeat url("${src}")`, backgroundColor: '#ECECEC', borderRadius: 4 }}
+            />
+          ))
+        )}
+      </div>
+      <div style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+        {renaming ? (
+          <input
+            autoFocus
+            value={renameVal}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => onRenameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onRenameCommit();
+              if (e.key === 'Escape') onRenameCommit();
+            }}
+            onBlur={onRenameCommit}
+            maxLength={24}
+            style={{ flex: 1, height: 20, fontSize: 11, padding: '0 6px', border: '1px solid #4A90D9', borderRadius: 4, outline: 'none' }}
+          />
+        ) : (
+          <>
+            <span
+              style={{
+                fontSize: 11,
+                color: '#333',
+                fontWeight: 600,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {name}
+            </span>
+            <span style={{ fontSize: 10, color: '#AAA', flexShrink: 0 }}>{count}</span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onRenameStart();
+              }}
+              style={{ marginLeft: 'auto', fontSize: 10, color: '#999', cursor: 'pointer', flexShrink: 0 }}
+            >
+              Rename
+            </span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              style={{ fontSize: 10, color: '#E25C5C', cursor: 'pointer', flexShrink: 0 }}
+            >
+              Delete
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** v0.3 r3: 根据素材 id 解析元信息（内置 / 用户上传） */
+function assetMeta(id: string, assets: Asset[]): { src: string; badge: string; label: string } | null {
+  const b = BUILTIN_ASSETS.find((x) => x.id === id);
+  if (b) return { src: b.src, badge: b.kind === 'stamp' ? 'Stamp' : 'Picture', label: b.label };
+  const a = assets.find((x) => x.id === id);
+  if (a) {
+    const kind = a.kind ?? 'picture';
+    return { src: a.dataUrl ?? '', badge: kind[0].toUpperCase() + kind.slice(1), label: `${(a.byteSize / 1024).toFixed(0)} KB` };
+  }
+  return null;
+}
+
+/** v0.3 r3: 收藏夹缩略图源 */
+function assetThumbSrc(id: string, assets: Asset[]): string {
+  return assetMeta(id, assets)?.src ?? '';
 }

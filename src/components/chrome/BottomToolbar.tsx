@@ -71,11 +71,11 @@ const PAPER_TABS: { variant: PaperVariant; label: string; presets: { label: stri
   { variant: 'tape', label: 'Tape', presets: [{ label: 'Washi', color: 'rgba(232,224,200,0.6)' }, { label: 'White', color: 'rgba(255,255,255,0.6)' }, { label: 'Pink', color: 'rgba(244,194,194,0.6)' }, { label: 'Mint', color: 'rgba(198,228,206,0.6)' }, { label: 'Sky', color: 'rgba(196,220,238,0.6)' }, { label: 'Lemon', color: 'rgba(246,232,168,0.6)' }] },
 ];
 
-/** 墙纸预设（v0.3：参考 PRD 的 6 种 + 新增米白默认，UI 格式与其他 paper 预设一致） */
+/** 墙纸预设（v0.3 r3：Plain 置顶且为新建墙默认；其余保留为可选素材） */
 const WALLPAPER_PRESETS: { type: WallpaperType; label: string }[] = [
+  { type: 'none', label: 'Plain' },
   { type: 'cream', label: 'Cream' },
   { type: 'white', label: 'Grid' },
-  { type: 'none', label: 'Plain' },
   { type: 'beige', label: 'Beige' },
   { type: 'textured', label: 'Textured' },
   { type: 'watercolor', label: 'Watercolor' },
@@ -504,7 +504,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
           borderRadius: 14,
           pointerEvents: 'auto',
           transform: shown ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(88px)',
-          transition: 'transform 0.25s ease',
+          transition: 'transform 0.12s ease', // v0.3 r3: 缩短浮出动画，hover 提示更快出现
         }}
       >
         {/* v0.3: hover 提示图标含义 */}

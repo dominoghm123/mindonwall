@@ -20,6 +20,13 @@ export interface SavedWallData {
 
 let dupCounter = 0;
 
+/** v0.3 r3: 素材收藏夹 */
+export interface AssetCollection {
+  id: string;
+  name: string;
+  assetIds: string[];
+}
+
 interface OverviewState {
   /** 墙面列表 */
   walls: WallSummary[];
@@ -37,6 +44,10 @@ interface OverviewState {
   userName: string;
   /** v0.3 r2: 用户头像（data URL，缺省显示昵称首字母） */
   avatarDataUrl: string | null;
+  /** v0.3 r3: 用户自定义收藏夹 */
+  collections: AssetCollection[];
+  /** v0.3 r3: 已从 Library 删除的内置素材 id */
+  removedBuiltins: string[];
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -72,6 +83,18 @@ interface OverviewState {
   setUserName: (name: string) => void;
   /** v0.3 r2: 设置用户头像 */
   setAvatarDataUrl: (dataUrl: string | null) => void;
+  /** v0.3 r3: 新建收藏夹 */
+  addCollection: (name: string) => void;
+  /** v0.3 r3: 重命名收藏夹 */
+  renameCollection: (id: string, name: string) => void;
+  /** v0.3 r3: 删除收藏夹 */
+  removeCollection: (id: string) => void;
+  /** v0.3 r3: 设置收藏夹内素材 */
+  setCollectionAssets: (id: string, assetIds: string[]) => void;
+  /** v0.3 r3: 删除内置素材（隐藏，不影响已上墙物件） */
+  removeBuiltinAsset: (id: string) => void;
+  /** v0.3 r3: 恢复全部内置素材 */
+  restoreBuiltinAssets: () => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -85,8 +108,10 @@ export const useOverviewStore = create<OverviewState>()(
       homeBackgroundImage: null,
       userName: 'Wall Keeper',
       avatarDataUrl: null,
+      collections: [],
+      removedBuiltins: [],
 
-      addWall: (id: string, name: string, wallpaper: WallpaperType = 'cream') => {
+      addWall: (id: string, name: string, wallpaper: WallpaperType = 'none') => {
         const { walls } = get();
         if (walls.some((w) => w.id === id)) return;
         set({
@@ -418,6 +443,44 @@ export const useOverviewStore = create<OverviewState>()(
 
       setAvatarDataUrl: (dataUrl: string | null) => {
         set({ avatarDataUrl: dataUrl });
+      },
+
+      /* ── v0.3 r3: 收藏夹 ── */
+      addCollection: (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const id = `collection-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+        set({ collections: [...get().collections, { id, name: trimmed, assetIds: [] }] });
+      },
+
+      renameCollection: (id: string, name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        set({
+          collections: get().collections.map((c) => (c.id === id ? { ...c, name: trimmed } : c)),
+        });
+      },
+
+      removeCollection: (id: string) => {
+        set({ collections: get().collections.filter((c) => c.id !== id) });
+      },
+
+      setCollectionAssets: (id: string, assetIds: string[]) => {
+        set({
+          collections: get().collections.map((c) => (c.id === id ? { ...c, assetIds } : c)),
+        });
+      },
+
+      /* ── v0.3 r3: 内置素材删除/恢复 ── */
+      removeBuiltinAsset: (id: string) => {
+        const { removedBuiltins } = get();
+        if (!removedBuiltins.includes(id)) {
+          set({ removedBuiltins: [...removedBuiltins, id] });
+        }
+      },
+
+      restoreBuiltinAssets: () => {
+        set({ removedBuiltins: [] });
       },
     }),
     {
