@@ -38,6 +38,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
   const closeContextMenu = useUIStore((s) => s.closeContextMenu);
   const startAttachMode = useUIStore((s) => s.startAttachMode);
   const openAssetPicker = useUIStore((s) => s.openAssetPicker);
+  const showToast = useUIStore((s) => s.showToast);
   const items = useWallStore((s) => s.items);
   const removeItem = useWallStore((s) => s.removeItem);
   const removeRope = useWallStore((s) => s.removeRope);
@@ -316,6 +317,7 @@ function StampMenuItems({
   closeMenu: () => void;
 }) {
   const isAttached = !!item.parentId;
+  const showToast = useUIStore((s) => s.showToast);
 
   return (
     <>
@@ -323,7 +325,13 @@ function StampMenuItems({
         <MenuItem label="Attach to Paper / Photo" onClick={onItemClick(() => startAttachMode(item.id))} />
       )}
       {isAttached && (
-        <MenuItem label="Detach" onClick={onItemClick(() => detachStamp(item.id))} />
+        <MenuItem
+          label="Detach"
+          onClick={onItemClick(() => {
+            detachStamp(item.id);
+            showToast('Stamp detached', 'success', 2000);
+          })}
+        />
       )}
       <Divider />
       <MenuItem label="Bring to Front" onClick={onItemClick(() => bringToFront(item.id))} />

@@ -110,18 +110,22 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
     });
   }, [items]);
 
-  /* ── 缩放（鼠标滚轮，以鼠标位置为不动点） ── */
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const container = containerRef.current;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const delta = -e.deltaY * 0.001;
-    zoomAtPoint(mouseX, mouseY, (prev) => prev * (1 + delta));
+  /* ── 缩放（鼠标滚轮，以鼠标位置为不动点） ──
+     v0.2 修订：用原生非 passive 监听器（React onWheel 在 root 是 passive，
+     preventDefault 无效会刷大量 console error） */
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const delta = -e.deltaY * 0.001;
+      zoomAtPoint(mouseX, mouseY, (prev) => prev * (1 + delta));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
   }, [zoomAtPoint]);
 
   /* ── 平移（拖拽背景：容器本体或墙纸层，v0.2 修订） ── */
@@ -223,7 +227,6 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
         overflow: 'hidden',
         cursor: panning.current ? 'grabbing' : 'default',
       }}
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

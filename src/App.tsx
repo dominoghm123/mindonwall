@@ -68,11 +68,16 @@ function App() {
     panY: canvasView.panY,
   });
 
-  // Cancel rope creation（ESC / 空白点击）
+  // Cancel rope creation / attach mode（ESC / 空白点击）
   const handleCancelRope = useCallback(() => {
     ropeCreation.cancelRopeCreation();
     uiStore.setRopeCreating(false);
     uiStore.setRopeMode(false);
+    // v0.2 修订：ESC 同时退出附着模式
+    if (uiStore.attachMode) {
+      uiStore.cancelAttachMode();
+      uiStore.showToast('Attach canceled', 'info', 2000);
+    }
   }, [ropeCreation, uiStore]);
 
   // ropeMode 下点击处理：点 Pin/带 Pin 物件 → 连线；点空白 → 取消（v0.2 修订：扩大命中范围）
@@ -115,6 +120,12 @@ function App() {
           '[data-item-id], [data-toolbar-ui], [data-menu-layer], #top-bar',
         )
       ) {
+        return;
+      }
+      // v0.2 修订：附着模式下点空白 = 取消附着
+      if (uiStore.attachMode) {
+        uiStore.cancelAttachMode();
+        uiStore.showToast('Attach canceled', 'info', 2000);
         return;
       }
       uiStore.clearSelection();

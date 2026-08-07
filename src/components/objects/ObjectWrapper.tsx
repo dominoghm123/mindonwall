@@ -154,6 +154,7 @@ export function ObjectWrapper({
   const openContextMenu = useUIStore((s) => s.openContextMenu);
   const attachMode = useUIStore((s) => s.attachMode);
   const cancelAttachMode = useUIStore((s) => s.cancelAttachMode);
+  const showToast = useUIStore((s) => s.showToast);
   const attachStamp = useWallStore((s) => s.attachStamp);
 
   /* ── 右键菜单 ── */
@@ -166,13 +167,17 @@ export function ObjectWrapper({
     [item.id, openContextMenu],
   );
 
-  /* ── 附着模式：点击 Paper / Picture 完成附着（v0.2） ── */
+  /* ── 附着模式：点击 Paper / Picture 完成附着（v0.2 修订：带反馈） ── */
   const handleClickForAttach = useCallback(() => {
-    if (attachMode && (item.type === 'paper' || item.type === 'picture')) {
+    if (!attachMode) return;
+    if (item.type === 'paper' || item.type === 'picture') {
       attachStamp(attachMode, item.id);
       cancelAttachMode();
+      showToast('Stamp attached', 'success', 2000);
+    } else {
+      showToast('Stamp can only attach to a paper or photo', 'warning', 2000);
     }
-  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode]);
+  }, [attachMode, item.id, item.type, attachStamp, cancelAttachMode, showToast]);
 
   /* ── 统一 pointer 事件分发 ── */
   const handlePointerDown = useCallback(
