@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
+import { useT } from '../../i18n/useT';
 
 /**
  * 头像入口（v0.2）。
@@ -13,6 +14,7 @@ export function AvatarMenu() {
   const openPage = useUIStore((s) => s.openPage);
   const userName = useOverviewStore((s) => s.userName);
   const avatarDataUrl = useOverviewStore((s) => s.avatarDataUrl);
+  const t = useT();
 
   // 点击外部 / Esc 关闭
   useEffect(() => {
@@ -32,8 +34,8 @@ export function AvatarMenu() {
   }, [open]);
 
   const items = [
-    { key: 'materials', label: 'Library', desc: 'Your material library' },
-    { key: 'settings', label: 'Settings', desc: 'Profile, background & more' },
+    { key: 'materials', label: t('av.library'), desc: t('av.libraryDesc') },
+    { key: 'settings', label: t('av.settings'), desc: t('av.settingsDesc') },
   ];
 
   const handleAction = (key: string) => {

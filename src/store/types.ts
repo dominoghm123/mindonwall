@@ -70,7 +70,7 @@ export interface Asset {
 
 /** 撤销动作 */
 export interface UndoAction {
-  type: 'add' | 'remove' | 'move' | 'resize' | 'rotate' | 'edit' | 'addRope' | 'removeRope' | 'editRope';
+  type: 'add' | 'remove' | 'move' | 'resize' | 'rotate' | 'edit' | 'addRope' | 'removeRope' | 'editRope' | 'editEdgeColor';
   itemId?: string;
   ropeId?: string;
   before: Partial<Item> | Partial<Rope> | null;

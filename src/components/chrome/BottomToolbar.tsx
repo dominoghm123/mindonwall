@@ -5,6 +5,8 @@ import { useAssetStore } from '../../store/useAssetStore';
 import type { Item, PaperVariant, WallpaperType } from '../../store/types';
 import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { StampArt } from '../objects/StampObject';
+import { useT } from '../../i18n/useT';
+import type { TKey } from '../../i18n/en';
 
 /* ─── 图标（20px，纯白底工具栏内使用） ─── */
 const IconImage = ({ color = '#666' }: { color?: string }) => (
@@ -63,23 +65,23 @@ const STAMP_PRESETS = [
   { id: 'stamp-yellow-sunshine', color: '#EAB308' },
 ];
 
-/** Paper 变体配置（v0.2 修订：torn/tape 增色） */
-const PAPER_TABS: { variant: PaperVariant; label: string; presets: { label: string; color?: string }[] }[] = [
-  { variant: 'note', label: 'Note', presets: [{ label: 'White' }, { label: 'Cream', color: '#FBF7EE' }, { label: 'Gray', color: '#F2F2F0' }] },
-  { variant: 'torn', label: 'Torn', presets: [{ label: 'Kraft', color: '#F5F0E8' }, { label: 'White', color: '#FFFFFF' }, { label: 'Pink', color: '#FBE4E8' }, { label: 'Sky', color: '#E3F0F7' }, { label: 'Mint', color: '#E6F4EC' }] },
-  { variant: 'sticky', label: 'Sticky', presets: [{ label: 'Yellow', color: '#FFF3B0' }, { label: 'Pink', color: '#FFB3BA' }, { label: 'Green', color: '#BAFFC9' }, { label: 'Blue', color: '#BAE1FF' }] },
-  { variant: 'tape', label: 'Tape', presets: [{ label: 'Washi', color: 'rgba(232,224,200,0.6)' }, { label: 'White', color: 'rgba(255,255,255,0.6)' }, { label: 'Pink', color: 'rgba(244,194,194,0.6)' }, { label: 'Mint', color: 'rgba(198,228,206,0.6)' }, { label: 'Sky', color: 'rgba(196,220,238,0.6)' }, { label: 'Lemon', color: 'rgba(246,232,168,0.6)' }] },
+/** Paper 变体配置（v0.2 修订：torn/tape 增色；v0.3 r4: label 用 i18n key） */
+const PAPER_TABS: { variant: PaperVariant; label: TKey; presets: { label: TKey; color?: string }[] }[] = [
+  { variant: 'note', label: 'paper.note', presets: [{ label: 'color.white' }, { label: 'color.cream', color: '#FBF7EE' }, { label: 'color.gray', color: '#F2F2F0' }] },
+  { variant: 'torn', label: 'paper.torn', presets: [{ label: 'color.kraft', color: '#F5F0E8' }, { label: 'color.white', color: '#FFFFFF' }, { label: 'color.pink', color: '#FBE4E8' }, { label: 'color.sky', color: '#E3F0F7' }, { label: 'color.mint', color: '#E6F4EC' }] },
+  { variant: 'sticky', label: 'paper.sticky', presets: [{ label: 'color.yellow', color: '#FFF3B0' }, { label: 'color.pink', color: '#FFB3BA' }, { label: 'color.green', color: '#BAFFC9' }, { label: 'color.blue', color: '#BAE1FF' }] },
+  { variant: 'tape', label: 'paper.tape', presets: [{ label: 'color.washi', color: 'rgba(232,224,200,0.6)' }, { label: 'color.white', color: 'rgba(255,255,255,0.6)' }, { label: 'color.pink', color: 'rgba(244,194,194,0.6)' }, { label: 'color.mint', color: 'rgba(198,228,206,0.6)' }, { label: 'color.sky', color: 'rgba(196,220,238,0.6)' }, { label: 'color.lemon', color: 'rgba(246,232,168,0.6)' }] },
 ];
 
-/** 墙纸预设（v0.3 r3：Plain 置顶且为新建墙默认；其余保留为可选素材） */
-const WALLPAPER_PRESETS: { type: WallpaperType; label: string }[] = [
-  { type: 'none', label: 'Plain' },
-  { type: 'cream', label: 'Cream' },
-  { type: 'white', label: 'Grid' },
-  { type: 'beige', label: 'Beige' },
-  { type: 'textured', label: 'Textured' },
-  { type: 'watercolor', label: 'Watercolor' },
-  { type: 'kraft', label: 'Kraft' },
+/** 墙纸预设（v0.3 r3：Plain 置顶且为新建墙默认；v0.3 r4: label 用 i18n key） */
+const WALLPAPER_PRESETS: { type: WallpaperType; label: TKey }[] = [
+  { type: 'none', label: 'wp.none' },
+  { type: 'cream', label: 'wp.cream' },
+  { type: 'white', label: 'wp.white' },
+  { type: 'beige', label: 'wp.beige' },
+  { type: 'textured', label: 'wp.textured' },
+  { type: 'watercolor', label: 'wp.watercolor' },
+  { type: 'kraft', label: 'wp.kraft' },
 ];
 
 const DEFAULT_SIZES: Record<PaperVariant, { w: number; h: number }> = {
@@ -115,6 +117,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   const addAsset = useAssetStore((s) => s.addAsset);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadKindRef = useRef<'picture' | 'paper' | 'stamp'>('picture');
+  const t = useT();
   // v0.3: paper 面板新增 wallpaper 子 tab
   const [paperTab, setPaperTab] = useState<PaperVariant | 'wallpaper'>('note');
 
@@ -193,16 +196,16 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
             kind,
           });
           if (!ok) {
-            showToast('Material limit reached', 'warning');
+            showToast(t('toast.materialLimit'), 'warning');
             return;
           }
-          showToast('Saved to Library', 'success', 2000);
+          showToast(t('toast.savedToLibrary'), 'success', 2000);
         };
         reader.readAsDataURL(file);
       });
       e.target.value = '';
     },
-    [addAsset, showToast],
+    [addAsset, showToast, t],
   );
 
   /** 点击缩略图添加 Picture */
@@ -303,8 +306,8 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   /* ── Rope 模式切换 ── */
   const handleRopeToggle = useCallback(() => {
     setRopeMode(!ropeMode);
-    if (!ropeMode) showToast('Rope mode: click two pins to connect', 'info', 2500);
-  }, [ropeMode, setRopeMode, showToast]);
+    if (!ropeMode) showToast(t('toast.ropeMode'), 'info', 2500);
+  }, [ropeMode, setRopeMode, showToast, t]);
 
   return (
     <div
@@ -312,7 +315,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     >
       {/* 次级面板 */}
       {toolbarPanel === 'image' && (
-        <Panel title="Add Image">
+        <Panel title={t('tb.addImage')}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 64px)', gap: 8 }}>
             {/* 上传→存入素材库 */}
             <UploadTile onClick={() => openUpload('picture')} />
@@ -329,25 +332,25 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
       )}
 
       {toolbarPanel === 'paper' && (
-        <Panel title="Add Paper">
+        <Panel title={t('tb.addPaper')}>
           {/* Tabs（v0.3: 新增 Wallpaper 子 tab） */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
-            {PAPER_TABS.map((t) => (
+            {PAPER_TABS.map((tab) => (
               <button
-                key={t.variant}
-                onClick={() => setPaperTab(t.variant)}
+                key={tab.variant}
+                onClick={() => setPaperTab(tab.variant)}
                 style={{
                   padding: '4px 10px',
                   fontSize: 12,
                   border: '1px solid',
-                  borderColor: paperTab === t.variant ? '#4A90D9' : '#E5E5E5',
-                  color: paperTab === t.variant ? '#4A90D9' : '#666',
+                  borderColor: paperTab === tab.variant ? '#4A90D9' : '#E5E5E5',
+                  color: paperTab === tab.variant ? '#4A90D9' : '#666',
                   background: '#FFFFFF',
                   borderRadius: 6,
                   cursor: 'pointer',
                 }}
               >
-                {t.label}
+                {t(tab.label)}
               </button>
             ))}
             <button
@@ -363,7 +366,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
                 cursor: 'pointer',
               }}
             >
-              Wallpaper
+              {t('tb.wallpaper')}
             </button>
           </div>
           {paperTab === 'wallpaper' ? (
@@ -374,10 +377,10 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
                   key={wp.type}
                   onClick={() => {
                     setWallpaper(wp.type);
-                    showToast('Wallpaper updated', 'success', 1500);
+                    showToast(t('toast.wallpaperUpdated'), 'success', 1500);
                   }}
                   style={{ cursor: 'pointer', textAlign: 'center' }}
-                  title={wp.label}
+                  title={t(wp.label)}
                 >
                   <div
                     style={{
@@ -391,7 +394,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
                     }}
                   />
                   <span style={{ fontSize: 10, color: currentWallpaper === wp.type ? '#4A90D9' : '#999' }}>
-                    {wp.label}
+                    {t(wp.label)}
                   </span>
                 </div>
               ))}
@@ -407,12 +410,12 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
               </div>
               {/* 变体（v0.3: 支持换行，修复色块溢出面板边框） */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {PAPER_TABS.find((t) => t.variant === paperTab)!.presets.map((p) => (
+                {PAPER_TABS.find((pt) => pt.variant === paperTab)!.presets.map((p) => (
                   <div
                     key={p.label}
                     onClick={() => handleAddPaper(paperTab as PaperVariant, p.color)}
                     style={{ cursor: 'pointer', textAlign: 'center' }}
-                    title={p.label}
+                    title={t(p.label)}
                   >
                     <div
                       style={{
@@ -424,7 +427,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
                         marginBottom: 4,
                       }}
                     />
-                    <span style={{ fontSize: 10, color: '#999' }}>{p.label}</span>
+                    <span style={{ fontSize: 10, color: '#999' }}>{t(p.label)}</span>
                   </div>
                 ))}
               </div>
@@ -434,7 +437,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
       )}
 
       {toolbarPanel === 'stamp' && (
-        <Panel title="Add Stamp">
+        <Panel title={t('tb.addStamp')}>
           {/* 上传 + 素材库（v0.2 修订） */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
             <UploadTile onClick={() => openUpload('stamp')} />
@@ -483,7 +486,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
             zIndex: 1000,
           }}
         >
-          Click two pins to connect · Esc to cancel
+          {t('tb.ropeHint')}
         </div>
       )}
 
@@ -508,16 +511,16 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         }}
       >
         {/* v0.3: hover 提示图标含义 */}
-        <ToolButton tip="Picture — add photos" active={toolbarPanel === 'image'} onClick={() => toggleToolbarPanel('image')}>
+        <ToolButton tip={t('tb.tipPicture')} active={toolbarPanel === 'image'} onClick={() => toggleToolbarPanel('image')}>
           <IconImage color={toolbarPanel === 'image' ? '#333' : '#666'} />
         </ToolButton>
-        <ToolButton tip="Paper — add notes & wallpaper" active={toolbarPanel === 'paper'} onClick={() => toggleToolbarPanel('paper')}>
+        <ToolButton tip={t('tb.tipPaper')} active={toolbarPanel === 'paper'} onClick={() => toggleToolbarPanel('paper')}>
           <IconPaper color={toolbarPanel === 'paper' ? '#333' : '#666'} />
         </ToolButton>
-        <ToolButton tip="Stamp — add stickers" active={toolbarPanel === 'stamp'} onClick={() => toggleToolbarPanel('stamp')}>
+        <ToolButton tip={t('tb.tipStamp')} active={toolbarPanel === 'stamp'} onClick={() => toggleToolbarPanel('stamp')}>
           <IconStamp color={toolbarPanel === 'stamp' ? '#333' : '#666'} />
         </ToolButton>
-        <ToolButton tip="Rope — connect items" active={ropeMode} onClick={handleRopeToggle}>
+        <ToolButton tip={t('tb.tipRope')} active={ropeMode} onClick={handleRopeToggle}>
           <IconRope color={ropeMode ? '#333' : '#666'} />
         </ToolButton>
       </div>
@@ -562,6 +565,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 /** 上传入口磁贴（存入素材库） */
 function UploadTile({ onClick }: { onClick: () => void }) {
+  const t = useT();
   return (
     <div
       onClick={onClick}
@@ -580,10 +584,10 @@ function UploadTile({ onClick }: { onClick: () => void }) {
         gap: 2,
         flexShrink: 0,
       }}
-      title="Upload to Library"
+      title={t('tb.uploadToLibrary')}
     >
       <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
-      Upload
+      {t('common.upload')}
     </div>
   );
 }

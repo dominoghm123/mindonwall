@@ -21,12 +21,16 @@ export interface MapViewSnapshot {
   extraEdges?: ExtraEdge[];
   /** v0.3 r2: Map 内隐藏的白墙 rope（删除的连线） */
   hiddenRopes?: string[];
+  /** v0.3 r4: 连线自定义颜色（key 为 rope/extraEdge id） */
+  edgeColors?: Record<string, string>;
 }
 
 interface MapState extends Required<Pick<MapViewSnapshot, 'nodePositions' | 'hiddenChildren'>> {
   nodeLabels: Record<string, string>;
   extraEdges: ExtraEdge[];
   hiddenRopes: string[];
+  /** v0.3 r4: 连线自定义颜色 */
+  edgeColors: Record<string, string>;
   /** Map 独立撤销栈 */
   undoStack: UndoAction[];
   /** Map 独立重做栈 */
@@ -50,6 +54,10 @@ interface MapState extends Required<Pick<MapViewSnapshot, 'nodePositions' | 'hid
   removeExtraEdge: (edgeId: string) => void;
   /** v0.3 r2: 隐藏/恢复白墙 rope（Map 层删除连线，入撤销栈） */
   toggleHideRope: (ropeId: string) => void;
+  /** v0.3 r4: 设置连线颜色（null = 恢复默认，入撤销栈） */
+  setEdgeColor: (edgeId: string, color: string | null) => void;
+  /** v0.3 r4: 批量锁定当前节点位置（删除节点/连线前防重排，不入撤销栈） */
+  lockPositions: (positions: Record<string, { x: number; y: number }>) => void;
   /** Map 撤销 */
   mapUndo: () => void;
   /** Map 重做 */
@@ -72,6 +80,7 @@ export const useMapStore = create<MapState>()(
       nodeLabels: {},
       extraEdges: [],
       hiddenRopes: [],
+      edgeColors: {},
       undoStack: [],
       redoStack: [],
 
@@ -82,14 +91,15 @@ export const useMapStore = create<MapState>()(
           nodeLabels: snapshot?.nodeLabels ?? {},
           extraEdges: snapshot?.extraEdges ?? [],
           hiddenRopes: snapshot?.hiddenRopes ?? [],
+          edgeColors: snapshot?.edgeColors ?? {},
           undoStack: [],
           redoStack: [],
         });
       },
 
       getSnapshot: () => {
-        const { nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes } = get();
-        return { nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes };
+        const { nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes, edgeColors } = get();
+        return { nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes, edgeColors };
       },
 
       updateNodePosition: (nodeId: string, position: { x: number; y: number }) => {
@@ -238,13 +248,51 @@ export const useMapStore = create<MapState>()(
         });
       },
 
+      /* ── v0.3 r4: 连线颜色 ── */
+      setEdgeColor: (edgeId: string, color: string | null) => {
+        const { edgeColors, undoStack } = get();
+        const before = edgeColors[edgeId] ?? null;
+        if (before === color) return;
+
+        const action: UndoAction = {
+          type: 'editEdgeColor',
+          ropeId: edgeId,
+          before: before !== null ? { text: before } : null,
+          after: color !== null ? { text: color } : null,
+          timestamp: Date.now(),
+        };
+
+        const next = { ...edgeColors };
+        if (color === null) delete next[edgeId];
+        else next[edgeId] = color;
+        set({
+          edgeColors: next,
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      /* ── v0.3 r4: 删除前锁定布局，避免其余节点重排 ── */
+      lockPositions: (positions) => {
+        set({ nodePositions: { ...get().nodePositions, ...positions } });
+      },
+
       mapUndo: () => {
-        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes } = get();
+        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes, edgeColors } = get();
         const result = popUndo(undoStack);
         if (!result) return;
         const { action, remaining } = result;
 
-        if (action.type === 'move' && action.itemId) {
+        if (action.type === 'editEdgeColor' && action.ropeId) {
+          // v0.3 r4: 撤销连线颜色
+          const newColors = { ...edgeColors };
+          if (action.before) {
+            newColors[action.ropeId] = (action.before as { text?: string }).text ?? '';
+          } else {
+            delete newColors[action.ropeId];
+          }
+          set({ edgeColors: newColors });
+        } else if (action.type === 'move' && action.itemId) {
           // 恢复节点位置
           const newPositions = { ...nodePositions };
           if (action.before) {
@@ -302,12 +350,21 @@ export const useMapStore = create<MapState>()(
       },
 
       mapRedo: () => {
-        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes } = get();
+        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes, edgeColors } = get();
         const result = popUndo(redoStack);
         if (!result) return;
         const { action, remaining } = result;
 
-        if (action.type === 'move' && action.itemId) {
+        if (action.type === 'editEdgeColor' && action.ropeId) {
+          // v0.3 r4: 重做连线颜色
+          const newColors = { ...edgeColors };
+          if (action.after) {
+            newColors[action.ropeId] = (action.after as { text?: string }).text ?? '';
+          } else {
+            delete newColors[action.ropeId];
+          }
+          set({ edgeColors: newColors });
+        } else if (action.type === 'move' && action.itemId) {
           const newPositions = { ...nodePositions };
           if (action.after) {
             const afterPos = action.after as { x?: number; y?: number };
@@ -369,6 +426,7 @@ export const useMapStore = create<MapState>()(
           nodeLabels: {},
           extraEdges: [],
           hiddenRopes: [],
+          edgeColors: {},
           undoStack: [],
           redoStack: [],
         });
@@ -383,6 +441,7 @@ export const useMapStore = create<MapState>()(
         nodeLabels: state.nodeLabels,
         extraEdges: state.extraEdges,
         hiddenRopes: state.hiddenRopes,
+        edgeColors: state.edgeColors,
       }),
     },
   ),

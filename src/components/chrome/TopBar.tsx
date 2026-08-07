@@ -8,6 +8,7 @@ import { AvatarMenu } from '../shared/AvatarMenu';
 import { captureWallSpreadPng, downloadDataUrl } from '../../utils/exportImage';
 import { exportPdfFromDataUrl } from '../../utils/exportPdf';
 import { buildShareUrl, copyShareUrl } from '../../utils/shareWall';
+import { useT } from '../../i18n/useT';
 
 /**
  * 40px 高顶部栏，默认隐藏，鼠标触顶滑入。
@@ -34,6 +35,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
   const canRedo = isMap ? mapCanRedo : wallCanRedo;
   const setViewMode = useUIStore((s) => s.setViewMode);
   const showToast = useUIStore((s) => s.showToast);
+  const t = useT();
 
   /* ── v0.3: Export 下拉菜单 + 真实分享 ── */
   const [exportOpen, setExportOpen] = useState(false);
@@ -58,7 +60,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
       setExporting(true);
       try {
         if (isMap) {
-          showToast('Use Export in the Map toolbar', 'info');
+          showToast(t('toast.useMapExport'), 'info');
           return;
         }
         const items = useWallStore.getState().items;
@@ -68,14 +70,14 @@ export function TopBar({ zoom }: { zoom?: number }) {
         } else {
           await exportPdfFromDataUrl(dataUrl, `${fileBase}-spread.pdf`);
         }
-        showToast(kind === 'png' ? 'PNG exported' : 'PDF exported', 'success');
+        showToast(kind === 'png' ? t('toast.pngExported') : t('toast.pdfExported'), 'success');
       } catch {
-        showToast('Export failed', 'error');
+        showToast(t('toast.exportFailed'), 'error');
       } finally {
         setExporting(false);
       }
     },
-    [exporting, isMap, fileBase, showToast],
+    [exporting, isMap, fileBase, showToast, t],
   );
 
   const handleShare = useCallback(async () => {
@@ -88,8 +90,8 @@ export function TopBar({ zoom }: { zoom?: number }) {
       assets: useAssetStore.getState().assets,
     });
     const ok = await copyShareUrl(url);
-    showToast(ok ? 'Share link copied' : 'Copy failed', ok ? 'success' : 'error');
-  }, [showToast]);
+    showToast(ok ? t('toast.shareCopied') : t('toast.copyFailed'), ok ? 'success' : 'error');
+  }, [showToast, t]);
 
   const [visible, setVisible] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -201,7 +203,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
             color: '#333',
             padding: 0,
           }}
-          title="Back"
+          title={t('common.back')}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
@@ -263,12 +265,12 @@ export function TopBar({ zoom }: { zoom?: number }) {
           }}
         >
           <TabButton
-            label="Wall"
+            label={t('top.wall')}
             active={viewMode === 'wall'}
             onClick={() => setViewMode('wall')}
           />
           <TabButton
-            label="Connection Map"
+            label={t('top.map')}
             active={isMap}
             onClick={() => setViewMode('map')}
           />
@@ -287,7 +289,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
               background: '#4CAF50',
             }}
           />
-          <span style={{ fontSize: 10, color: '#999' }}>Saved</span>
+          <span style={{ fontSize: 10, color: '#999' }}>{t('top.saved')}</span>
         </div>
 
         {/* 撤销 / 重做（v0.2：右上角） */}
@@ -295,7 +297,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
           <button
             onClick={undo}
             disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
+            title={t('top.undo')}
             style={historyBtnStyle(canUndo)}
           >
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -311,7 +313,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
           <button
             onClick={redo}
             disabled={!canRedo}
-            title="Redo (Ctrl+Shift+Z)"
+            title={t('top.redo')}
             style={historyBtnStyle(canRedo)}
           >
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ transform: 'scaleX(-1)' }}>
@@ -342,7 +344,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
               whiteSpace: 'nowrap',
             }}
           >
-            {exporting ? 'Exporting…' : 'Export ▾'}
+            {exporting ? t('top.exporting') : t('top.export')}
           </button>
           {exportOpen && (
             <div
@@ -361,17 +363,17 @@ export function TopBar({ zoom }: { zoom?: number }) {
               }}
             >
               {isMap ? (
-                <ExportMenuItem label="PNG/PDF: use Map toolbar" disabled />
+                <ExportMenuItem label={t('top.mapExportHint')} disabled />
               ) : (
                 <>
-                  <ExportMenuItem label="Spread PNG" onClick={() => handleExport('png')} />
-                  <ExportMenuItem label="Spread PDF" onClick={() => handleExport('pdf')} />
+                  <ExportMenuItem label={t('top.spreadPng')} onClick={() => handleExport('png')} />
+                  <ExportMenuItem label={t('top.spreadPdf')} onClick={() => handleExport('pdf')} />
                   <div style={{ height: 1, background: '#F0F0F0', margin: '4px 0' }} />
                 </>
               )}
               {/* v0.3: Share 并入 Export 菜单（通过链接导出该墙） */}
               <ExportMenuItem
-                label="Share link…"
+                label={t('top.shareLink')}
                 onClick={() => {
                   setExportOpen(false);
                   handleShare();

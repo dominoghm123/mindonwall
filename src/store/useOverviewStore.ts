@@ -7,6 +7,7 @@ import { useMapStore } from './useMapStore';
 import { useAssetStore } from './useAssetStore';
 import type { MapViewSnapshot } from './useMapStore';
 import type { SharedWallPayload } from '../utils/shareWall';
+import type { Lang } from '../i18n';
 
 /** 持久化的墙数据（v0.2：多墙真正可切换） */
 export interface SavedWallData {
@@ -36,6 +37,8 @@ interface OverviewState {
   initialized: boolean;
   /** v0.3 墙纸迁移一次性标记（默认墙 white/beige → cream） */
   creamMigrated?: boolean;
+  /** v0.3 r4 背景迁移一次性标记（#FAFAF8 → White） */
+  bgMigrated?: boolean;
   /** v0.3 P3: 总览页背景色 */
   homeBackground: string;
   /** v0.3 r2: 总览页自定义背景图（data URL，优先于背景色） */
@@ -48,6 +51,8 @@ interface OverviewState {
   collections: AssetCollection[];
   /** v0.3 r3: 已从 Library 删除的内置素材 id */
   removedBuiltins: string[];
+  /** v0.3 r4: 界面语言（i18n） */
+  language: Lang;
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -95,6 +100,8 @@ interface OverviewState {
   removeBuiltinAsset: (id: string) => void;
   /** v0.3 r3: 恢复全部内置素材 */
   restoreBuiltinAssets: () => void;
+  /** v0.3 r4: 设置界面语言 */
+  setLanguage: (lang: Lang) => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -104,12 +111,14 @@ export const useOverviewStore = create<OverviewState>()(
       wallData: {},
       initialized: false,
       creamMigrated: false,
-      homeBackground: '#FAFAF8',
+      bgMigrated: false,
+      homeBackground: '#FFFFFF',
       homeBackgroundImage: null,
       userName: 'Wall Keeper',
       avatarDataUrl: null,
       collections: [],
       removedBuiltins: [],
+      language: 'en',
 
       addWall: (id: string, name: string, wallpaper: WallpaperType = 'none') => {
         const { walls } = get();
@@ -193,6 +202,14 @@ export const useOverviewStore = create<OverviewState>()(
             }
           }
           set({ creamMigrated: true });
+        }
+        // v0.3 r4 一次性迁移：默认背景 #FAFAF8 → White（未自定义过的用户）
+        if (!get().bgMigrated) {
+          const { homeBackground, homeBackgroundImage } = get();
+          if (homeBackground === '#FAFAF8' && !homeBackgroundImage) {
+            set({ homeBackground: '#FFFFFF' });
+          }
+          set({ bgMigrated: true });
         }
         if (initialized) return;
         if (walls.length === 0) {
@@ -443,6 +460,11 @@ export const useOverviewStore = create<OverviewState>()(
 
       setAvatarDataUrl: (dataUrl: string | null) => {
         set({ avatarDataUrl: dataUrl });
+      },
+
+      /* ── v0.3 r4: i18n ── */
+      setLanguage: (lang: Lang) => {
+        set({ language: lang });
       },
 
       /* ── v0.3 r3: 收藏夹 ── */

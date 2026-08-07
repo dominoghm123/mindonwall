@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ViewMode, ToastMessage } from './types';
 import type { SharedWallPayload } from '../utils/shareWall';
+import { getT } from '../i18n';
+import { useOverviewStore } from './useOverviewStore';
 
 /** 右键菜单位置 */
 export interface ContextMenuPosition {
@@ -163,7 +165,8 @@ export const useUIStore = create<UIState>()(
       startAttachMode: (stampId: string) => {
         set({ attachMode: stampId, contextMenu: null });
         // v0.2 修订：进入附着模式时给出明确引导（否则用户不知道要点哪里）
-        get().showToast('Click a paper or photo to attach the stamp (Esc to cancel)', 'info', 4000);
+        const t = getT(useOverviewStore.getState().language);
+        get().showToast(t('toast.clickToAttach'), 'info', 4000);
       },
 
       cancelAttachMode: () => {

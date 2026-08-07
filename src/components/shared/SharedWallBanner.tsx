@@ -1,6 +1,7 @@
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
 import { clearShareHash } from '../../utils/shareWall';
+import { useT } from '../../i18n/useT';
 
 /**
  * v0.3: 分享链接导入横幅。
@@ -11,6 +12,7 @@ export function SharedWallBanner() {
   const sharedImport = useUIStore((s) => s.sharedImport);
   const setSharedImport = useUIStore((s) => s.setSharedImport);
   const showToast = useUIStore((s) => s.showToast);
+  const t = useT();
 
   if (!sharedImport) return null;
 
@@ -21,7 +23,7 @@ export function SharedWallBanner() {
 
   const handleSave = () => {
     const newId = useOverviewStore.getState().importSharedWall(sharedImport);
-    showToast('Wall saved to your library', 'success');
+    showToast(t('toast.wallSaved'), 'success');
     dismiss();
     void newId;
   };
@@ -47,10 +49,10 @@ export function SharedWallBanner() {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>
-          Shared wall: “{sharedImport.name || 'Untitled'}”
+          {t('bn.title', { name: sharedImport.name || 'Untitled' })}
         </span>
         <span style={{ fontSize: 11, color: '#999' }}>
-          {sharedImport.items.length} items · {sharedImport.ropes.length} ropes · read-only preview
+          {t('bn.meta', { items: sharedImport.items.length, ropes: sharedImport.ropes.length })}
         </span>
       </div>
       <button
@@ -67,7 +69,7 @@ export function SharedWallBanner() {
           whiteSpace: 'nowrap',
         }}
       >
-        Save to my walls
+        {t('bn.save')}
       </button>
       <button
         onClick={dismiss}
@@ -83,7 +85,7 @@ export function SharedWallBanner() {
           whiteSpace: 'nowrap',
         }}
       >
-        Dismiss
+        {t('bn.dismiss')}
       </button>
     </div>
   );

@@ -7,6 +7,7 @@ import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { AvatarMenu } from '../shared/AvatarMenu';
 import { buildShareUrl, copyShareUrl } from '../../utils/shareWall';
 import type { WallSummary } from '../../store/types';
+import { useT } from '../../i18n/useT';
 
 /**
  * 总览页（v0.2）。
@@ -26,6 +27,7 @@ export function OverviewPage() {
   const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
   const showToast = useUIStore((s) => s.showToast);
   const setViewMode = useUIStore((s) => s.setViewMode);
+  const t = useT();
 
   const [manageMode, setManageMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -64,11 +66,11 @@ export function OverviewPage() {
       switch (action) {
         case 'duplicate':
           duplicateWall(wall.id);
-          showToast('Wall duplicated', 'success');
+          showToast(t('toast.wallDuplicated'), 'success');
           break;
         case 'export':
           exportWallJSON(wall.id);
-          showToast('JSON exported', 'success');
+          showToast(t('toast.jsonExported'), 'success');
           break;
         case 'share': {
           // v0.3: 生成真实分享链接（当前编辑中的墙先快照）
@@ -76,7 +78,7 @@ export function OverviewPage() {
           if (useWallStore.getState().wallId === wall.id) overview.captureCurrentWall();
           const data = useOverviewStore.getState().wallData[wall.id];
           if (!data) {
-            showToast('Nothing to share yet', 'warning');
+            showToast(t('toast.nothingToShare'), 'warning');
             break;
           }
           const url = buildShareUrl({
@@ -87,7 +89,7 @@ export function OverviewPage() {
             assets: useAssetStore.getState().assets,
           });
           const ok = await copyShareUrl(url);
-          showToast(ok ? 'Share link copied' : 'Copy failed', ok ? 'success' : 'error');
+          showToast(ok ? t('toast.shareCopied') : t('toast.copyFailed'), ok ? 'success' : 'error');
           break;
         }
         case 'delete':
@@ -97,7 +99,7 @@ export function OverviewPage() {
           break;
       }
     },
-    [duplicateWall, exportWallJSON, showToast],
+    [duplicateWall, exportWallJSON, showToast, t],
   );
 
   /** v0.3: Manage 模式批量分享（单选时复制分享链接） */
@@ -109,7 +111,7 @@ export function OverviewPage() {
     const data = useOverviewStore.getState().wallData[wallId];
     const wall = useOverviewStore.getState().walls.find((w) => w.id === wallId);
     if (!data || !wall) {
-      showToast('Nothing to share yet', 'warning');
+      showToast(t('toast.nothingToShare'), 'warning');
       return;
     }
     const url = buildShareUrl({
@@ -120,8 +122,8 @@ export function OverviewPage() {
       assets: useAssetStore.getState().assets,
     });
     const ok = await copyShareUrl(url);
-    showToast(ok ? 'Share link copied' : 'Copy failed', ok ? 'success' : 'error');
-  }, [selected, showToast]);
+    showToast(ok ? t('toast.shareCopied') : t('toast.copyFailed'), ok ? 'success' : 'error');
+  }, [selected, showToast, t]);
 
   const exitManage = useCallback(() => {
     setManageMode(false);
@@ -159,25 +161,25 @@ export function OverviewPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {manageMode ? (
             <>
-              <span style={{ fontSize: 12, color: '#999' }}>{selected.length} selected</span>
+              <span style={{ fontSize: 12, color: '#999' }}>{t('common.selected', { n: selected.length })}</span>
               {/* v0.3: Manage 模式新增 Share 链接（单选墙时可用） */}
               <HeaderButton
-                label="Share"
+                label={t('common.share')}
                 disabled={selected.length !== 1}
                 onClick={handleManageShare}
               />
               <HeaderButton
-                label={`Delete${selected.length > 0 ? ` (${selected.length})` : ''}`}
+                label={`${t('common.delete')}${selected.length > 0 ? ` (${selected.length})` : ''}`}
                 danger={selected.length > 0}
                 disabled={selected.length === 0}
                 onClick={() => setConfirm({ ids: selected })}
               />
-              <HeaderButton label="Cancel" onClick={exitManage} />
+              <HeaderButton label={t('common.cancel')} onClick={exitManage} />
             </>
           ) : (
             <>
-              <HeaderButton label="Manage" onClick={() => setManageMode(true)} />
-              <HeaderButton label="+ New Wall" onClick={handleNewWall} />
+              <HeaderButton label={t('ov.manage')} onClick={() => setManageMode(true)} />
+              <HeaderButton label={t('ov.newWall')} onClick={handleNewWall} />
               {/* 头像入口（v0.2：顶栏最右侧） */}
               <div style={{ marginLeft: 8 }}>
                 <AvatarMenu />
@@ -235,15 +237,15 @@ export function OverviewPage() {
         <ConfirmDialog
           message={
             confirm.ids.length === 1
-              ? 'Delete this wall? This cannot be undone.'
-              : `Delete ${confirm.ids.length} walls? This cannot be undone.`
+              ? t('ov.confirmOne')
+              : t('ov.confirmMany', { n: confirm.ids.length })
           }
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             removeWalls(confirm.ids);
             setSelected([]);
             setConfirm(null);
-            showToast('Deleted', 'success');
+            showToast(t('toast.deleted'), 'success');
           }}
         />
       )}
@@ -259,6 +261,7 @@ export function OverviewPage() {
 function RenameCardOverlay({ wallId, onClose }: { wallId: string; onClose: () => void }) {
   const walls = useOverviewStore((s) => s.walls);
   const renameWall = useOverviewStore((s) => s.renameWall);
+  const t = useT();
   const wall = walls.find((w) => w.id === wallId);
   const [value, setValue] = useState(wall?.name ?? '');
 
@@ -295,7 +298,7 @@ function RenameCardOverlay({ wallId, onClose }: { wallId: string; onClose: () =>
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 600, color: '#333', marginBottom: 10 }}>
-          Rename Wall
+          {t('ov.renameWall')}
         </div>
         <input
           autoFocus
@@ -320,10 +323,10 @@ function RenameCardOverlay({ wallId, onClose }: { wallId: string; onClose: () =>
             onClick={onClose}
             style={dialogBtnStyle(false)}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button onClick={commit} style={dialogBtnStyle(true)}>
-            Save
+            {t('common.save')}
           </button>
         </div>
       </div>
@@ -345,6 +348,7 @@ function WallCard({
   onClick: () => void;
   onMenuOpen: (x: number, y: number) => void;
 }) {
+  const t = useT();
   const wallpaperStyle = getWallpaperStyle(wall.wallpaper);
 
   return (
@@ -402,7 +406,9 @@ function WallCard({
       >
         <span style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>{wall.name}</span>
         <span style={{ fontSize: 10, color: '#BBB', marginTop: 2 }}>
-          {wall.itemCount} {wall.itemCount === 1 ? 'item' : 'items'}
+          {wall.itemCount === 1
+            ? t('ov.itemOne', { n: wall.itemCount })
+            : t('ov.itemMany', { n: wall.itemCount })}
         </span>
       </div>
       {/* 三点菜单按钮（卡片右下角，硬要求，v0.2 确认） */}
@@ -412,7 +418,7 @@ function WallCard({
             e.stopPropagation();
             onMenuOpen(e.clientX, e.clientY);
           }}
-          title="More"
+          title={t('ov.more')}
           style={{
             position: 'absolute',
             right: 8,
@@ -453,6 +459,7 @@ function CardMenu({
   onRename: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -470,11 +477,11 @@ function CardMenu({
   }, [onClose]);
 
   const items = [
-    { key: 'rename', label: 'Rename' },
-    { key: 'duplicate', label: 'Duplicate' },
-    { key: 'export', label: 'Export JSON' },
-    { key: 'share', label: 'Share' },
-    { key: 'delete', label: 'Delete', danger: true },
+    { key: 'rename', label: t('common.rename') },
+    { key: 'duplicate', label: t('ov.duplicate') },
+    { key: 'export', label: t('ov.exportJson') },
+    { key: 'share', label: t('common.share') },
+    { key: 'delete', label: t('common.delete'), danger: true },
   ];
 
   return (
@@ -530,6 +537,7 @@ function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   return (
     <div
       style={{
@@ -554,10 +562,10 @@ function ConfirmDialog({
         <div style={{ fontSize: 13, color: '#333', marginBottom: 14 }}>{message}</div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={onCancel} style={dialogBtnStyle(false)}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button onClick={onConfirm} style={dialogBtnStyle(true)}>
-            Delete
+            {t('common.delete')}
           </button>
         </div>
       </div>

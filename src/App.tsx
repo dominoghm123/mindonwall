@@ -24,6 +24,7 @@ import { ConnectionMapPage } from './components/map/ConnectionMapPage';
 import { SharedWallBanner } from './components/shared/SharedWallBanner';
 import { UserPageOverlay } from './components/pages/UserPages';
 import { parseShareHash } from './utils/shareWall';
+import { useT } from './i18n/useT';
 
 function App() {
   // Store selectors
@@ -34,6 +35,7 @@ function App() {
   const selectedIds = useUIStore((s) => s.selectedIds);
   const ropeCreating = useUIStore((s) => s.ropeCreating);
   const ropeMode = useUIStore((s) => s.ropeMode);
+  const t = useT();
 
   // Store actions
   const uiStore = useUIStore();
@@ -64,9 +66,9 @@ function App() {
       wallStore.addRope({ id, fromItemId, toItemId, naturalLength });
       // 连线完成后自动退出连线模式
       uiStore.setRopeMode(false);
-      uiStore.showToast('Rope connected', 'success', 2000);
+      uiStore.showToast(t('toast.ropeConnected'), 'success', 2000);
     },
-    [wallStore, uiStore],
+    [wallStore, uiStore, t],
   );
 
   const ropeCreation = useRopeCreation({
@@ -85,9 +87,9 @@ function App() {
     // v0.2 修订：ESC 同时退出附着模式
     if (uiStore.attachMode) {
       uiStore.cancelAttachMode();
-      uiStore.showToast('Attach canceled', 'info', 2000);
+      uiStore.showToast(t('toast.attachCanceled'), 'info', 2000);
     }
-  }, [ropeCreation, uiStore]);
+  }, [ropeCreation, uiStore, t]);
 
   // ropeMode 下点击处理：点 Pin/带 Pin 物件 → 连线；点空白 → 取消（v0.2 修订：扩大命中范围）
   const handleRootPointerDownCapture = useCallback(
@@ -108,7 +110,7 @@ function App() {
         if (hasPin && itemId) {
           ropeCreation.handlePinClick(itemId);
         } else {
-          useUIStore.getState().showToast('This item has no pin', 'warning', 2000);
+          useUIStore.getState().showToast(t('toast.noPin'), 'warning', 2000);
         }
         return;
       }
@@ -116,7 +118,7 @@ function App() {
       ropeCreation.cancelRopeCreation();
       useUIStore.getState().setRopeMode(false);
     },
-    [ropeCreation],
+    [ropeCreation, t],
   );
 
   // v0.2：点击空白处清除选中（尺寸框消失）。物件自身 pointerdown 已 stopPropagation，
@@ -134,12 +136,12 @@ function App() {
       // v0.2 修订：附着模式下点空白 = 取消附着
       if (uiStore.attachMode) {
         uiStore.cancelAttachMode();
-        uiStore.showToast('Attach canceled', 'info', 2000);
+        uiStore.showToast(t('toast.attachCanceled'), 'info', 2000);
         return;
       }
       uiStore.clearSelection();
     },
-    [uiStore],
+    [uiStore, t],
   );
 
   // Keyboard hook

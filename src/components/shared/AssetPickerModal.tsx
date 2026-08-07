@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useWallStore } from '../../store/useWallStore';
 import { useAssetStore } from '../../store/useAssetStore';
+import { useT } from '../../i18n/useT';
 
 /** 样例素材图片（来自 manifest.json） */
 const DEMO_ASSETS = [
@@ -22,6 +23,7 @@ export function AssetPickerModal() {
   const closeAssetPicker = useUIStore((s) => s.closeAssetPicker);
   const updateItem = useWallStore((s) => s.updateItem);
   const userAssets = useAssetStore((s) => s.assets);
+  const t = useT();
 
   const handleSelect = useCallback((assetId: string) => {
     if (!assetPickerOpen) return;
@@ -73,7 +75,7 @@ export function AssetPickerModal() {
             borderBottom: '1px solid #EEE',
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 600, color: '#333' }}>Replace Image</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: '#333' }}>{t('ctx.replaceImage')}</span>
           <button
             onClick={closeAssetPicker}
             style={{
@@ -97,7 +99,7 @@ export function AssetPickerModal() {
         {/* 素材网格 */}
         <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
           {/* 样例素材 */}
-          <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>Sample Photos</div>
+          <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>{t('pk.sample')}</div>
           <div
             style={{
               display: 'grid',
@@ -138,7 +140,7 @@ export function AssetPickerModal() {
           {/* 用户上传素材 */}
           {userAssets.length > 0 && (
             <>
-              <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>Uploaded</div>
+              <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>{t('pk.uploaded')}</div>
               <div
                 style={{
                   display: 'grid',
