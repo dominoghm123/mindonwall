@@ -1,7 +1,7 @@
 {
   "name": "mindonwall",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.2",
     "html-to-image": "^1.11.13",
     "jspdf": "^4.2.1",
     "lz-string": "^1.5.0",
+    "nanoid": "^6.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zustand": "^5.0.5"
