@@ -6,7 +6,7 @@ import { useAssetStore } from '../../store/useAssetStore';
 import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { AvatarMenu } from '../shared/AvatarMenu';
 import { buildShareUrl, copyShareUrl, shareWallServer } from '../../utils/shareWall';
-import type { WallSummary, Project } from '../../store/types';
+import type { WallSummary } from '../../store/types';
 import { useT } from '../../i18n/useT';
 import { track } from '../../utils/analytics';
 
@@ -26,7 +26,6 @@ export function OverviewPage() {
   const exportWallJSON = useOverviewStore((s) => s.exportWallJSON);
   const removeWalls = useOverviewStore((s) => s.removeWalls);
   const captureCurrentWall = useOverviewStore((s) => s.captureCurrentWall);
-  const moveWallToProject = useOverviewStore((s) => s.moveWallToProject);
   const homeBackground = useOverviewStore((s) => s.homeBackground);
   const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
   const showToast = useUIStore((s) => s.showToast);

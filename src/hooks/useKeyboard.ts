@@ -34,7 +34,7 @@ interface UseKeyboardOptions {
 export function useKeyboard({
   uiStore,
   wallStore,
-  items,
+  items: _items,
   onZoomIn,
   onZoomOut,
   onZoomReset,

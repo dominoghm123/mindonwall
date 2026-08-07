@@ -34,12 +34,11 @@ interface ContextMenuProps {
  * 右键上下文菜单。
  * 完全扁平设计：纯白背景，1px #E0E0E0 边框，border-radius 8px，无投影。
  */
-export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
+export function ContextMenu({ zoom: _zoom = 1 }: ContextMenuProps) {
   const contextMenu = useUIStore((s) => s.contextMenu);
   const closeContextMenu = useUIStore((s) => s.closeContextMenu);
   const startAttachMode = useUIStore((s) => s.startAttachMode);
   const openAssetPicker = useUIStore((s) => s.openAssetPicker);
-  const showToast = useUIStore((s) => s.showToast);
   const items = useWallStore((s) => s.items);
   const removeItem = useWallStore((s) => s.removeItem);
   const removeRope = useWallStore((s) => s.removeRope);

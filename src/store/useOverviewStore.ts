@@ -427,7 +427,7 @@ export const useOverviewStore = create<OverviewState>()(
       },
 
       exportWallJSON: (id: string) => {
-        const { walls, wallData } = get();
+        const { walls } = get();
         const wall = walls.find((w) => w.id === id);
         if (!wall) return;
         // 若导出当前编辑中的墙，先快照
