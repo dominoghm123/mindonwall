@@ -8,19 +8,82 @@ import { exportPdfFromDataUrl } from '../../utils/exportPdf';
 import type { Item } from '../../store/types';
 
 /**
- * Connection Map 视图（v0.3 重做）。
+ * Connection Map 视图（v0.3 重做，r2 增强）。
  * - xmind 式抽象树状图：统一圆角矩形节点 + 平滑连接线，去掉物件类型/图片/纹理等具象信息
  * - 树状自动布局：以 Rope 为边、连接最多的节点为根做 BFS 树；无连接节点排底部一行
- * - 交互：左键拖空白平移画布、滚轮缩放、拖节点重排（不写回白墙）、
- *   右键节点编辑菜单、点击节点文本直接编辑（均存 Map 独立状态 + 独立撤销栈）
+ * - v0.3 r2: 去掉白色底图；无明确内容的模块（空 paper/无素材 picture）不显示；
+ *   双击编辑文字、单击选中 + Delete 删除节点、hover 边中点加号新增连线、点击连线直接删除
+ * - 交互：左键拖空白平移画布、滚轮缩放、拖节点重排、右键节点菜单（均存 Map 独立状态 + 独立撤销栈）
  */
 
 const NODE_W = 176;
 const NODE_H = 48;
-const HGAP = 110; // 层级横向间距
-const VGAP = 26; // 兄弟节点纵向间距
-const COMP_GAP = 80; // 连通分量之间的纵向间距
+const HGAP = 130; // 层级横向间距（r2: 加大，连线更舒展）
+const VGAP = 32; // 兄弟节点纵向间距（r2: 加大，避免拥挤）
+const COMP_GAP = 96; // 连通分量之间的纵向间距
 const EDGE_COLOR = '#B9B9B9';
+
+/* ── v0.3 r2: 节点边中点加号连线辅助 ── */
+type HandleSide = 'top' | 'bottom' | 'left' | 'right';
+
+/** 边中点在内容坐标系中的位置 */
+function handlePoint(p: { x: number; y: number }, side: HandleSide) {
+  switch (side) {
+    case 'top':
+      return { x: p.x + NODE_W / 2, y: p.y };
+    case 'bottom':
+      return { x: p.x + NODE_W / 2, y: p.y + NODE_H };
+    case 'left':
+      return { x: p.x, y: p.y + NODE_H / 2 };
+    case 'right':
+      return { x: p.x + NODE_W, y: p.y + NODE_H / 2 };
+  }
+}
+
+const HANDLE_POS: Record<HandleSide, React.CSSProperties> = {
+  top: { top: -9, left: '50%', marginLeft: -9 },
+  bottom: { bottom: -9, left: '50%', marginLeft: -9 },
+  left: { left: -9, top: '50%', marginTop: -9 },
+  right: { right: -9, top: '50%', marginTop: -9 },
+};
+
+/** hover 节点时浮现的加号手柄（默认隐藏，由 .map-node:hover CSS 控制显隐） */
+function HandlePlus({
+  side,
+  onClick,
+}: {
+  side: HandleSide;
+  onClick: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div
+      className="map-node-handle"
+      onClick={onClick}
+      onPointerDown={(e) => e.stopPropagation()}
+      title="Drag to another node to connect"
+      style={{
+        position: 'absolute',
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        background: '#4A90D9',
+        color: '#FFFFFF',
+        fontSize: 13,
+        lineHeight: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'crosshair',
+        boxShadow: '0 0 0 2px #FFFFFF',
+        zIndex: 2,
+        userSelect: 'none',
+        ...HANDLE_POS[side],
+      }}
+    >
+      +
+    </div>
+  );
+}
 
 export function ConnectionMapPage() {
   const items = useWallStore((s) => s.items);
@@ -35,6 +98,13 @@ export function ConnectionMapPage() {
   const updateNodePosition = useMapStore((s) => s.updateNodePosition);
   const clearNodePosition = useMapStore((s) => s.clearNodePosition);
   const updateNodeLabel = useMapStore((s) => s.updateNodeLabel);
+  const hiddenChildren = useMapStore((s) => s.hiddenChildren);
+  const toggleHideChild = useMapStore((s) => s.toggleHideChild);
+  const extraEdges = useMapStore((s) => s.extraEdges);
+  const hiddenRopes = useMapStore((s) => s.hiddenRopes);
+  const addExtraEdge = useMapStore((s) => s.addExtraEdge);
+  const removeExtraEdge = useMapStore((s) => s.removeExtraEdge);
+  const toggleHideRope = useMapStore((s) => s.toggleHideRope);
   const resetMap = useMapStore((s) => s.resetMap);
   const showToast = useUIStore((s) => s.showToast);
   const setViewMode = useUIStore((s) => s.setViewMode);
@@ -44,10 +114,27 @@ export function ConnectionMapPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  /* ── 节点集合：顶层 picture/paper ── */
+  /* ── 节点集合：顶层 picture/paper，且排除被删除/无明确内容的节点（v0.3 r2） ── */
+  const hasContent = useCallback(
+    (i: Item): boolean => {
+      // 用户在 Map 内编辑过文本 → 视为有内容
+      if (nodeLabels[i.id]?.trim()) return true;
+      if (i.type === 'paper') return (i.text ?? '').trim().length > 0;
+      return Boolean(i.assetId);
+    },
+    [nodeLabels],
+  );
+
   const nodes: Item[] = useMemo(
-    () => items.filter((i) => (i.type === 'picture' || i.type === 'paper') && !i.parentId),
-    [items],
+    () =>
+      items.filter(
+        (i) =>
+          (i.type === 'picture' || i.type === 'paper') &&
+          !i.parentId &&
+          !hiddenChildren.includes(i.id) &&
+          hasContent(i),
+      ),
+    [items, hiddenChildren, hasContent],
   );
 
   /** 节点默认文本：paper 用文字；picture 用素材名（去掉编号前缀） */
@@ -57,9 +144,9 @@ export function ConnectionMapPage() {
       if (custom !== undefined) return custom;
       if (item.type === 'paper') {
         const t = (item.text ?? '').trim();
-        return t ? t.split('\n')[0] : 'Untitled';
+        return t ? t.split('\n')[0] : '';
       }
-      if (!item.assetId) return 'Photo';
+      if (!item.assetId) return '';
       const userAsset = assets.find((a) => a.id === item.assetId);
       if (userAsset) return userAsset.id.replace(/^asset-/, 'Photo ');
       // demo 素材：north-01-wat-chedi-luang → Wat Chedi Luang
@@ -73,6 +160,18 @@ export function ConnectionMapPage() {
     [nodeLabels, assets],
   );
 
+  /* ── 可见连线：白墙 rope（排除 Map 内删除的）+ Map 内新增连线（v0.3 r2） ── */
+  const visibleEdges = useMemo(() => {
+    const ids = new Set(nodes.map((n) => n.id));
+    const wall = ropes
+      .filter((r) => ids.has(r.fromItemId) && ids.has(r.toItemId) && !hiddenRopes.includes(r.id))
+      .map((r) => ({ kind: 'rope' as const, id: r.id, from: r.fromItemId, to: r.toItemId, note: r.note }));
+    const extra = extraEdges
+      .filter((e) => ids.has(e.from) && ids.has(e.to))
+      .map((e) => ({ kind: 'extra' as const, id: e.id, from: e.from, to: e.to, note: undefined as string | undefined }));
+    return [...wall, ...extra];
+  }, [nodes, ropes, hiddenRopes, extraEdges]);
+
   /* ── xmind 式树状自动布局 ── */
   const autoLayout = useMemo(() => {
     const layout: Record<string, { x: number; y: number }> = {};
@@ -81,10 +180,10 @@ export function ConnectionMapPage() {
     const ids = new Set(nodes.map((n) => n.id));
     const adj = new Map<string, string[]>();
     for (const id of ids) adj.set(id, []);
-    const edges = ropes.filter((r) => ids.has(r.fromItemId) && ids.has(r.toItemId));
+    const edges = visibleEdges;
     for (const r of edges) {
-      adj.get(r.fromItemId)!.push(r.toItemId);
-      adj.get(r.toItemId)!.push(r.fromItemId);
+      adj.get(r.from)!.push(r.to);
+      adj.get(r.to)!.push(r.from);
     }
 
     const placed = new Set<string>();
@@ -172,14 +271,14 @@ export function ConnectionMapPage() {
       cursorY = maxY + COMP_GAP;
     }
 
-    // 无连接节点：底部一行
+    // 无连接节点：底部一行（r2: 间距加大避免拥挤）
     const orphans = nodes.filter((n) => !placed.has(n.id));
     orphans.forEach((n, i) => {
-      layout[n.id] = { x: 48 + i * (NODE_W + 60), y: cursorY + 24 };
+      layout[n.id] = { x: 48 + i * (NODE_W + 80), y: cursorY + 32 };
     });
 
     return layout;
-  }, [nodes, ropes]);
+  }, [nodes, visibleEdges]);
 
   const posOf = useCallback(
     (id: string) => nodePositions[id] ?? autoLayout[id] ?? { x: 0, y: 0 },
@@ -295,28 +394,38 @@ export function ConnectionMapPage() {
   } | null>(null);
   const [dragPos, setDragPos] = useState<{ id: string; x: number; y: number } | null>(null);
 
+  /* ── 文本编辑 / 右键菜单 / 选中删除 / 加号连线状态（v0.3 r2） ── */
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** 加号连线进行中：源节点 + 起点边中点 */
+  const [pending, setPending] = useState<{ from: string; side: HandleSide; x: number; y: number } | null>(null);
+  /** 连线进行中鼠标位置（内容坐标） */
+  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+
   const handleNodePointerDown = useCallback(
     (e: React.PointerEvent, id: string) => {
       if (e.button !== 0) return;
       e.stopPropagation();
       const origin = posOf(id);
+      // 连线进行中：不启动拖拽（moved 永为 false），由 pointerup 完成连线
       dragRef.current = { id, startX: e.clientX, startY: e.clientY, origin, moved: false };
-      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      if (!pending) (e.currentTarget as Element).setPointerCapture(e.pointerId);
     },
-    [posOf],
+    [posOf, pending],
   );
 
   const handleNodePointerMove = useCallback(
     (e: React.PointerEvent) => {
       const d = dragRef.current;
-      if (!d) return;
+      if (!d || pending) return; // 连线进行中不拖动节点
       const dx = (e.clientX - d.startX) / totalScale;
       const dy = (e.clientY - d.startY) / totalScale;
       if (!d.moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
       d.moved = true;
       setDragPos({ id: d.id, x: d.origin.x + dx, y: d.origin.y + dy });
     },
-    [totalScale],
+    [totalScale, pending],
   );
 
   const handleNodePointerUp = useCallback(
@@ -331,23 +440,86 @@ export function ConnectionMapPage() {
       if (d && d.moved && dragPos && dragPos.id === d.id) {
         updateNodePosition(d.id, { x: dragPos.x, y: dragPos.y });
       } else if (d && !d.moved) {
-        // 未移动视为点击 → 进入文本编辑
-        setEditingId(d.id);
+        if (pending) {
+          // 连线进行中点击目标节点 → 完成连线
+          if (pending.from !== d.id) addExtraEdge(pending.from, d.id);
+          setPending(null);
+          setGhost(null);
+        } else {
+          // 未移动视为单击 → 选中（Delete 可删除）
+          setSelectedId(d.id);
+        }
       }
       setDragPos(null);
     },
-    [dragPos, updateNodePosition],
+    [dragPos, updateNodePosition, pending, addExtraEdge],
   );
 
-  /* ── 文本编辑 / 右键菜单 ── */
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  /* ── Delete 删除选中节点 / Esc 取消连线 ── */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (editingId) return;
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        e.preventDefault();
+        toggleHideChild(selectedId);
+        setSelectedId(null);
+        showToast('Node removed from map (Undo to restore)', 'info');
+      }
+      if (e.key === 'Escape' && pending) {
+        setPending(null);
+        setGhost(null);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [editingId, selectedId, pending, toggleHideChild, showToast]);
+
+  /** 屏幕坐标 → 内容坐标（用于加号连线预览） */
+  const toContent = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = containerRef.current!.getBoundingClientRect();
+      const s = fitScale * viewRef.current.zoom;
+      return {
+        x: (clientX - rect.left - viewRef.current.panX) / s,
+        y: (clientY - rect.top - viewRef.current.panY) / s,
+      };
+    },
+    [fitScale],
+  );
+
+  /** 点击空白：取消选中 / 取消连线中 */
+  const handleBgClick = useCallback(() => {
+    setSelectedId(null);
+    if (pending) {
+      setPending(null);
+      setGhost(null);
+    }
+  }, [pending]);
 
   const handleNodeContextMenu = useCallback((e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
     setMenu({ id, x: e.clientX, y: e.clientY });
   }, []);
+
+  /** v0.3 r2: 双击节点进入文本编辑 */
+  const handleNodeDoubleClick = useCallback((e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setEditingId(id);
+  }, []);
+
+  /** v0.3 r2: hover 边中点加号 → 开始连线 */
+  const startConnect = useCallback(
+    (e: React.MouseEvent, id: string, side: HandleSide) => {
+      e.stopPropagation();
+      const p = nodePos(id);
+      const h = handlePoint(p, side);
+      setPending({ from: id, side, x: h.x, y: h.y });
+      setGhost(h);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nodePositions, autoLayout, dragPos],
+  );
 
   // 点击菜单外关闭
   useEffect(() => {
@@ -362,41 +534,74 @@ export function ConnectionMapPage() {
   const nodePos = (id: string) =>
     dragPos && dragPos.id === id ? { x: dragPos.x, y: dragPos.y } : posOf(id);
 
-  /* ── 连接线（xmind 风格平滑曲线） ── */
-  const edgeEls = useMemo(() => {
-    const ids = new Set(nodes.map((n) => n.id));
-    return ropes
-      .filter((r) => ids.has(r.fromItemId) && ids.has(r.toItemId))
-      .map((rope) => {
-        const pf = nodePos(rope.fromItemId);
-        const pt = nodePos(rope.toItemId);
-        const leftToRight = pf.x <= pt.x;
-        const c1 = { x: leftToRight ? pf.x + NODE_W : pf.x, y: pf.y + NODE_H / 2 };
-        const c2 = { x: leftToRight ? pt.x : pt.x + NODE_W, y: pt.y + NODE_H / 2 };
-        const dx = Math.max(36, Math.min(80, Math.abs(c2.x - c1.x) / 2));
-        const s = leftToRight ? 1 : -1;
-        const mid = {
-          x: 0.125 * c1.x + 0.375 * (c1.x + dx * s) + 0.375 * (c2.x - dx * s) + 0.125 * c2.x,
-          y: (c1.y + c2.y) / 2,
-        };
+  /** 删除连线：Map 新增连线直接移除，白墙 rope 在 Map 层隐藏 */
+  const deleteEdge = useCallback(
+    (kind: 'rope' | 'extra', id: string) => {
+      if (kind === 'extra') removeExtraEdge(id);
+      else toggleHideRope(id);
+      showToast('Connection removed (Undo to restore)', 'info');
+    },
+    [removeExtraEdge, toggleHideRope, showToast],
+  );
+
+  /** 连接线几何：xmind 风格平滑贝塞尔曲线 + 中点（两端点同 x 时退化为直线） */
+  const edgeGeometry = (from: string, to: string) => {
+    const pf = nodePos(from);
+    const pt = nodePos(to);
+    const leftToRight = pf.x <= pt.x;
+    const c1 = { x: leftToRight ? pf.x + NODE_W : pf.x, y: pf.y + NODE_H / 2 };
+    const c2 = { x: leftToRight ? pt.x : pt.x + NODE_W, y: pt.y + NODE_H / 2 };
+    const dx = Math.max(36, Math.min(80, Math.abs(c2.x - c1.x) / 2));
+    const s = leftToRight ? 1 : -1;
+    const d =
+      Math.abs(c2.x - c1.x) < 2
+        ? `M ${c1.x} ${c1.y} L ${c2.x} ${c2.y}`
+        : `M ${c1.x} ${c1.y} C ${c1.x + dx * s} ${c1.y}, ${c2.x - dx * s} ${c2.y}, ${c2.x} ${c2.y}`;
+    const mid = {
+      x: Math.abs(c2.x - c1.x) < 2 ? c1.x : 0.125 * c1.x + 0.375 * (c1.x + dx * s) + 0.375 * (c2.x - dx * s) + 0.125 * c2.x,
+      y: (c1.y + c2.y) / 2,
+    };
+    return { d, mid };
+  };
+
+  /* ── 连接线渲染（可见路径 + 加宽透明点击热区，点击直接删除） ── */
+  const edgeEls = useMemo(
+    () =>
+      visibleEdges.map((edge) => {
+        const { d, mid } = edgeGeometry(edge.from, edge.to);
         return (
-          <g key={rope.id}>
+          <g key={`${edge.kind}-${edge.id}`}>
             <path
-              d={`M ${c1.x} ${c1.y} C ${c1.x + dx * s} ${c1.y}, ${c2.x - dx * s} ${c2.y}, ${c2.x} ${c2.y}`}
+              d={d}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={14}
+              style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteEdge(edge.kind, edge.id);
+              }}
+            />
+            <path
+              d={d}
               fill="none"
               stroke={EDGE_COLOR}
               strokeWidth={1.5}
+              strokeDasharray={edge.kind === 'extra' ? '6 4' : undefined}
+              pointerEvents="none"
             />
-            {rope.note && (
+            {edge.note && (
               <text x={mid.x} y={mid.y - 6} textAnchor="middle" fontSize={10.5} fill="#999">
-                {rope.note}
+                {edge.note}
               </text>
             )}
           </g>
         );
-      });
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, ropes, nodePositions, autoLayout, dragPos]);
+    [visibleEdges, nodePositions, autoLayout, dragPos, deleteEdge],
+  );
 
   /* ── PNG / PDF 导出 ── */
   const fileBase = wallName.replace(/\s+/g, '-').toLowerCase() || 'wall';
@@ -436,15 +641,20 @@ export function ConnectionMapPage() {
     <div
       ref={containerRef}
       onPointerDown={handleBgPointerDown}
-      onPointerMove={handleBgPointerMove}
-      onPointerUp={handleBgPointerUp}
       onContextMenu={(e) => e.preventDefault()}
+      onClick={handleBgClick}
+      onPointerMove={
+        pending
+          ? (e) => setGhost(toContent(e.clientX, e.clientY))
+          : handleBgPointerMove
+      }
+      onPointerUp={handleBgPointerUp}
       style={{
         position: 'absolute',
         inset: 0,
         background: '#F5F5F3',
         overflow: 'hidden',
-        cursor: panRef.current ? 'grabbing' : 'grab',
+        cursor: pending ? 'crosshair' : panRef.current ? 'grabbing' : 'grab',
         touchAction: 'none',
       }}
     >
@@ -458,15 +668,13 @@ export function ConnectionMapPage() {
           transform: `translate(${view.panX}px, ${view.panY}px) scale(${totalScale})`,
         }}
       >
-        {/* 内容层（导出捕获此节点） */}
+        {/* 内容层（导出捕获此节点；v0.3 r2: 去掉白色底图） */}
         <div
           ref={contentRef}
           style={{
             position: 'relative',
             width: bounds.w,
             height: bounds.h,
-            background: '#FFFFFF',
-            borderRadius: 4,
           }}
         >
           {/* 标题 */}
@@ -491,12 +699,23 @@ export function ConnectionMapPage() {
             style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }}
           >
             {edgeEls}
+            {/* v0.3 r2: 加号连线进行中的预览虚线 */}
+            {pending && ghost && (
+              <path
+                d={`M ${pending.x} ${pending.y} L ${ghost.x} ${ghost.y}`}
+                fill="none"
+                stroke="#4A90D9"
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+              />
+            )}
           </svg>
 
           {/* 节点 */}
           {nodes.map((item) => {
             const p = nodePos(item.id);
             const isEditing = editingId === item.id;
+            const isSelected = selectedId === item.id;
             return (
               <div
                 key={item.id}
@@ -504,7 +723,10 @@ export function ConnectionMapPage() {
                 onPointerDown={(e) => handleNodePointerDown(e, item.id)}
                 onPointerMove={handleNodePointerMove}
                 onPointerUp={handleNodePointerUp}
+                onDoubleClick={(e) => handleNodeDoubleClick(e, item.id)}
+                onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => handleNodeContextMenu(e, item.id)}
+                className="map-node"
                 style={{
                   position: 'absolute',
                   left: p.x,
@@ -512,14 +734,14 @@ export function ConnectionMapPage() {
                   width: NODE_W,
                   minHeight: NODE_H,
                   background: '#FFFFFF',
-                  border: '1px solid #C9C9C9',
+                  border: isSelected ? '1.5px solid #4A90D9' : '1px solid #C9C9C9',
                   borderRadius: 8,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '6px 12px',
                   boxSizing: 'border-box',
-                  cursor: 'grab',
+                  cursor: pending && pending.from !== item.id ? 'crosshair' : 'grab',
                   touchAction: 'none',
                   userSelect: 'none',
                 }}
@@ -547,9 +769,14 @@ export function ConnectionMapPage() {
                       overflow: 'hidden',
                     }}
                   >
-                    {labelOf(item) || 'Untitled'}
+                    {labelOf(item)}
                   </span>
                 )}
+
+                {/* v0.3 r2: hover 各边中点浮现加号，点击开始连线 */}
+                {(['top', 'bottom', 'left', 'right'] as HandleSide[]).map((side) => (
+                  <HandlePlus key={side} side={side} onClick={(e) => startConnect(e, item.id, side)} />
+                ))}
               </div>
             );
           })}
@@ -585,6 +812,16 @@ export function ConnectionMapPage() {
             onClick={() => {
               clearNodePosition(menu.id);
               setMenu(null);
+            }}
+          />
+          <MapMenuItem
+            label="Delete node"
+            danger
+            onClick={() => {
+              toggleHideChild(menu.id);
+              setSelectedId(null);
+              setMenu(null);
+              showToast('Node removed from map (Undo to restore)', 'info');
             }}
           />
         </div>
@@ -643,7 +880,7 @@ export function ConnectionMapPage() {
           pointerEvents: 'none',
         }}
       >
-        Drag canvas to pan · Scroll to zoom · Click text to edit · Right-click node for more
+        Drag canvas to pan · Scroll to zoom · Double-click node to edit · Select + Delete to remove · Hover node edge for + to connect · Click line to delete
       </div>
     </div>
   );
@@ -701,7 +938,7 @@ function NodeLabelEditor({
   );
 }
 
-function MapMenuItem({ label, onClick }: { label: string; onClick: () => void }) {
+function MapMenuItem({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) {
   return (
     <div
       onClick={onClick}
@@ -711,7 +948,7 @@ function MapMenuItem({ label, onClick }: { label: string; onClick: () => void })
         alignItems: 'center',
         padding: '0 14px',
         fontSize: 13,
-        color: '#333',
+        color: danger ? '#E25C5C' : '#333',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
       }}

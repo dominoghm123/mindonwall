@@ -78,14 +78,6 @@ export interface UndoAction {
   timestamp: number;
 }
 
-/** Map 视图状态（独立编辑） */
-export interface MapViewState {
-  nodePositions: Record<string, { x: number; y: number }>;
-  hiddenChildren: string[];
-  undoStack: UndoAction[];
-  redoStack: UndoAction[];
-}
-
 /** 墙面 */
 export interface Wall {
   id: string;
@@ -95,7 +87,6 @@ export interface Wall {
   ropes: Rope[];
   undoStack: UndoAction[];
   redoStack: UndoAction[];
-  mapViewState?: MapViewState;
 }
 
 /** 墙面列表项（总览页用） */

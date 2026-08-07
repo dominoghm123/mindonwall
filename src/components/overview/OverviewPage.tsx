@@ -23,6 +23,7 @@ export function OverviewPage() {
   const removeWalls = useOverviewStore((s) => s.removeWalls);
   const captureCurrentWall = useOverviewStore((s) => s.captureCurrentWall);
   const homeBackground = useOverviewStore((s) => s.homeBackground);
+  const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
   const showToast = useUIStore((s) => s.showToast);
   const setViewMode = useUIStore((s) => s.setViewMode);
 
@@ -132,8 +133,10 @@ export function OverviewPage() {
       style={{
         width: '100%',
         height: '100%',
-        // v0.3 P3: 总览页背景可在 Settings 中更换
-        background: homeBackground,
+        // v0.3 r2: 总览页背景可在 Settings 中更换（自定义图片优先）
+        background: homeBackgroundImage
+          ? `#F5F5F3 url("${homeBackgroundImage}") center/cover no-repeat fixed`
+          : homeBackground,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',

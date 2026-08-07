@@ -31,8 +31,12 @@ interface OverviewState {
   creamMigrated?: boolean;
   /** v0.3 P3: 总览页背景色 */
   homeBackground: string;
+  /** v0.3 r2: 总览页自定义背景图（data URL，优先于背景色） */
+  homeBackgroundImage: string | null;
   /** v0.3 P3: 用户昵称 */
   userName: string;
+  /** v0.3 r2: 用户头像（data URL，缺省显示昵称首字母） */
+  avatarDataUrl: string | null;
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -62,8 +66,12 @@ interface OverviewState {
   importSharedWall: (payload: SharedWallPayload) => string;
   /** v0.3 P3: 设置总览页背景色 */
   setHomeBackground: (color: string) => void;
+  /** v0.3 r2: 设置总览页自定义背景图 */
+  setHomeBackgroundImage: (dataUrl: string | null) => void;
   /** v0.3 P3: 设置用户昵称 */
   setUserName: (name: string) => void;
+  /** v0.3 r2: 设置用户头像 */
+  setAvatarDataUrl: (dataUrl: string | null) => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -74,7 +82,9 @@ export const useOverviewStore = create<OverviewState>()(
       initialized: false,
       creamMigrated: false,
       homeBackground: '#FAFAF8',
+      homeBackgroundImage: null,
       userName: 'Wall Keeper',
+      avatarDataUrl: null,
 
       addWall: (id: string, name: string, wallpaper: WallpaperType = 'cream') => {
         const { walls } = get();
@@ -252,12 +262,17 @@ export const useOverviewStore = create<OverviewState>()(
             it.parentId = idMap.get(it.parentId);
           }
         }
-        const newRopes: Rope[] = (src?.ropes ?? []).map((r) => ({
-          ...r,
-          id: `rope-${Date.now()}-${++dupCounter}`,
-          fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
-          toItemId: idMap.get(r.toItemId) ?? r.toItemId,
-        }));
+        const ropeIdMap = new Map<string, string>();
+        const newRopes: Rope[] = (src?.ropes ?? []).map((r) => {
+          const nid = `rope-${Date.now()}-${++dupCounter}`;
+          ropeIdMap.set(r.id, nid);
+          return {
+            ...r,
+            id: nid,
+            fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
+            toItemId: idMap.get(r.toItemId) ?? r.toItemId,
+          };
+        });
         // v0.3: Map 快照中的节点位置同步重映射 id
         const srcMapView = src?.mapView;
         const newMapView: MapViewSnapshot | undefined = srcMapView
@@ -277,6 +292,19 @@ export const useOverviewStore = create<OverviewState>()(
                       .filter(([k]) => idMap.has(k))
                       .map(([k, v]) => [idMap.get(k)!, v]),
                   )
+                : undefined,
+              // v0.3 r2: Map 新增连线与隐藏 rope 同步重映射
+              extraEdges: srcMapView.extraEdges
+                ? srcMapView.extraEdges.map((e) => ({
+                    ...e,
+                    from: idMap.get(e.from) ?? e.from,
+                    to: idMap.get(e.to) ?? e.to,
+                  }))
+                : undefined,
+              hiddenRopes: srcMapView.hiddenRopes
+                ? srcMapView.hiddenRopes
+                    .filter((rid) => ropeIdMap.has(rid))
+                    .map((rid) => ropeIdMap.get(rid)!)
                 : undefined,
             }
           : undefined;
@@ -380,8 +408,16 @@ export const useOverviewStore = create<OverviewState>()(
         set({ homeBackground: color });
       },
 
+      setHomeBackgroundImage: (dataUrl: string | null) => {
+        set({ homeBackgroundImage: dataUrl });
+      },
+
       setUserName: (name: string) => {
         set({ userName: name });
+      },
+
+      setAvatarDataUrl: (dataUrl: string | null) => {
+        set({ avatarDataUrl: dataUrl });
       },
     }),
     {

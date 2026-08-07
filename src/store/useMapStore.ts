@@ -3,16 +3,30 @@ import { persist } from 'zustand/middleware';
 import type { UndoAction } from './types';
 import { pushUndo, popUndo } from './undoMiddleware';
 
+/** Map 内新增的连线（不写回白墙） */
+export interface ExtraEdge {
+  id: string;
+  from: string;
+  to: string;
+}
+
 /** Map 视图可持久化快照（随墙数据保存，不写回白墙） */
 export interface MapViewSnapshot {
   nodePositions: Record<string, { x: number; y: number }>;
+  /** 隐藏的节点（含旧版"隐藏子节点"与 v0.3 删除的节点） */
   hiddenChildren: string[];
   /** v0.3: Map 内编辑的节点文本（不写回白墙） */
   nodeLabels?: Record<string, string>;
+  /** v0.3 r2: Map 内新增的连线 */
+  extraEdges?: ExtraEdge[];
+  /** v0.3 r2: Map 内隐藏的白墙 rope（删除的连线） */
+  hiddenRopes?: string[];
 }
 
 interface MapState extends Required<Pick<MapViewSnapshot, 'nodePositions' | 'hiddenChildren'>> {
   nodeLabels: Record<string, string>;
+  extraEdges: ExtraEdge[];
+  hiddenRopes: string[];
   /** Map 独立撤销栈 */
   undoStack: UndoAction[];
   /** Map 独立重做栈 */
@@ -24,12 +38,18 @@ interface MapState extends Required<Pick<MapViewSnapshot, 'nodePositions' | 'hid
   getSnapshot: () => MapViewSnapshot;
   /** 更新节点位置（实时拖拽，入撤销栈） */
   updateNodePosition: (nodeId: string, position: { x: number; y: number }) => void;
-  /** v0.3: 清除节点手动位置（回到自动布局，入撤销栈） */
+  /** 清除节点手动位置（回到自动布局，入撤销栈） */
   clearNodePosition: (nodeId: string) => void;
-  /** v0.3: 更新节点文本标签（入撤销栈） */
+  /** 更新节点文本标签（入撤销栈） */
   updateNodeLabel: (nodeId: string, label: string) => void;
-  /** 切换子节点隐藏状态（入撤销栈） */
+  /** 切换节点隐藏状态（v0.3 r2: 删除节点 = 隐藏，入撤销栈） */
   toggleHideChild: (childId: string) => void;
+  /** v0.3 r2: 新增 Map 连线（入撤销栈） */
+  addExtraEdge: (from: string, to: string) => void;
+  /** v0.3 r2: 删除 Map 新增连线（入撤销栈） */
+  removeExtraEdge: (edgeId: string) => void;
+  /** v0.3 r2: 隐藏/恢复白墙 rope（Map 层删除连线，入撤销栈） */
+  toggleHideRope: (ropeId: string) => void;
   /** Map 撤销 */
   mapUndo: () => void;
   /** Map 重做 */
@@ -42,12 +62,16 @@ interface MapState extends Required<Pick<MapViewSnapshot, 'nodePositions' | 'hid
 const HIDDEN = '1';
 const VISIBLE = '0';
 
+let edgeCounter = 0;
+
 export const useMapStore = create<MapState>()(
   persist(
     (set, get) => ({
       nodePositions: {},
       hiddenChildren: [],
       nodeLabels: {},
+      extraEdges: [],
+      hiddenRopes: [],
       undoStack: [],
       redoStack: [],
 
@@ -56,14 +80,16 @@ export const useMapStore = create<MapState>()(
           nodePositions: snapshot?.nodePositions ?? {},
           hiddenChildren: snapshot?.hiddenChildren ?? [],
           nodeLabels: snapshot?.nodeLabels ?? {},
+          extraEdges: snapshot?.extraEdges ?? [],
+          hiddenRopes: snapshot?.hiddenRopes ?? [],
           undoStack: [],
           redoStack: [],
         });
       },
 
       getSnapshot: () => {
-        const { nodePositions, hiddenChildren, nodeLabels } = get();
-        return { nodePositions, hiddenChildren, nodeLabels };
+        const { nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes } = get();
+        return { nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes };
       },
 
       updateNodePosition: (nodeId: string, position: { x: number; y: number }) => {
@@ -112,7 +138,7 @@ export const useMapStore = create<MapState>()(
         const before = nodeLabels[nodeId] ?? null;
         if (before === label) return;
 
-        // v0.3: 文本编辑复用 'editRope' 类型 + itemId（与白墙的 rope 编辑互不干扰）
+        // 文本编辑复用 'editRope' 类型 + itemId（与白墙的 rope 编辑互不干扰）
         const action: UndoAction = {
           type: 'editRope',
           itemId: nodeId,
@@ -149,8 +175,71 @@ export const useMapStore = create<MapState>()(
         });
       },
 
+      addExtraEdge: (from: string, to: string) => {
+        const { extraEdges, undoStack } = get();
+        if (from === to) return;
+        // 已有连线（任意方向）则不重复添加
+        if (extraEdges.some((e) => (e.from === from && e.to === to) || (e.from === to && e.to === from))) return;
+        const id = `medge-${Date.now()}-${++edgeCounter}`;
+
+        const action: UndoAction = {
+          type: 'addRope',
+          ropeId: id,
+          before: null,
+          after: { fromItemId: from, toItemId: to },
+          timestamp: Date.now(),
+        };
+
+        set({
+          extraEdges: [...extraEdges, { id, from, to }],
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      removeExtraEdge: (edgeId: string) => {
+        const { extraEdges, undoStack } = get();
+        const edge = extraEdges.find((e) => e.id === edgeId);
+        if (!edge) return;
+
+        const action: UndoAction = {
+          type: 'removeRope',
+          ropeId: edgeId,
+          before: { fromItemId: edge.from, toItemId: edge.to },
+          after: null,
+          timestamp: Date.now(),
+        };
+
+        set({
+          extraEdges: extraEdges.filter((e) => e.id !== edgeId),
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
+      toggleHideRope: (ropeId: string) => {
+        const { hiddenRopes, undoStack } = get();
+        const isHidden = hiddenRopes.includes(ropeId);
+
+        const action: UndoAction = {
+          type: 'edit',
+          ropeId,
+          before: { text: isHidden ? HIDDEN : VISIBLE },
+          after: { text: isHidden ? VISIBLE : HIDDEN },
+          timestamp: Date.now(),
+        };
+
+        set({
+          hiddenRopes: isHidden
+            ? hiddenRopes.filter((id) => id !== ropeId)
+            : [...hiddenRopes, ropeId],
+          undoStack: pushUndo(undoStack, action),
+          redoStack: [],
+        });
+      },
+
       mapUndo: () => {
-        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels } = get();
+        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes } = get();
         const result = popUndo(undoStack);
         if (!result) return;
         const { action, remaining } = result;
@@ -165,12 +254,19 @@ export const useMapStore = create<MapState>()(
               y: beforePos.y ?? 0,
             };
           } else {
-            // before 为 null 说明是首次定位，撤销时删除
             delete newPositions[action.itemId];
           }
           set({ nodePositions: newPositions });
+        } else if (action.type === 'edit' && action.ropeId) {
+          // v0.3 r2: 恢复白墙 rope 的隐藏状态
+          const wasHidden = (action.before as { text?: string })?.text === HIDDEN;
+          set({
+            hiddenRopes: wasHidden
+              ? [...hiddenRopes.filter((id) => id !== action.ropeId), action.ropeId!]
+              : hiddenRopes.filter((id) => id !== action.ropeId),
+          });
         } else if (action.type === 'edit' && action.itemId) {
-          // 恢复隐藏状态
+          // 恢复节点隐藏状态
           const wasHidden = (action.before as { text?: string })?.text === HIDDEN;
           set({
             hiddenChildren: wasHidden
@@ -178,7 +274,7 @@ export const useMapStore = create<MapState>()(
               : hiddenChildren.filter((id) => id !== action.itemId),
           });
         } else if (action.type === 'editRope' && action.itemId) {
-          // v0.3: 恢复节点文本
+          // 恢复节点文本
           const newLabels = { ...nodeLabels };
           if (action.before) {
             newLabels[action.itemId] = (action.before as { text?: string }).text ?? '';
@@ -186,6 +282,17 @@ export const useMapStore = create<MapState>()(
             delete newLabels[action.itemId];
           }
           set({ nodeLabels: newLabels });
+        } else if (action.type === 'addRope' && action.ropeId) {
+          // v0.3 r2: 撤销新增连线 → 移除
+          set({ extraEdges: extraEdges.filter((e) => e.id !== action.ropeId) });
+        } else if (action.type === 'removeRope' && action.ropeId) {
+          // v0.3 r2: 撤销删除连线 → 恢复
+          const before = action.before as { fromItemId?: string; toItemId?: string } | null;
+          if (before && !extraEdges.some((e) => e.id === action.ropeId)) {
+            set({
+              extraEdges: [...extraEdges, { id: action.ropeId, from: before.fromItemId ?? '', to: before.toItemId ?? '' }],
+            });
+          }
         }
 
         set({
@@ -195,7 +302,7 @@ export const useMapStore = create<MapState>()(
       },
 
       mapRedo: () => {
-        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels } = get();
+        const { undoStack, redoStack, nodePositions, hiddenChildren, nodeLabels, extraEdges, hiddenRopes } = get();
         const result = popUndo(redoStack);
         if (!result) return;
         const { action, remaining } = result;
@@ -212,6 +319,14 @@ export const useMapStore = create<MapState>()(
             delete newPositions[action.itemId];
           }
           set({ nodePositions: newPositions });
+        } else if (action.type === 'edit' && action.ropeId) {
+          // v0.3 r2: 重做白墙 rope 隐藏状态
+          const isHidden = (action.after as { text?: string })?.text === HIDDEN;
+          set({
+            hiddenRopes: isHidden
+              ? [...hiddenRopes.filter((id) => id !== action.ropeId), action.ropeId!]
+              : hiddenRopes.filter((id) => id !== action.ropeId),
+          });
         } else if (action.type === 'edit' && action.itemId) {
           const isHidden = (action.after as { text?: string })?.text === HIDDEN;
           set({
@@ -220,7 +335,7 @@ export const useMapStore = create<MapState>()(
               : hiddenChildren.filter((id) => id !== action.itemId),
           });
         } else if (action.type === 'editRope' && action.itemId) {
-          // v0.3: 重做节点文本
+          // 重做节点文本
           const newLabels = { ...nodeLabels };
           if (action.after) {
             newLabels[action.itemId] = (action.after as { text?: string }).text ?? '';
@@ -228,6 +343,17 @@ export const useMapStore = create<MapState>()(
             delete newLabels[action.itemId];
           }
           set({ nodeLabels: newLabels });
+        } else if (action.type === 'addRope' && action.ropeId) {
+          // v0.3 r2: 重做新增连线 → 恢复
+          const after = action.after as { fromItemId?: string; toItemId?: string } | null;
+          if (after && !extraEdges.some((e) => e.id === action.ropeId)) {
+            set({
+              extraEdges: [...extraEdges, { id: action.ropeId, from: after.fromItemId ?? '', to: after.toItemId ?? '' }],
+            });
+          }
+        } else if (action.type === 'removeRope' && action.ropeId) {
+          // v0.3 r2: 重做删除连线 → 移除
+          set({ extraEdges: extraEdges.filter((e) => e.id !== action.ropeId) });
         }
 
         set({
@@ -241,6 +367,8 @@ export const useMapStore = create<MapState>()(
           nodePositions: {},
           hiddenChildren: [],
           nodeLabels: {},
+          extraEdges: [],
+          hiddenRopes: [],
           undoStack: [],
           redoStack: [],
         });
@@ -253,6 +381,8 @@ export const useMapStore = create<MapState>()(
         nodePositions: state.nodePositions,
         hiddenChildren: state.hiddenChildren,
         nodeLabels: state.nodeLabels,
+        extraEdges: state.extraEdges,
+        hiddenRopes: state.hiddenRopes,
       }),
     },
   ),

@@ -32,8 +32,8 @@ export interface UIState {
   toolbarPanel: 'image' | 'paper' | 'stamp' | null;
   /** v0.3: 通过分享链接打开的墙数据（待用户确认导入） */
   sharedImport: SharedWallPayload | null;
-  /** v0.3 P3: 全屏用户页面（Profile / Materials / Settings） */
-  page: 'profile' | 'materials' | 'settings' | null;
+  /** v0.3 r2: 全屏用户页面（Library / Settings，Profile 已并入 Settings） */
+  page: 'materials' | 'settings' | null;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -77,8 +77,8 @@ export interface UIState {
   closeToolbarPanel: () => void;
   /** v0.3: 设置分享导入数据 */
   setSharedImport: (payload: SharedWallPayload | null) => void;
-  /** v0.3 P3: 打开/关闭用户页面 */
-  openPage: (page: 'profile' | 'materials' | 'settings' | null) => void;
+  /** v0.3 r2: 打开/关闭用户页面 */
+  openPage: (page: 'materials' | 'settings' | null) => void;
 }
 
 let toastCounter = 0;

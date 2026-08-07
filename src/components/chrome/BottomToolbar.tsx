@@ -196,7 +196,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
             showToast('Material limit reached', 'warning');
             return;
           }
-          showToast('Saved to Materials', 'success', 2000);
+          showToast('Saved to Library', 'success', 2000);
         };
         reader.readAsDataURL(file);
       });
@@ -305,19 +305,6 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     setRopeMode(!ropeMode);
     if (!ropeMode) showToast('Rope mode: click two pins to connect', 'info', 2500);
   }, [ropeMode, setRopeMode, showToast]);
-
-  const iconBtnStyle = (active: boolean): React.CSSProperties => ({
-    width: 40,
-    height: 40,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: active ? '#F0F0F0' : 'none',
-    border: 'none',
-    borderRadius: 10,
-    cursor: 'pointer',
-    padding: 0,
-  });
 
   return (
     <div
@@ -520,34 +507,19 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
           transition: 'transform 0.25s ease',
         }}
       >
-        <button
-          style={iconBtnStyle(toolbarPanel === 'image')}
-          onClick={() => toggleToolbarPanel('image')}
-          title="Image"
-        >
+        {/* v0.3: hover 提示图标含义 */}
+        <ToolButton tip="Picture — add photos" active={toolbarPanel === 'image'} onClick={() => toggleToolbarPanel('image')}>
           <IconImage color={toolbarPanel === 'image' ? '#333' : '#666'} />
-        </button>
-        <button
-          style={iconBtnStyle(toolbarPanel === 'paper')}
-          onClick={() => toggleToolbarPanel('paper')}
-          title="Paper"
-        >
+        </ToolButton>
+        <ToolButton tip="Paper — add notes & wallpaper" active={toolbarPanel === 'paper'} onClick={() => toggleToolbarPanel('paper')}>
           <IconPaper color={toolbarPanel === 'paper' ? '#333' : '#666'} />
-        </button>
-        <button
-          style={iconBtnStyle(toolbarPanel === 'stamp')}
-          onClick={() => toggleToolbarPanel('stamp')}
-          title="Stamp"
-        >
+        </ToolButton>
+        <ToolButton tip="Stamp — add stickers" active={toolbarPanel === 'stamp'} onClick={() => toggleToolbarPanel('stamp')}>
           <IconStamp color={toolbarPanel === 'stamp' ? '#333' : '#666'} />
-        </button>
-        <button
-          style={iconBtnStyle(ropeMode)}
-          onClick={handleRopeToggle}
-          title="Rope"
-        >
+        </ToolButton>
+        <ToolButton tip="Rope — connect items" active={ropeMode} onClick={handleRopeToggle}>
           <IconRope color={ropeMode ? '#333' : '#666'} />
-        </button>
+        </ToolButton>
       </div>
 
       {/* 隐藏的上传 input（三个面板共用） */}
@@ -608,10 +580,70 @@ function UploadTile({ onClick }: { onClick: () => void }) {
         gap: 2,
         flexShrink: 0,
       }}
-      title="Upload to Materials"
+      title="Upload to Library"
     >
       <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
       Upload
+    </div>
+  );
+}
+
+/** 工具图标按钮通用样式（模块级：供 BottomToolbar 与 ToolButton 共用） */
+const iconBtnStyle = (active: boolean): React.CSSProperties => ({
+  width: 40,
+  height: 40,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: active ? '#F0F0F0' : 'none',
+  border: 'none',
+  borderRadius: 10,
+  cursor: 'pointer',
+  padding: 0,
+});
+
+/** v0.3: 带 hover 提示的工具图标按钮 */
+function ToolButton({
+  tip,
+  active,
+  onClick,
+  children,
+}: {
+  tip: string;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      style={{ position: 'relative' }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {hover && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 52,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#333333',
+            color: '#FFFFFF',
+            fontSize: 11,
+            padding: '4px 9px',
+            borderRadius: 5,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        >
+          {tip}
+        </div>
+      )}
+      <button style={iconBtnStyle(active)} onClick={onClick}>
+        {children}
+      </button>
     </div>
   );
 }
