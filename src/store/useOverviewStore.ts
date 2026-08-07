@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { WallSummary, WallpaperType, Item, Rope } from './types';
+import type { WallSummary, WallpaperType, Item, Rope, Project } from './types';
 import { DEFAULT_WALL_ID, DEFAULT_WALL_NAME, DEFAULT_WALLPAPER } from './initialData';
 import { useWallStore } from './useWallStore';
 import { useMapStore } from './useMapStore';
@@ -53,6 +53,10 @@ interface OverviewState {
   removedBuiltins: string[];
   /** v0.3 r4: 界面语言（i18n） */
   language: Lang;
+  /** v0.4: Project 分组 */
+  projects: Project[];
+  /** v0.4: 是否已执行 Project 迁移（已有墙归入 Uncategorized） */
+  projectsMigrated?: boolean;
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -102,6 +106,16 @@ interface OverviewState {
   restoreBuiltinAssets: () => void;
   /** v0.3 r4: 设置界面语言 */
   setLanguage: (lang: Lang) => void;
+  /** v0.4: 新建 Project */
+  addProject: (name: string) => void;
+  /** v0.4: 删除 Project（墙移回 Uncategorized） */
+  removeProject: (id: string) => void;
+  /** v0.4: 重命名 Project */
+  renameProject: (id: string, name: string) => void;
+  /** v0.4: 设置 Project 颜色 */
+  setProjectColor: (id: string, color: string) => void;
+  /** v0.4: 移动墙到指定 Project */
+  moveWallToProject: (wallId: string, projectId: string) => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -119,6 +133,8 @@ export const useOverviewStore = create<OverviewState>()(
       collections: [],
       removedBuiltins: [],
       language: 'en',
+      projects: [],
+      projectsMigrated: false,
 
       addWall: (id: string, name: string, wallpaper: WallpaperType = 'none') => {
         const { walls } = get();
@@ -202,6 +218,20 @@ export const useOverviewStore = create<OverviewState>()(
             }
           }
           set({ creamMigrated: true });
+        }
+        // v0.4 一次性迁移：已有墙归入默认 project "Uncategorized"
+        if (!get().projectsMigrated) {
+          const { walls, projects } = get();
+          if (walls.length > 0 && projects.length === 0) {
+            const defaultProject: Project = {
+              id: 'project-uncategorized',
+              name: 'Uncategorized',
+              wallIds: walls.map((w) => w.id),
+              createdAt: Date.now(),
+            };
+            set({ projects: [defaultProject] });
+          }
+          set({ projectsMigrated: true });
         }
         // v0.3 r4 一次性迁移：默认背景 #FAFAF8 → White（未自定义过的用户）
         if (!get().bgMigrated) {
@@ -465,6 +495,65 @@ export const useOverviewStore = create<OverviewState>()(
       /* ── v0.3 r4: i18n ── */
       setLanguage: (lang: Lang) => {
         set({ language: lang });
+      },
+
+      /* ── v0.4: Project 分组 ── */
+      addProject: (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const id = `project-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+        const project: Project = {
+          id,
+          name: trimmed,
+          wallIds: [],
+          createdAt: Date.now(),
+        };
+        set({ projects: [...get().projects, project] });
+      },
+
+      removeProject: (id: string) => {
+        const { projects } = get();
+        const target = projects.find((p) => p.id === id);
+        if (!target) return;
+        // 把墙移回 Uncategorized（如果有的话）
+        const uncategorized = projects.find((p) => p.id === 'project-uncategorized');
+        if (uncategorized && id !== 'project-uncategorized') {
+          const merged = [...new Set([...uncategorized.wallIds, ...target.wallIds])];
+          set({
+            projects: projects
+              .filter((p) => p.id !== id)
+              .map((p) => (p.id === 'project-uncategorized' ? { ...p, wallIds: merged } : p)),
+          });
+        } else {
+          set({ projects: projects.filter((p) => p.id !== id) });
+        }
+      },
+
+      renameProject: (id: string, name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        set({
+          projects: get().projects.map((p) => (p.id === id ? { ...p, name: trimmed } : p)),
+        });
+      },
+
+      setProjectColor: (id: string, color: string) => {
+        set({
+          projects: get().projects.map((p) => (p.id === id ? { ...p, color } : p)),
+        });
+      },
+
+      moveWallToProject: (wallId: string, projectId: string) => {
+        set({
+          projects: get().projects.map((p) => {
+            // 从所有 project 中移除该 wall，再加到目标 project
+            const without = p.wallIds.filter((id) => id !== wallId);
+            if (p.id === projectId) {
+              return { ...p, wallIds: [...without, wallId] };
+            }
+            return { ...p, wallIds: without };
+          }),
+        });
       },
 
       /* ── v0.3 r3: 收藏夹 ── */

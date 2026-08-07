@@ -109,3 +109,15 @@ export interface ToastMessage {
   type: 'info' | 'success' | 'warning' | 'error';
   duration?: number;
 }
+
+/** v0.4: Project 分组（墙归类到项目下） */
+export interface Project {
+  id: string;
+  name: string;
+  /** 可选标签色（用于 UI 区分） */
+  color?: string;
+  /** 归属的墙 ID 列表 */
+  wallIds: string[];
+  /** 创建时间戳 */
+  createdAt: number;
+}
