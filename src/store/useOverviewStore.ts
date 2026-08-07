@@ -27,6 +27,12 @@ interface OverviewState {
   wallData: Record<string, SavedWallData>;
   /** 是否已初始化 */
   initialized: boolean;
+  /** v0.3 墙纸迁移一次性标记（默认墙 white/beige → cream） */
+  creamMigrated?: boolean;
+  /** v0.3 P3: 总览页背景色 */
+  homeBackground: string;
+  /** v0.3 P3: 用户昵称 */
+  userName: string;
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -54,6 +60,10 @@ interface OverviewState {
   exportWallJSON: (id: string) => void;
   /** v0.3: 导入分享链接中的墙（重映射 id，附带素材入素材库），返回新墙 id */
   importSharedWall: (payload: SharedWallPayload) => string;
+  /** v0.3 P3: 设置总览页背景色 */
+  setHomeBackground: (color: string) => void;
+  /** v0.3 P3: 设置用户昵称 */
+  setUserName: (name: string) => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -62,8 +72,11 @@ export const useOverviewStore = create<OverviewState>()(
       walls: [],
       wallData: {},
       initialized: false,
+      creamMigrated: false,
+      homeBackground: '#FAFAF8',
+      userName: 'Wall Keeper',
 
-      addWall: (id: string, name: string, wallpaper: WallpaperType = 'white') => {
+      addWall: (id: string, name: string, wallpaper: WallpaperType = 'cream') => {
         const { walls } = get();
         if (walls.some((w) => w.id === id)) return;
         set({
@@ -112,21 +125,39 @@ export const useOverviewStore = create<OverviewState>()(
       },
 
       initIfNeeded: () => {
-        const { walls, initialized } = get();
-        // v0.2 墙纸迁移（幂等）：默认墙墙纸 beige → white（用户要求默认白色）
-        if (walls.some((w) => w.id === DEFAULT_WALL_ID && w.wallpaper === 'beige')) {
-          set({
-            walls: walls.map((w) =>
-              w.id === DEFAULT_WALL_ID && w.wallpaper === 'beige'
-                ? { ...w, wallpaper: 'white' as WallpaperType }
-                : w,
-            ),
-          });
-          // 同步当前编辑中的墙（若仍是旧 beige）
-          const ws = useWallStore.getState();
-          if (ws.wallId === DEFAULT_WALL_ID && ws.wallpaper === 'beige') {
-            useWallStore.setState({ wallpaper: 'white' });
+        const { walls, initialized, creamMigrated } = get();
+        // v0.3 墙纸迁移（一次性）：默认墙旧默认 white/beige → cream 米白（新默认）
+        if (!creamMigrated) {
+          const needMigrate = walls.some(
+            (w) => w.id === DEFAULT_WALL_ID && (w.wallpaper === 'white' || w.wallpaper === 'beige'),
+          );
+          if (needMigrate) {
+            set({
+              walls: walls.map((w) =>
+                w.id === DEFAULT_WALL_ID && (w.wallpaper === 'white' || w.wallpaper === 'beige')
+                  ? { ...w, wallpaper: 'cream' as WallpaperType }
+                  : w,
+              ),
+            });
+            const ws = useWallStore.getState();
+            if (
+              ws.wallId === DEFAULT_WALL_ID &&
+              (ws.wallpaper === 'white' || ws.wallpaper === 'beige')
+            ) {
+              useWallStore.setState({ wallpaper: 'cream' });
+            }
+            // 同步 wallData 中的墙纸
+            const wd = get().wallData[DEFAULT_WALL_ID];
+            if (wd && (wd.wallpaper === 'white' || wd.wallpaper === 'beige')) {
+              set({
+                wallData: {
+                  ...get().wallData,
+                  [DEFAULT_WALL_ID]: { ...wd, wallpaper: 'cream' as WallpaperType },
+                },
+              });
+            }
           }
+          set({ creamMigrated: true });
         }
         if (initialized) return;
         if (walls.length === 0) {
@@ -192,7 +223,7 @@ export const useOverviewStore = create<OverviewState>()(
           wallStore.loadWall({
             wallId: id,
             name: wall?.name ?? 'Wall',
-            wallpaper: wall?.wallpaper ?? 'beige',
+            wallpaper: wall?.wallpaper ?? 'cream',
             items: [],
             ropes: [],
           });
@@ -239,6 +270,14 @@ export const useOverviewStore = create<OverviewState>()(
               hiddenChildren: srcMapView.hiddenChildren
                 .filter((k) => idMap.has(k))
                 .map((k) => idMap.get(k)!),
+              // v0.3: 节点文本同步重映射
+              nodeLabels: srcMapView.nodeLabels
+                ? Object.fromEntries(
+                    Object.entries(srcMapView.nodeLabels)
+                      .filter(([k]) => idMap.has(k))
+                      .map(([k, v]) => [idMap.get(k)!, v]),
+                  )
+                : undefined,
             }
           : undefined;
 
@@ -322,19 +361,27 @@ export const useOverviewStore = create<OverviewState>()(
         set({
           walls: [
             ...get().walls,
-            { id: newId, name, wallpaper: payload.wallpaper ?? 'white', itemCount: newItems.length },
+            { id: newId, name, wallpaper: payload.wallpaper ?? 'cream', itemCount: newItems.length },
           ],
           wallData: {
             ...get().wallData,
             [newId]: {
               name,
-              wallpaper: payload.wallpaper ?? 'white',
+              wallpaper: payload.wallpaper ?? 'cream',
               items: newItems,
               ropes: newRopes,
             },
           },
         });
         return newId;
+      },
+
+      setHomeBackground: (color: string) => {
+        set({ homeBackground: color });
+      },
+
+      setUserName: (name: string) => {
+        set({ userName: name });
       },
     }),
     {

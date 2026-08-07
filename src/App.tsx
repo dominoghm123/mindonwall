@@ -22,6 +22,7 @@ import { AssetPickerModal } from './components/shared/AssetPickerModal';
 import { ToastLayer } from './components/shared/ToastLayer';
 import { ConnectionMapPage } from './components/map/ConnectionMapPage';
 import { SharedWallBanner } from './components/shared/SharedWallBanner';
+import { UserPageOverlay } from './components/pages/UserPages';
 import { parseShareHash } from './utils/shareWall';
 
 function App() {
@@ -184,6 +185,7 @@ function App() {
       <>
         <OverviewPage />
         <SharedWallBanner />
+        <UserPageOverlay />
         <ToastLayer />
       </>
     );
@@ -196,6 +198,7 @@ function App() {
         <TopBar />
         <ConnectionMapPage />
         <SharedWallBanner />
+        <UserPageOverlay />
         <ToastLayer />
       </div>
     );
@@ -278,6 +281,7 @@ function App() {
 
       {/* Toast */}
       <SharedWallBanner />
+      <UserPageOverlay />
       <ToastLayer />
     </div>
   );

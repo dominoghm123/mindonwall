@@ -32,6 +32,8 @@ export interface UIState {
   toolbarPanel: 'image' | 'paper' | 'stamp' | null;
   /** v0.3: 通过分享链接打开的墙数据（待用户确认导入） */
   sharedImport: SharedWallPayload | null;
+  /** v0.3 P3: 全屏用户页面（Profile / Materials / Settings） */
+  page: 'profile' | 'materials' | 'settings' | null;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -75,6 +77,8 @@ export interface UIState {
   closeToolbarPanel: () => void;
   /** v0.3: 设置分享导入数据 */
   setSharedImport: (payload: SharedWallPayload | null) => void;
+  /** v0.3 P3: 打开/关闭用户页面 */
+  openPage: (page: 'profile' | 'materials' | 'settings' | null) => void;
 }
 
 let toastCounter = 0;
@@ -93,6 +97,7 @@ export const useUIStore = create<UIState>()(
       ropeMode: false,
       toolbarPanel: null,
       sharedImport: null,
+      page: null,
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });
@@ -193,6 +198,10 @@ export const useUIStore = create<UIState>()(
 
       setSharedImport: (payload: SharedWallPayload | null) => {
         set({ sharedImport: payload });
+      },
+
+      openPage: (page) => {
+        set({ page });
       },
     }),
     {

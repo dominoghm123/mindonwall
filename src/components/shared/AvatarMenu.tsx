@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUIStore } from '../../store/useUIStore';
+import { useOverviewStore } from '../../store/useOverviewStore';
 
 /**
  * 头像入口（v0.2）。
@@ -9,7 +10,8 @@ import { useUIStore } from '../../store/useUIStore';
 export function AvatarMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const showToast = useUIStore((s) => s.showToast);
+  const openPage = useUIStore((s) => s.openPage);
+  const userName = useOverviewStore((s) => s.userName);
 
   // 点击外部 / Esc 关闭
   useEffect(() => {
@@ -36,15 +38,15 @@ export function AvatarMenu() {
 
   const handleAction = (key: string) => {
     setOpen(false);
-    // v0.2：功能占位，后续迭代接入
-    showToast(`${items.find((i) => i.key === key)?.label ?? ''} coming soon`, 'info');
+    // v0.3 P3：打开全屏用户页面
+    openPage(key as 'profile' | 'materials' | 'settings');
   };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {/* 头像（28px 圆形，字母 U） */}
+      {/* 头像（28px 圆形，昵称首字母） */}
       <div
-        title="User"
+        title={userName}
         onClick={() => setOpen((o) => !o)}
         style={{
           width: 28,
@@ -62,7 +64,7 @@ export function AvatarMenu() {
           boxSizing: 'border-box',
         }}
       >
-        U
+        {(userName.trim()[0] ?? 'U').toUpperCase()}
       </div>
 
       {/* 下拉菜单 */}
