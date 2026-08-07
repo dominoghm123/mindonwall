@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOverviewStore } from '../../store/useOverviewStore';
 import { useUIStore } from '../../store/useUIStore';
+import { useWallStore } from '../../store/useWallStore';
+import { useAssetStore } from '../../store/useAssetStore';
 import { getWallpaperStyle } from '../../utils/wallpaperCSS';
 import { AvatarMenu } from '../shared/AvatarMenu';
+import { buildShareUrl, copyShareUrl } from '../../utils/shareWall';
 import type { WallSummary } from '../../store/types';
 
 /**
@@ -54,7 +57,7 @@ export function OverviewPage() {
   );
 
   const handleMenuAction = useCallback(
-    (action: string, wall: WallSummary) => {
+    async (action: string, wall: WallSummary) => {
       setMenu(null);
       switch (action) {
         case 'duplicate':
@@ -65,9 +68,26 @@ export function OverviewPage() {
           exportWallJSON(wall.id);
           showToast('JSON exported', 'success');
           break;
-        case 'share':
-          showToast('Link copied', 'success');
+        case 'share': {
+          // v0.3: 生成真实分享链接（当前编辑中的墙先快照）
+          const overview = useOverviewStore.getState();
+          if (useWallStore.getState().wallId === wall.id) overview.captureCurrentWall();
+          const data = useOverviewStore.getState().wallData[wall.id];
+          if (!data) {
+            showToast('Nothing to share yet', 'warning');
+            break;
+          }
+          const url = buildShareUrl({
+            name: data.name,
+            wallpaper: data.wallpaper,
+            items: data.items,
+            ropes: data.ropes,
+            assets: useAssetStore.getState().assets,
+          });
+          const ok = await copyShareUrl(url);
+          showToast(ok ? 'Share link copied' : 'Copy failed', ok ? 'success' : 'error');
           break;
+        }
         case 'delete':
           setConfirm({ ids: [wall.id] });
           break;

@@ -3,7 +3,11 @@ import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
 import { useMapStore } from '../../store/useMapStore';
+import { useAssetStore } from '../../store/useAssetStore';
 import { AvatarMenu } from '../shared/AvatarMenu';
+import { captureWallSpreadPng, downloadDataUrl } from '../../utils/exportImage';
+import { exportPdfFromDataUrl } from '../../utils/exportPdf';
+import { buildShareUrl, copyShareUrl } from '../../utils/shareWall';
 
 /**
  * 40px 高顶部栏，默认隐藏，鼠标触顶滑入。
@@ -30,6 +34,62 @@ export function TopBar({ zoom }: { zoom?: number }) {
   const canRedo = isMap ? mapCanRedo : wallCanRedo;
   const setViewMode = useUIStore((s) => s.setViewMode);
   const showToast = useUIStore((s) => s.showToast);
+
+  /* ── v0.3: Export 下拉菜单 + 真实分享 ── */
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) setExportOpen(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [exportOpen]);
+
+  const fileBase = name.replace(/\s+/g, '-').toLowerCase() || 'wall';
+
+  const handleExport = useCallback(
+    async (kind: 'png' | 'pdf') => {
+      setExportOpen(false);
+      if (exporting) return;
+      setExporting(true);
+      try {
+        if (isMap) {
+          showToast('Use Export in the Map toolbar', 'info');
+          return;
+        }
+        const items = useWallStore.getState().items;
+        const dataUrl = await captureWallSpreadPng(items);
+        if (kind === 'png') {
+          downloadDataUrl(dataUrl, `${fileBase}-spread.png`);
+        } else {
+          await exportPdfFromDataUrl(dataUrl, `${fileBase}-spread.pdf`);
+        }
+        showToast(kind === 'png' ? 'PNG exported' : 'PDF exported', 'success');
+      } catch {
+        showToast('Export failed', 'error');
+      } finally {
+        setExporting(false);
+      }
+    },
+    [exporting, isMap, fileBase, showToast],
+  );
+
+  const handleShare = useCallback(async () => {
+    const w = useWallStore.getState();
+    const url = buildShareUrl({
+      name: w.name,
+      wallpaper: w.wallpaper,
+      items: w.items,
+      ropes: w.ropes,
+      assets: useAssetStore.getState().assets,
+    });
+    const ok = await copyShareUrl(url);
+    showToast(ok ? 'Share link copied' : 'Copy failed', ok ? 'success' : 'error');
+  }, [showToast]);
 
   const [visible, setVisible] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -266,9 +326,55 @@ export function TopBar({ zoom }: { zoom?: number }) {
           </button>
         </div>
 
-        {/* Share 按钮（outlined） */}
+        {/* v0.3: Export 下拉（PNG/PDF） */}
+        <div ref={exportRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setExportOpen((o) => !o)}
+            style={{
+              height: 28,
+              padding: '0 12px',
+              fontSize: 12,
+              color: '#333',
+              background: '#FFFFFF',
+              border: '1px solid #D0D0D0',
+              borderRadius: 6,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {exporting ? 'Exporting…' : 'Export ▾'}
+          </button>
+          {exportOpen && (
+            <div
+              data-menu-layer
+              style={{
+                position: 'absolute',
+                top: 32,
+                right: 0,
+                minWidth: 170,
+                background: '#FFFFFF',
+                border: '1px solid #E0E0E0',
+                borderRadius: 8,
+                padding: '4px 0',
+                zIndex: 9999,
+                userSelect: 'none',
+              }}
+            >
+              {isMap ? (
+                <ExportMenuItem label="Use the Map toolbar below" disabled />
+              ) : (
+                <>
+                  <ExportMenuItem label="Spread PNG" onClick={() => handleExport('png')} />
+                  <ExportMenuItem label="Spread PDF" onClick={() => handleExport('pdf')} />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Share 按钮（v0.3：复制真实分享链接） */}
         <button
-          onClick={() => showToast('Share link copied', 'success')}
+          onClick={handleShare}
           style={{
             height: 28,
             padding: '0 12px',
@@ -287,6 +393,41 @@ export function TopBar({ zoom }: { zoom?: number }) {
         {/* 用户头像入口（v0.2：下拉 Profile / Materials / Settings） */}
         <AvatarMenu />
       </div>
+    </div>
+  );
+}
+
+/** Export 菜单项（v0.3） */
+function ExportMenuItem({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      onClick={disabled ? undefined : onClick}
+      style={{
+        height: 32,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 14px',
+        fontSize: 13,
+        color: disabled ? '#AAA' : '#333',
+        cursor: disabled ? 'default' : 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+      }}
+    >
+      {label}
     </div>
   );
 }

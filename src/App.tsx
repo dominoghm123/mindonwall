@@ -21,6 +21,8 @@ import { ContextMenu } from './components/shared/ContextMenu';
 import { AssetPickerModal } from './components/shared/AssetPickerModal';
 import { ToastLayer } from './components/shared/ToastLayer';
 import { ConnectionMapPage } from './components/map/ConnectionMapPage';
+import { SharedWallBanner } from './components/shared/SharedWallBanner';
+import { parseShareHash } from './utils/shareWall';
 
 function App() {
   // Store selectors
@@ -44,6 +46,11 @@ function App() {
   useEffect(() => {
     useOverviewStore.getState().initIfNeeded();
     useWallStore.getState().initDefaultWall();
+    // v0.3: 检测分享链接（#/s/…）→ 弹出导入横幅
+    const shared = parseShareHash();
+    if (shared) {
+      useUIStore.getState().setSharedImport(shared);
+    }
   }, []);
 
   // MultiSelect hook
@@ -176,6 +183,7 @@ function App() {
     return (
       <>
         <OverviewPage />
+        <SharedWallBanner />
         <ToastLayer />
       </>
     );
@@ -187,6 +195,7 @@ function App() {
       <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
         <TopBar />
         <ConnectionMapPage />
+        <SharedWallBanner />
         <ToastLayer />
       </div>
     );
@@ -268,6 +277,7 @@ function App() {
       <ZoomWidget zoom={canvasView.zoom} canvasRef={canvasRef} />
 
       {/* Toast */}
+      <SharedWallBanner />
       <ToastLayer />
     </div>
   );

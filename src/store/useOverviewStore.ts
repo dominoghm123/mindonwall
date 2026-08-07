@@ -4,7 +4,9 @@ import type { WallSummary, WallpaperType, Item, Rope } from './types';
 import { DEFAULT_WALL_ID, DEFAULT_WALL_NAME, DEFAULT_WALLPAPER } from './initialData';
 import { useWallStore } from './useWallStore';
 import { useMapStore } from './useMapStore';
+import { useAssetStore } from './useAssetStore';
 import type { MapViewSnapshot } from './useMapStore';
+import type { SharedWallPayload } from '../utils/shareWall';
 
 /** 持久化的墙数据（v0.2：多墙真正可切换） */
 export interface SavedWallData {
@@ -50,6 +52,8 @@ interface OverviewState {
   duplicateWall: (id: string) => string | null;
   /** 导出墙 JSON（Blob 下载） */
   exportWallJSON: (id: string) => void;
+  /** v0.3: 导入分享链接中的墙（重映射 id，附带素材入素材库），返回新墙 id */
+  importSharedWall: (payload: SharedWallPayload) => string;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -284,6 +288,53 @@ export const useOverviewStore = create<OverviewState>()(
         a.download = `${wall.name.replace(/\s+/g, '-').toLowerCase()}.json`;
         a.click();
         URL.revokeObjectURL(url);
+      },
+
+      importSharedWall: (payload: SharedWallPayload) => {
+        // 1) 附带的用户上传素材入素材库（尊重上限，跳过已存在 id）
+        const assetStore = useAssetStore.getState();
+        for (const asset of payload.assets ?? []) {
+          assetStore.addAsset(asset);
+        }
+
+        // 2) 重映射 item id，避免与本地数据冲突
+        const idMap = new Map<string, string>();
+        const newItems: Item[] = payload.items.map((it) => {
+          const nid = `item-${Date.now()}-${++dupCounter}`;
+          idMap.set(it.id, nid);
+          return { ...it, id: nid };
+        });
+        for (const it of newItems) {
+          if (it.parentId && idMap.has(it.parentId)) {
+            it.parentId = idMap.get(it.parentId);
+          }
+        }
+        const newRopes: Rope[] = payload.ropes.map((r) => ({
+          ...r,
+          id: `rope-${Date.now()}-${++dupCounter}`,
+          fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
+          toItemId: idMap.get(r.toItemId) ?? r.toItemId,
+        }));
+
+        // 3) 创建新墙
+        const newId = `wall-${Date.now()}-${++dupCounter}`;
+        const name = payload.name || 'Shared Wall';
+        set({
+          walls: [
+            ...get().walls,
+            { id: newId, name, wallpaper: payload.wallpaper ?? 'white', itemCount: newItems.length },
+          ],
+          wallData: {
+            ...get().wallData,
+            [newId]: {
+              name,
+              wallpaper: payload.wallpaper ?? 'white',
+              items: newItems,
+              ropes: newRopes,
+            },
+          },
+        });
+        return newId;
       },
     }),
     {

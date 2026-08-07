@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ViewMode, ToastMessage } from './types';
+import type { SharedWallPayload } from '../utils/shareWall';
 
 /** 右键菜单位置 */
 export interface ContextMenuPosition {
@@ -29,6 +30,8 @@ export interface UIState {
   ropeMode: boolean;
   /** v0.2: 底部工具栏当前打开的次级面板（同时只能开一个） */
   toolbarPanel: 'image' | 'paper' | 'stamp' | null;
+  /** v0.3: 通过分享链接打开的墙数据（待用户确认导入） */
+  sharedImport: SharedWallPayload | null;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -70,6 +73,8 @@ export interface UIState {
   toggleToolbarPanel: (panel: 'image' | 'paper' | 'stamp') => void;
   /** v0.2: 关闭次级面板 */
   closeToolbarPanel: () => void;
+  /** v0.3: 设置分享导入数据 */
+  setSharedImport: (payload: SharedWallPayload | null) => void;
 }
 
 let toastCounter = 0;
@@ -87,6 +92,7 @@ export const useUIStore = create<UIState>()(
       ropeCreating: false,
       ropeMode: false,
       toolbarPanel: null,
+      sharedImport: null,
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });
@@ -183,6 +189,10 @@ export const useUIStore = create<UIState>()(
 
       closeToolbarPanel: () => {
         set({ toolbarPanel: null });
+      },
+
+      setSharedImport: (payload: SharedWallPayload | null) => {
+        set({ sharedImport: payload });
       },
     }),
     {

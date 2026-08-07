@@ -4,6 +4,7 @@ import { useMapStore } from '../../store/useMapStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useAssetStore } from '../../store/useAssetStore';
 import { captureNodePng } from '../../utils/exportImage';
+import { exportPdfFromDataUrl } from '../../utils/exportPdf';
 import type { Item } from '../../store/types';
 
 /**
@@ -159,7 +160,7 @@ export function ConnectionMapPage() {
     [dragPos, updateNodePosition],
   );
 
-  /* ── PNG 导出 ── */
+  /* ── PNG / PDF 导出 ── */
   const handleExport = useCallback(async () => {
     if (!contentRef.current || exporting) return;
     setExporting(true);
@@ -170,6 +171,23 @@ export function ConnectionMapPage() {
       a.download = `${wallName.replace(/\s+/g, '-').toLowerCase()}-connection-map.png`;
       a.click();
       showToast('Connection Map exported', 'success');
+    } catch {
+      showToast('Export failed', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, wallName, showToast]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!contentRef.current || exporting) return;
+    setExporting(true);
+    try {
+      const dataUrl = await captureNodePng(contentRef.current);
+      await exportPdfFromDataUrl(
+        dataUrl,
+        `${wallName.replace(/\s+/g, '-').toLowerCase()}-connection-map.pdf`,
+      );
+      showToast('PDF exported', 'success');
     } catch {
       showToast('Export failed', 'error');
     } finally {
@@ -346,6 +364,11 @@ export function ConnectionMapPage() {
           disabled={exporting}
           onClick={handleExport}
           primary
+        />
+        <MapButton
+          label="Export PDF"
+          disabled={exporting}
+          onClick={handleExportPdf}
         />
       </div>
     </div>
