@@ -363,8 +363,9 @@ function WallCard({
             bottom: 8,
             width: 26,
             height: 26,
-            border: '1px solid #E5E5E5',
-            background: 'rgba(255,255,255,0.92)',
+            // v0.2 修订：去掉圈线边框，只留三点图标
+            border: 'none',
+            background: 'transparent',
             cursor: 'pointer',
             fontSize: 14,
             color: '#666',
