@@ -245,4 +245,16 @@ export const zhCN: Record<TKey, string> = {
   'toast.imageTooLarge': '图片过大（最大 {n} MB）',
   'toast.dataExported': '数据已导出',
   'toast.resetDone': '应用已重置',
+
+  /* ── v0.4: Project ── */
+  'project.new': '新建项目',
+  'project.newPlaceholder': '项目名称',
+  'project.uncategorized': '未分类',
+  'project.rename': '重命名项目',
+  'project.delete': '删除项目',
+  'project.moveTo': '移动到',
+  'project.walls': '{n} 面墙',
+  'toast.projectCreated': '项目已创建',
+  'toast.projectDeleted': '项目已删除',
+  'toast.wallMoved': '墙面已移动到项目',
 };

@@ -263,6 +263,18 @@ export const en = {
   'toast.imageTooLarge': 'Image too large (max {n} MB)',
   'toast.dataExported': 'Data exported',
   'toast.resetDone': 'App reset',
+
+  /* ── v0.4: Project ── */
+  'project.new': 'New Project',
+  'project.newPlaceholder': 'Project name',
+  'project.uncategorized': 'Uncategorized',
+  'project.rename': 'Rename Project',
+  'project.delete': 'Delete Project',
+  'project.moveTo': 'Move to',
+  'project.walls': '{n} walls',
+  'toast.projectCreated': 'Project created',
+  'toast.projectDeleted': 'Project deleted',
+  'toast.wallMoved': 'Wall moved to project',
 } as const;
 
 export type TKey = keyof typeof en;

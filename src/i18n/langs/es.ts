@@ -245,4 +245,15 @@ export const es: Record<TKey, string> = {
   'toast.imageTooLarge': 'Imagen demasiado grande (máx. {n} MB)',
   'toast.dataExported': 'Datos exportados',
   'toast.resetDone': 'Aplicación restablecida',
+  
+    'project.new': 'Nuevo proyecto',
+    'project.newPlaceholder': 'Nombre del proyecto',
+    'project.uncategorized': 'Sin categoría',
+    'project.rename': 'Renombrar proyecto',
+    'project.delete': 'Eliminar proyecto',
+    'project.moveTo': 'Mover a',
+    'project.walls': '{n} muros',
+    'toast.projectCreated': 'Proyecto creado',
+    'toast.projectDeleted': 'Proyecto eliminado',
+    'toast.wallMoved': 'Muro movido al proyecto',
 };

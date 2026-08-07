@@ -245,4 +245,15 @@ export const ja: Record<TKey, string> = {
   'toast.imageTooLarge': '画像が大きすぎます（最大 {n} MB）',
   'toast.dataExported': 'データをエクスポートしました',
   'toast.resetDone': 'アプリをリセットしました',
+  
+    'project.new': '新規プロジェクト',
+    'project.newPlaceholder': 'プロジェクト名',
+    'project.uncategorized': '未分類',
+    'project.rename': 'プロジェクト名を変更',
+    'project.delete': 'プロジェクトを削除',
+    'project.moveTo': '移動先',
+    'project.walls': '{n} 枚のウォール',
+    'toast.projectCreated': 'プロジェクトを作成しました',
+    'toast.projectDeleted': 'プロジェクトを削除しました',
+    'toast.wallMoved': 'ウォールをプロジェクトに移動しました',
 };

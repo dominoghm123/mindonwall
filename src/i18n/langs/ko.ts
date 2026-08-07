@@ -245,4 +245,15 @@ export const ko: Record<TKey, string> = {
   'toast.imageTooLarge': '이미지가 너무 큽니다 (최대 {n} MB)',
   'toast.dataExported': '데이터를 내보냈습니다',
   'toast.resetDone': '앱이 재설정되었습니다',
+  
+    'project.new': '새 프로젝트',
+    'project.newPlaceholder': '프로젝트 이름',
+    'project.uncategorized': '미분류',
+    'project.rename': '프로젝트 이름 변경',
+    'project.delete': '프로젝트 삭제',
+    'project.moveTo': '이동',
+    'project.walls': '{n}개 월',
+    'toast.projectCreated': '프로젝트가 생성되었습니다',
+    'toast.projectDeleted': '프로젝트가 삭제되었습니다',
+    'toast.wallMoved': '월이 프로젝트로 이동되었습니다',
 };

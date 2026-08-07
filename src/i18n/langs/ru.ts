@@ -245,4 +245,15 @@ export const ru: Record<TKey, string> = {
   'toast.imageTooLarge': 'Изображение слишком большое (макс. {n} МБ)',
   'toast.dataExported': 'Данные экспортированы',
   'toast.resetDone': 'Приложение сброшено',
+  
+    'project.new': 'Новый проект',
+    'project.newPlaceholder': 'Название проекта',
+    'project.uncategorized': 'Без категории',
+    'project.rename': 'Переименовать проект',
+    'project.delete': 'Удалить проект',
+    'project.moveTo': 'Переместить в',
+    'project.walls': '{n} стен',
+    'toast.projectCreated': 'Проект создан',
+    'toast.projectDeleted': 'Проект удалён',
+    'toast.wallMoved': 'Стена перемещена в проект',
 };

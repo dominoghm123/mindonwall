@@ -245,4 +245,15 @@ export const zhTW: Record<TKey, string> = {
   'toast.imageTooLarge': '圖片過大（最大 {n} MB）',
   'toast.dataExported': '資料已匯出',
   'toast.resetDone': '應用已重設',
+  
+    'project.new': '新建項目',
+    'project.newPlaceholder': '項目名稱',
+    'project.uncategorized': '未分類',
+    'project.rename': '重新命名項目',
+    'project.delete': '刪除項目',
+    'project.moveTo': '移動到',
+    'project.walls': '{n} 面牆',
+    'toast.projectCreated': '項目已創建',
+    'toast.projectDeleted': '項目已刪除',
+    'toast.wallMoved': '牆面已移動到項目',
 };
