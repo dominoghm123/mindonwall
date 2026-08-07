@@ -92,6 +92,7 @@ interface BottomToolbarProps {
 export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   const toolbarPanel = useUIStore((s) => s.toolbarPanel);
   const toggleToolbarPanel = useUIStore((s) => s.toggleToolbarPanel);
+  const closeToolbarPanel = useUIStore((s) => s.closeToolbarPanel);
   const ropeMode = useUIStore((s) => s.ropeMode);
   const setRopeMode = useUIStore((s) => s.setRopeMode);
   const showToast = useUIStore((s) => s.showToast);
@@ -119,6 +120,17 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     return () => document.removeEventListener('mousemove', onMove);
   }, []);
   const shown = hoverVisible || toolbarPanel !== null || ropeMode;
+
+  /* ── v0.2：面板打开时，点击工具栏/面板以外的任意位置关闭次级浮窗 ── */
+  useEffect(() => {
+    if (!toolbarPanel) return;
+    const onDown = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      if (!el.closest('[data-toolbar-ui]')) closeToolbarPanel();
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [toolbarPanel, closeToolbarPanel]);
 
   /** 计算视口中心对应的画布坐标 */
   const canvasCenter = useCallback(() => {

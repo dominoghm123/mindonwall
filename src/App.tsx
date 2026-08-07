@@ -105,6 +105,23 @@ function App() {
     [ropeCreation],
   );
 
+  // v0.2：点击空白处清除选中（尺寸框消失）。物件自身 pointerdown 已 stopPropagation，
+  // 这里只会收到空白/浮窗/菜单上的点击
+  const handleBlankPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest(
+          '[data-item-id], [data-toolbar-ui], [data-menu-layer], #top-bar',
+        )
+      ) {
+        return;
+      }
+      uiStore.clearSelection();
+    },
+    [uiStore],
+  );
+
   // Keyboard hook
   useKeyboard({
     uiStore,
@@ -157,6 +174,7 @@ function App() {
     <div
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
       onPointerDownCapture={handleRootPointerDownCapture}
+      onPointerDown={handleBlankPointerDown}
     >
       {/* TopBar */}
       <TopBar zoom={canvasView.zoom} />

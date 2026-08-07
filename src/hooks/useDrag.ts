@@ -5,6 +5,8 @@ interface UseDragOptions {
   y: number;
   /** 画布缩放（屏幕像素 delta 需除以 zoom 才是画布坐标位移） */
   zoom?: number;
+  /** 拖拽过程中实时位置回调（v0.2：用于 rope 跟随，不入 undo） */
+  onDragMove?: (pos: { x: number; y: number }) => void;
   /** 拖拽结束时回调，返回新位置和起始位置（用于 undo） */
   onDragEnd?: (newPos: { x: number; y: number }, startPos: { x: number; y: number }) => void;
 }
@@ -15,7 +17,7 @@ interface UseDragOptions {
  * - 拖拽结束时通过 onDragEnd 回调，由父组件记录 undo
  * - 屏幕像素 delta 除以 zoom 转换为画布坐标，实现任意缩放下零延迟跟随
  */
-export function useDrag({ x, y, zoom = 1, onDragEnd }: UseDragOptions) {
+export function useDrag({ x, y, zoom = 1, onDragMove, onDragEnd }: UseDragOptions) {
   const [pos, setPos] = useState({ x, y });
   const dragRef = useRef<{
     startX: number;
@@ -27,6 +29,8 @@ export function useDrag({ x, y, zoom = 1, onDragEnd }: UseDragOptions) {
   } | null>(null);
   const onDragEndRef = useRef(onDragEnd);
   onDragEndRef.current = onDragEnd;
+  const onDragMoveRef = useRef(onDragMove);
+  onDragMoveRef.current = onDragMove;
 
   // zoom 通过 ref 保持最新，供 pointerdown 时快照
   const zoomRef = useRef(zoom);
@@ -65,7 +69,10 @@ export function useDrag({ x, y, zoom = 1, onDragEnd }: UseDragOptions) {
     const dx = (e.clientX - d.startX) / d.zoom;
     const dy = (e.clientY - d.startY) / d.zoom;
     if (Math.abs(dx) > 2 / d.zoom || Math.abs(dy) > 2 / d.zoom) d.moved = true;
-    setPos({ x: d.itemX + dx, y: d.itemY + dy });
+    const next = { x: d.itemX + dx, y: d.itemY + dy };
+    setPos(next);
+    // v0.2：实时同步位置，让连接该物件的 rope 跟随移动
+    if (d.moved) onDragMoveRef.current?.(next);
   }, []);
 
   const handlePointerUp = useCallback(

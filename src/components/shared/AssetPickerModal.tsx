@@ -39,6 +39,7 @@ export function AssetPickerModal() {
 
   return (
     <div
+      data-menu-layer
       onClick={handleBackdropClick}
       style={{
         position: 'fixed',

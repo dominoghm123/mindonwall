@@ -78,6 +78,17 @@ export function ObjectWrapper({
     x: item.x,
     y: item.y,
     zoom,
+    // v0.2：拖拽中实时写 store（不碰 undo 栈），让 rope 跟随移动
+    onDragMove: useCallback(
+      (pos: { x: number; y: number }) => {
+        useWallStore.setState((state) => ({
+          items: state.items.map((i) =>
+            i.id === item.id ? { ...i, x: pos.x, y: pos.y } : i,
+          ),
+        }));
+      },
+      [item.id],
+    ),
     onDragEnd: useCallback(
       (newPos: { x: number; y: number }, startPos: { x: number; y: number }) => {
         // 直接设置最终位置并记录正确的 undo（before=startPos, after=newPos）

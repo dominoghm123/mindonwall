@@ -77,6 +77,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
     return (
       <div
         ref={menuRef}
+        data-menu-layer
         style={{
           position: 'fixed',
           left: contextMenu.x,
@@ -115,6 +116,7 @@ export function ContextMenu({ zoom = 1 }: ContextMenuProps) {
   return (
     <div
       ref={menuRef}
+      data-menu-layer
       style={{
         position: 'fixed',
         left: x,

@@ -51,6 +51,7 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
 
   return (
     <div
+      data-toolbar-ui
       onMouseLeave={(e) => {
         // 离开浮窗且不在右下角触发区时隐藏
         const inCorner =
