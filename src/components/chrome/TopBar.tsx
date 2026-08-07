@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useWallStore } from '../../store/useWallStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
+import { useMapStore } from '../../store/useMapStore';
 import { AvatarMenu } from '../shared/AvatarMenu';
 
 /**
@@ -12,10 +13,21 @@ export function TopBar({ zoom }: { zoom?: number }) {
   void zoom;
   const name = useWallStore((s) => s.name);
   const renameWall = useWallStore((s) => s.renameWall);
-  const undo = useWallStore((s) => s.undo);
-  const redo = useWallStore((s) => s.redo);
-  const canUndo = useWallStore((s) => s.undoStack.length > 0);
-  const canRedo = useWallStore((s) => s.redoStack.length > 0);
+  const viewMode = useUIStore((s) => s.viewMode);
+  // v0.3: Map 视图下 Undo/Redo 走 Map 独立撤销栈
+  const isMap = viewMode === 'map';
+  const wallUndo = useWallStore((s) => s.undo);
+  const wallRedo = useWallStore((s) => s.redo);
+  const mapUndo = useMapStore((s) => s.mapUndo);
+  const mapRedo = useMapStore((s) => s.mapRedo);
+  const wallCanUndo = useWallStore((s) => s.undoStack.length > 0);
+  const wallCanRedo = useWallStore((s) => s.redoStack.length > 0);
+  const mapCanUndo = useMapStore((s) => s.undoStack.length > 0);
+  const mapCanRedo = useMapStore((s) => s.redoStack.length > 0);
+  const undo = isMap ? mapUndo : wallUndo;
+  const redo = isMap ? mapRedo : wallRedo;
+  const canUndo = isMap ? mapCanUndo : wallCanUndo;
+  const canRedo = isMap ? mapCanRedo : wallCanRedo;
   const setViewMode = useUIStore((s) => s.setViewMode);
   const showToast = useUIStore((s) => s.showToast);
 
@@ -177,6 +189,30 @@ export function TopBar({ zoom }: { zoom?: number }) {
             {name}
           </span>
         )}
+
+        {/* v0.3: Wall / Connection Map 视图 Tab */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            marginLeft: 8,
+            background: '#F5F5F5',
+            borderRadius: 7,
+            padding: 2,
+          }}
+        >
+          <TabButton
+            label="Wall"
+            active={viewMode === 'wall'}
+            onClick={() => setViewMode('wall')}
+          />
+          <TabButton
+            label="Connection Map"
+            active={isMap}
+            onClick={() => setViewMode('map')}
+          />
+        </div>
       </div>
 
       {/* 右区（v0.2：Saved + Undo/Redo + Share + 头像） */}
@@ -252,6 +288,37 @@ export function TopBar({ zoom }: { zoom?: number }) {
         <AvatarMenu />
       </div>
     </div>
+  );
+}
+
+/** 视图 Tab 按钮样式（v0.3） */
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        height: 22,
+        padding: '0 10px',
+        fontSize: 11,
+        fontWeight: active ? 700 : 500,
+        color: active ? '#333' : '#888',
+        background: active ? '#FFFFFF' : 'transparent',
+        border: active ? '1px solid #E0E0E0' : '1px solid transparent',
+        borderRadius: 5,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

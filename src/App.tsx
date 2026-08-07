@@ -20,6 +20,7 @@ import { StampObject } from './components/objects/StampObject';
 import { ContextMenu } from './components/shared/ContextMenu';
 import { AssetPickerModal } from './components/shared/AssetPickerModal';
 import { ToastLayer } from './components/shared/ToastLayer';
+import { ConnectionMapPage } from './components/map/ConnectionMapPage';
 
 function App() {
   // Store selectors
@@ -177,6 +178,17 @@ function App() {
         <OverviewPage />
         <ToastLayer />
       </>
+    );
+  }
+
+  // v0.3: Render Connection Map view（不渲染画布与工具栏）
+  if (viewMode === 'map') {
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+        <TopBar />
+        <ConnectionMapPage />
+        <ToastLayer />
+      </div>
     );
   }
 

@@ -14,7 +14,7 @@ interface ZoomWidgetProps {
  * 纯白实色 + 1px border，无阴影。
  */
 export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
-  const showToast = useUIStore((s) => s.showToast);
+  const setViewMode = useUIStore((s) => s.setViewMode);
   const [visible, setVisible] = useState(false);
 
   /* ── 度数可编辑（v0.2 修订） ── */
@@ -145,10 +145,10 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
         Fit
       </button>
 
-      {/* Map（v0.3 功能，先占位） */}
+      {/* Map（v0.3：切换到 Connection Map 视图） */}
       <WidgetButton
-        title="Connection Map (coming in v0.3)"
-        onClick={() => showToast('Connection Map coming in v0.3', 'info')}
+        title="Connection Map"
+        onClick={() => setViewMode('map')}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="4" cy="4" r="2" stroke="#666" strokeWidth="1" />

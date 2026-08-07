@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import type { WallSummary, WallpaperType, Item, Rope } from './types';
 import { DEFAULT_WALL_ID, DEFAULT_WALL_NAME, DEFAULT_WALLPAPER } from './initialData';
 import { useWallStore } from './useWallStore';
+import { useMapStore } from './useMapStore';
+import type { MapViewSnapshot } from './useMapStore';
 
 /** 持久化的墙数据（v0.2：多墙真正可切换） */
 export interface SavedWallData {
@@ -10,6 +12,8 @@ export interface SavedWallData {
   wallpaper: WallpaperType;
   items: Item[];
   ropes: Rope[];
+  /** v0.3: Connection Map 视图快照（不写回白墙） */
+  mapView?: MapViewSnapshot;
 }
 
 let dupCounter = 0;
@@ -149,6 +153,8 @@ export const useOverviewStore = create<OverviewState>()(
           wallpaper: w.wallpaper,
           items: w.items,
           ropes: w.ropes,
+          // v0.3: 同步保存 Map 视图快照
+          mapView: useMapStore.getState().getSnapshot(),
         });
         // 同步摘要的名称与计数
         set({
@@ -174,6 +180,8 @@ export const useOverviewStore = create<OverviewState>()(
             items: data.items,
             ropes: data.ropes,
           });
+          // v0.3: 恢复目标墙的 Map 快照
+          useMapStore.getState().loadForWall(data.mapView);
         } else if (currentId !== id) {
           // 未保存过数据的墙（如新建）→ 空墙
           const wall = get().walls.find((w) => w.id === id);
@@ -184,6 +192,7 @@ export const useOverviewStore = create<OverviewState>()(
             items: [],
             ropes: [],
           });
+          useMapStore.getState().loadForWall();
         }
       },
 
@@ -214,6 +223,20 @@ export const useOverviewStore = create<OverviewState>()(
           fromItemId: idMap.get(r.fromItemId) ?? r.fromItemId,
           toItemId: idMap.get(r.toItemId) ?? r.toItemId,
         }));
+        // v0.3: Map 快照中的节点位置同步重映射 id
+        const srcMapView = src?.mapView;
+        const newMapView: MapViewSnapshot | undefined = srcMapView
+          ? {
+              nodePositions: Object.fromEntries(
+                Object.entries(srcMapView.nodePositions)
+                  .filter(([k]) => idMap.has(k))
+                  .map(([k, v]) => [idMap.get(k)!, v]),
+              ),
+              hiddenChildren: srcMapView.hiddenChildren
+                .filter((k) => idMap.has(k))
+                .map((k) => idMap.get(k)!),
+            }
+          : undefined;
 
         const newId = `wall-${Date.now()}-${++dupCounter}`;
         set({
@@ -228,6 +251,7 @@ export const useOverviewStore = create<OverviewState>()(
               wallpaper: src?.wallpaper ?? wall.wallpaper,
               items: newItems,
               ropes: newRopes,
+              mapView: newMapView,
             },
           },
         });
