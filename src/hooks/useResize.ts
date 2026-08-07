@@ -22,7 +22,7 @@ interface UseResizeOptions {
 
 /**
  * 物件缩放 hook。
- * - 四角手柄：等比缩放（默认）
+ * - 四角手柄：两轴独立缩放（v0.2 修订：单向拉伸不联动另一轴）
  * - 四边手柄：单独拉伸宽或高
  * - 拖拽手柄时提供实时尺寸反馈
  */
@@ -85,21 +85,17 @@ export function useResize({ width, height, x, y, zoom = 1, onResizeEnd }: UseRes
     let newY = r.iy;
 
     if (isCorner) {
-      // 等比缩放：取较大轴的缩放比例
-      let scaleX = 0;
-      let scaleY = 0;
-      if (r.dir.includes('e')) scaleX = dx / r.w;
-      else if (r.dir.includes('w')) scaleX = -dx / r.w;
-      if (r.dir.includes('s')) scaleY = dy / r.h;
-      else if (r.dir.includes('n')) scaleY = -dy / r.h;
-
-      const scale = Math.abs(scaleX) >= Math.abs(scaleY) ? scaleX : scaleY;
-      newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w * (1 + scale)));
-      newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h * (1 + scale)));
-
-      // 锚定对角
-      if (r.dir.includes('w')) newX = r.ix + (r.w - newW);
-      if (r.dir.includes('n')) newY = r.iy + (r.h - newH);
+      // 角手柄：两轴独立缩放（不联动）
+      if (r.dir.includes('e')) newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w + dx));
+      else if (r.dir.includes('w')) {
+        newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w - dx));
+        newX = r.ix + (r.w - newW);
+      }
+      if (r.dir.includes('s')) newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h + dy));
+      else if (r.dir.includes('n')) {
+        newH = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.h - dy));
+        newY = r.iy + (r.h - newH);
+      }
     } else {
       // 边手柄：单独拉伸
       if (r.dir === 'e') newW = Math.max(MIN_SIZE, Math.min(MAX_SIZE, r.w + dx));

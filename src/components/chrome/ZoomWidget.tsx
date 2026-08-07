@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { InfiniteCanvasHandle } from '../canvas/InfiniteCanvas';
 import { useUIStore } from '../../store/useUIStore';
 
@@ -16,6 +16,27 @@ interface ZoomWidgetProps {
 export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
   const showToast = useUIStore((s) => s.showToast);
   const [visible, setVisible] = useState(false);
+
+  /* ── 度数可编辑（v0.2 修订） ── */
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const percent = Math.round(zoom * 100);
+
+  const commitEdit = () => {
+    const n = parseInt(editValue, 10);
+    if (!isNaN(n)) canvasRef.current?.setZoomTo(Math.max(20, Math.min(300, n)));
+    setEditing(false);
+  };
+
+  const startEdit = () => {
+    setEditValue(String(percent));
+    setEditing(true);
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+  };
 
   // 鼠标接近右下角时显示
   useEffect(() => {
@@ -54,28 +75,52 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
         transition: 'transform 0.25s ease',
       }}
     >
-      {/* Zoom out */}
-      <WidgetButton title="Zoom out" onClick={() => canvasRef.current?.zoomOut()}>
+      {/* Zoom out（v0.2 修订：每次 1%） */}
+      <WidgetButton title="Zoom out 1%" onClick={() => canvasRef.current?.zoomStep(-1)}>
         −
       </WidgetButton>
 
-      {/* 百分比（点击重置 100%） */}
-      <div
-        onClick={() => canvasRef.current?.resetZoom()}
-        title="Reset to 100%"
-        style={{
-          minWidth: 44,
-          textAlign: 'center',
-          fontSize: 12,
-          color: '#666',
-          cursor: 'pointer',
-        }}
-      >
-        {Math.round(zoom * 100)}%
-      </div>
+      {/* 百分比：单击编辑度数，双击重置 100% */}
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value.replace(/[^0-9]/g, ''))}
+          onBlur={commitEdit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitEdit();
+            if (e.key === 'Escape') setEditing(false);
+          }}
+          style={{
+            width: 40,
+            fontSize: 12,
+            color: '#333',
+            border: '1px solid #D0D0D0',
+            borderRadius: 4,
+            padding: '1px 4px',
+            outline: 'none',
+            textAlign: 'center',
+          }}
+        />
+      ) : (
+        <div
+          onClick={startEdit}
+          onDoubleClick={() => canvasRef.current?.resetZoom()}
+          title="Click to edit, double-click to reset to 100%"
+          style={{
+            minWidth: 44,
+            textAlign: 'center',
+            fontSize: 12,
+            color: '#666',
+            cursor: 'pointer',
+          }}
+        >
+          {percent}%
+        </div>
+      )}
 
-      {/* Zoom in */}
-      <WidgetButton title="Zoom in" onClick={() => canvasRef.current?.zoomIn()}>
+      {/* Zoom in（v0.2 修订：每次 1%） */}
+      <WidgetButton title="Zoom in 1%" onClick={() => canvasRef.current?.zoomStep(1)}>
         +
       </WidgetButton>
 

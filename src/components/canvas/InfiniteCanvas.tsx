@@ -18,6 +18,10 @@ interface InfiniteCanvasProps {
 export interface InfiniteCanvasHandle {
   zoomIn: () => void;
   zoomOut: () => void;
+  /** 按绝对百分比步长缩放（如 +1/-1 = ±1%） */
+  zoomStep: (deltaPct: number) => void;
+  /** 直接设置缩放百分比（如 100 = 100%） */
+  setZoomTo: (pct: number) => void;
   resetZoom: () => void;
   fitContent: () => void;
 }
@@ -56,6 +60,8 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const item of items) {
+      // 附着的子物件用比例坐标，不计入包围盒（v0.2）
+      if (item.parentId) continue;
       minX = Math.min(minX, item.x);
       minY = Math.min(minY, item.y);
       maxX = Math.max(maxX, item.x + item.width);
@@ -156,6 +162,34 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
   useImperativeHandle(ref, () => ({
     zoomIn: () => applyZoomAtCenter(1.2),
     zoomOut: () => applyZoomAtCenter(1 / 1.2),
+    zoomStep: (deltaPct: number) => {
+      const container = containerRef.current;
+      const cx = container ? container.clientWidth / 2 : 0;
+      const cy = container ? container.clientHeight / 2 : 0;
+      setZoom((prevZoom) => {
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevZoom + deltaPct / 100));
+        const ratio = newZoom / prevZoom;
+        setPan((prevPan) => ({
+          x: cx - ratio * (cx - prevPan.x),
+          y: cy - ratio * (cy - prevPan.y),
+        }));
+        return newZoom;
+      });
+    },
+    setZoomTo: (pct: number) => {
+      const container = containerRef.current;
+      const cx = container ? container.clientWidth / 2 : 0;
+      const cy = container ? container.clientHeight / 2 : 0;
+      setZoom((prevZoom) => {
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pct / 100));
+        const ratio = newZoom / prevZoom;
+        setPan((prevPan) => ({
+          x: cx - ratio * (cx - prevPan.x),
+          y: cy - ratio * (cy - prevPan.y),
+        }));
+        return newZoom;
+      });
+    },
     resetZoom: () => applyZoomAtCenter('reset'),
     fitContent: () => {
       const container = containerRef.current;
@@ -164,11 +198,14 @@ export const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, InfiniteCanvasPro
       const ch = container.clientHeight;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (const item of items) {
+        // 附着的子物件用比例坐标，不计入包围盒（v0.2）
+        if (item.parentId) continue;
         minX = Math.min(minX, item.x);
         minY = Math.min(minY, item.y);
         maxX = Math.max(maxX, item.x + item.width);
         maxY = Math.max(maxY, item.y + item.height);
       }
+      if (!isFinite(minX)) return;
       const padding = 60;
       const newZoom = Math.max(
         MIN_ZOOM,

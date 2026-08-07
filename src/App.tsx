@@ -205,7 +205,7 @@ function App() {
                   isRopeSource={ropeCreation.ropeSourceId === item.id}
                   onPinRopeClick={ropeCreation.handlePinClick}
                 >
-                  {item.type === 'picture' && <PictureObject item={item} />}
+                  {item.type === 'picture' && <PictureObject item={item} zoom={canvasView.zoom} />}
                   {item.type === 'paper' && (
                     <PaperObject item={item} onTextChange={handleTextChange} zoom={canvasView.zoom} />
                   )}

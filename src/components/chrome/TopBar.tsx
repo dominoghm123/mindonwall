@@ -12,6 +12,10 @@ export function TopBar({ zoom }: { zoom?: number }) {
   void zoom;
   const name = useWallStore((s) => s.name);
   const renameWall = useWallStore((s) => s.renameWall);
+  const undo = useWallStore((s) => s.undo);
+  const redo = useWallStore((s) => s.redo);
+  const canUndo = useWallStore((s) => s.undoStack.length > 0);
+  const canRedo = useWallStore((s) => s.redoStack.length > 0);
   const setViewMode = useUIStore((s) => s.setViewMode);
   const showToast = useUIStore((s) => s.showToast);
 
@@ -127,7 +131,15 @@ export function TopBar({ zoom }: { zoom?: number }) {
           }}
           title="Back"
         >
-          ←
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M9.8 3.2 L5 8 L9.8 12.8"
+              stroke="#333"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
         {/* 墙名 */}
         {editing ? (
@@ -167,7 +179,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
         )}
       </div>
 
-      {/* 右区（v0.2：Saved + Share + 头像） */}
+      {/* 右区（v0.2：Saved + Undo/Redo + Share + 头像） */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* Saved 指示 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -180,6 +192,42 @@ export function TopBar({ zoom }: { zoom?: number }) {
             }}
           />
           <span style={{ fontSize: 10, color: '#999' }}>Saved</span>
+        </div>
+
+        {/* 撤销 / 重做（v0.2：右上角） */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            style={historyBtnStyle(canUndo)}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M6.5 3.5 L3 6.5 L6.5 9.5 M3 6.5 H9.5 A3.5 3.5 0 0 1 9.5 13.5 H6"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            style={historyBtnStyle(canRedo)}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ transform: 'scaleX(-1)' }}>
+              <path
+                d="M6.5 3.5 L3 6.5 L6.5 9.5 M3 6.5 H9.5 A3.5 3.5 0 0 1 9.5 13.5 H6"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Share 按钮（outlined） */}
@@ -205,4 +253,21 @@ export function TopBar({ zoom }: { zoom?: number }) {
       </div>
     </div>
   );
+}
+
+/** 撤销/重做按钮样式 */
+function historyBtnStyle(enabled: boolean): React.CSSProperties {
+  return {
+    width: 26,
+    height: 26,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'none',
+    border: 'none',
+    borderRadius: 6,
+    cursor: enabled ? 'pointer' : 'default',
+    color: enabled ? '#333' : '#CCC',
+    padding: 0,
+  };
 }

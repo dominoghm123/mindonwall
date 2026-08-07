@@ -1,10 +1,7 @@
 import { useRef, useCallback, useMemo } from 'react';
 import type { Item } from '../../store/types';
-import { useWallStore } from '../../store/useWallStore';
-import { useUIStore } from '../../store/useUIStore';
 import { useAssetStore } from '../../store/useAssetStore';
-import { pushUndo, makeMoveItemAction } from '../../store/undoMiddleware';
-import { StampObject } from './StampObject';
+import { AttachedStamps } from './AttachedStamps';
 
 interface PaperObjectProps {
   item: Item;
@@ -15,90 +12,10 @@ interface PaperObjectProps {
 
 /**
  * Paper 4 变体渲染：note / torn / sticky / tape
- * 附着的 Stamp 可拖拽（拖拽后转为绝对坐标更新 store）
+ * 附着的 Stamp 由 AttachedStamps 组件渲染（可拖拽，跟随宿主变换）
  */
 export function PaperObject({ item, onTextChange, zoom = 1 }: PaperObjectProps) {
   const variant = item.variant ?? 'note';
-  const items = useWallStore((s) => s.items);
-  const selectItem = useUIStore((s) => s.selectItem);
-  const selectedIds = useUIStore((s) => s.selectedIds);
-  const openContextMenu = useUIStore((s) => s.openContextMenu);
-
-  // 附着 Stamp 拖拽状态
-  const stampDragRef = useRef<{
-    stampId: string;
-    startClientX: number;
-    startClientY: number;
-    startAbsX: number;
-    startAbsY: number;
-    zoom: number;
-  } | null>(null);
-
-  /** 将 stamp 坐标归一化为绝对画布坐标 */
-  const toAbs = useCallback(
-    (stamp: Item) => {
-      if (stamp.x > 1 || stamp.y > 1) return { x: stamp.x, y: stamp.y };
-      return {
-        x: item.x + stamp.x * item.width,
-        y: item.y + stamp.y * item.height,
-      };
-    },
-    [item.x, item.y, item.width, item.height],
-  );
-
-  const handleStampPointerDown = useCallback(
-    (stamp: Item) => (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      selectItem(stamp.id);
-      const abs = toAbs(stamp);
-      stampDragRef.current = {
-        stampId: stamp.id,
-        startClientX: e.clientX,
-        startClientY: e.clientY,
-        startAbsX: abs.x,
-        startAbsY: abs.y,
-        zoom,
-      };
-      (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    },
-    [selectItem, toAbs, zoom],
-  );
-
-  const handleStampPointerMove = useCallback((e: React.PointerEvent) => {
-    const d = stampDragRef.current;
-    if (!d) return;
-    const dx = (e.clientX - d.startClientX) / d.zoom;
-    const dy = (e.clientY - d.startClientY) / d.zoom;
-    // 实时反馈：直接移动 DOM，不触发 store 写入
-    (e.currentTarget as HTMLElement).style.transform = `translate(${dx}px, ${dy}px)`;
-  }, []);
-
-  const handleStampPointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      const d = stampDragRef.current;
-      if (!d) return;
-      stampDragRef.current = null;
-      (e.currentTarget as HTMLElement).style.transform = '';
-      const dx = (e.clientX - d.startClientX) / d.zoom;
-      const dy = (e.clientY - d.startClientY) / d.zoom;
-      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // 视为点击
-      const newX = d.startAbsX + dx;
-      const newY = d.startAbsY + dy;
-      // 更新 store（绝对坐标）并记录 undo
-      useWallStore.setState((state) => ({
-        items: state.items.map((i) =>
-          i.id === d.stampId ? { ...i, x: newX, y: newY } : i,
-        ),
-        undoStack: pushUndo(
-          state.undoStack,
-          makeMoveItemAction(d.stampId, { x: d.startAbsX, y: d.startAbsY }, { x: newX, y: newY }),
-        ),
-        redoStack: [],
-      }));
-    },
-    [],
-  );
 
   const renderContent = () => {
     switch (variant) {
@@ -117,47 +34,10 @@ export function PaperObject({ item, onTextChange, zoom = 1 }: PaperObjectProps) 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {renderContent()}
-      {/* 渲染附着的 Stamp 子物件（位置跟随 Paper 变换，可拖拽） */}
-      {attachedStampsList(items, item.id).map((stamp) => {
-        // 兼容绝对像素坐标（x > 1）和比例坐标（0-1）
-        const leftPct = stamp.x > 1 ? ((stamp.x - item.x) / item.width) * 100 : stamp.x * 100;
-        const topPct = stamp.y > 1 ? ((stamp.y - item.y) / item.height) * 100 : stamp.y * 100;
-        const isStampSelected = selectedIds.includes(stamp.id);
-        return (
-          <div
-            key={stamp.id}
-            style={{
-              position: 'absolute',
-              left: `${leftPct}%`,
-              top: `${topPct}%`,
-              width: stamp.width,
-              height: stamp.height,
-              pointerEvents: 'auto',
-              cursor: 'move',
-              zIndex: 5,
-              outline: isStampSelected ? '1px dashed #4A90D9' : undefined,
-            }}
-            onPointerDown={handleStampPointerDown(stamp)}
-            onPointerMove={handleStampPointerMove}
-            onPointerUp={handleStampPointerUp}
-            onContextMenu={(e) => {
-              // v0.2：附着 stamp 也有独立右键菜单（改色/解除附着等）
-              e.preventDefault();
-              e.stopPropagation();
-              openContextMenu(stamp.id, e.clientX, e.clientY);
-            }}
-          >
-            <StampObject item={stamp} />
-          </div>
-        );
-      })}
+      {/* 附着的 Stamp 子物件（v0.2：共享组件） */}
+      <AttachedStamps host={item} zoom={zoom} />
     </div>
   );
-}
-
-/** 查找附着在指定 Paper 上的 Stamp */
-function attachedStampsList(items: Item[], paperId: string): Item[] {
-  return items.filter((i) => i.type === 'stamp' && i.parentId === paperId);
 }
 
 /* ─── 普通纸 note（文字随 Paper 同比缩放，支持颜色/图片纸面） ─── */
@@ -185,6 +65,10 @@ function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
         backgroundImage: bgAsset?.dataUrl ? `url(${bgAsset.dataUrl})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        // v0.2：细边框 + 内阴影让白纸在白色墙面上可辨认（文字一定在纸上），
+        // 内阴影随纸面同比缩放，边框保持 1px 不放大
+        border: '1px solid #E3DED2',
+        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03), inset 0 2px 12px rgba(0,0,0,0.05)',
         padding: 16 * ratio,
         boxSizing: 'border-box',
         overflow: 'auto',

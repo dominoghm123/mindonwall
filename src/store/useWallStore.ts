@@ -319,7 +319,8 @@ export const useWallStore = create<WallState>()(
       attachStamp: (stampId: string, paperId: string) => {
         const { items, undoStack } = get();
         const stamp = items.find((i) => i.id === stampId && i.type === 'stamp');
-        const paper = items.find((i) => i.id === paperId && i.type === 'paper');
+        // v0.2：宿主可以是 Paper 或 Picture
+        const paper = items.find((i) => i.id === paperId && (i.type === 'paper' || i.type === 'picture'));
         if (!stamp || !paper) return;
 
         // 计算 Stamp 相对于 Paper 的局部坐标（百分比）

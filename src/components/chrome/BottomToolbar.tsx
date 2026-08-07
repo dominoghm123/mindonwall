@@ -102,11 +102,18 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   const uploadKindRef = useRef<'picture' | 'paper' | 'stamp'>('picture');
   const [paperTab, setPaperTab] = useState<PaperVariant>('note');
 
-  /* ── hover 浮出（v0.2 修订：默认隐藏） ── */
+  /* ── hover 浮出（v0.2 修订：默认隐藏，离开即收回） ── */
   const [hoverVisible, setHoverVisible] = useState(false);
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (e.clientY >= window.innerHeight - 56) setHoverVisible(true);
+      if (e.clientY >= window.innerHeight - 56) {
+        setHoverVisible(true);
+        return;
+      }
+      // 鼠标仍悬停在工具栏/面板上时保持显示
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (el && el.closest('[data-toolbar-ui]')) return;
+      setHoverVisible(false);
     };
     document.addEventListener('mousemove', onMove);
     return () => document.removeEventListener('mousemove', onMove);
@@ -287,10 +294,6 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
 
   return (
     <div
-      onMouseLeave={(e) => {
-        // 鼠标离开工具栏区域且不在屏幕底缘时隐藏
-        if (e.clientY < window.innerHeight - 64) setHoverVisible(false);
-      }}
       style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 340, pointerEvents: 'none', zIndex: 1000 }}
     >
       {/* 次级面板 */}
@@ -423,6 +426,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
 
       {/* 工具栏本体（默认隐藏，hover 从下往上浮出） */}
       <div
+        data-toolbar-ui
         style={{
           position: 'fixed',
           bottom: 24,
@@ -487,6 +491,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div
+      data-toolbar-ui
       style={{
         position: 'fixed',
         bottom: 84,

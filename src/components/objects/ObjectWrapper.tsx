@@ -155,9 +155,9 @@ export function ObjectWrapper({
     [item.id, openContextMenu],
   );
 
-  /* ── 附着模式：点击 Paper 完成附着 ── */
+  /* ── 附着模式：点击 Paper / Picture 完成附着（v0.2） ── */
   const handleClickForAttach = useCallback(() => {
-    if (attachMode && item.type === 'paper') {
+    if (attachMode && (item.type === 'paper' || item.type === 'picture')) {
       attachStamp(attachMode, item.id);
       cancelAttachMode();
     }
@@ -238,9 +238,9 @@ export function ObjectWrapper({
         transform: `rotate(${displayRotation}deg)`,
         zIndex,
         cursor:
-          attachMode && item.type === 'paper' ? 'crosshair' : 'move',
+          attachMode && (item.type === 'paper' || item.type === 'picture') ? 'crosshair' : 'move',
         outline:
-          attachMode && item.type === 'paper'
+          attachMode && (item.type === 'paper' || item.type === 'picture')
             ? '2px dashed #4A90D9'
             : undefined,
       }}

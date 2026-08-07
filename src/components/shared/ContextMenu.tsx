@@ -311,7 +311,7 @@ function StampMenuItems({
   return (
     <>
       {!isAttached && (
-        <MenuItem label="Attach to Paper" onClick={onItemClick(() => startAttachMode(item.id))} />
+        <MenuItem label="Attach to Paper / Photo" onClick={onItemClick(() => startAttachMode(item.id))} />
       )}
       {isAttached && (
         <MenuItem label="Detach" onClick={onItemClick(() => detachStamp(item.id))} />
