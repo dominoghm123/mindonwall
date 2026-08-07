@@ -1,7 +1,7 @@
-# Handover — Mind on Wall v0.2
+# Handover — Mind on Wall v0.2 → v0.3
 
-**最后更新：** 2026-08-07（v0.2 三轮修订全部完成）
-**当前阶段：** ✅ v0.2 完成（首版 A1/A2/A3/B + 两轮用户反馈修订，全部浏览器验证通过，待合入 main）
+**最后更新：** 2026-08-07（v0.2 五轮修订全部完成，下一窗口进入 v0.3）
+**当前阶段：** ✅ v0.2 完成（首版 A1/A2/A3/B + 五轮用户反馈修订，全部浏览器验证通过，待合入 main）
 
 ## 项目一句话
 
@@ -12,7 +12,7 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 | 分支 | 状态 |
 |---|---|
 | `main` | ✅ v0.1 最终版，commit `5ae57bf`，已推送远程，**不可改动** |
-| `feature/v0.2-interactions-chrome` | ✅ v0.2 完成（HEAD `49a2891`），已推送远程 |
+| `feature/v0.2-interactions-chrome` | ✅ v0.2 完成（HEAD `3da603f`），已推送远程 |
 
 ## v0.2 完成记录（2026-08-07）
 
@@ -46,9 +46,26 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 |---|---|
 | `49a2891` | fix(wall): 次级浮窗点外部关闭、点空白清除选中（尺寸框消失）、拖拽中 rope 实时跟随（onDragMove 写 store 不入 undo）、文本编辑态 Delete 只删字符（isContentEditable 守卫） |
 
+### 修订轮 4（rope 颜色/缩放/平移/stamp detach + 默认内容）
+
+| Commit | 内容 |
+|---|---|
+| `b169020` | fix(wall): rope 颜色菜单、以视图中心缩放、空白处平移、stamp detach 修复 |
+| `f5fcc47` | feat(wall): Wall 01 默认叙事内容 |
+
+### 修订轮 5（attach/detach 反馈链 + wheel passive 修复）
+
+用户报告"attach/detach 没实现"。真实事件 QA 证明逻辑本身无故障，根因是**零反馈**（进附着模式/成功/detach 全无提示）+ 约 235 条 passive listener console error。
+
+| Commit | 内容 |
+|---|---|
+| `3da603f` | fix(wall): attach/detach 全链路 toast 反馈（引导/成功/失败/取消）、ESC 与点空白取消附着、InfiniteCanvas 改原生非 passive wheel 监听（console error 235 → 0） |
+
+⚠️ **用户约定（v0.3 第一优先级判断）**：若用户实际体验后仍认为 attach/detach 不可用，则彻底移除 attach 功能——删除 attachMode/startAttachMode/cancelAttachMode/attachStamp/detachStamp、AttachedStamps 组件、ContextMenu 的 Attach/Detach 菜单项、handleClickForAttach，并把现存 parentId 非空的 stamp 迁移为独立物件（比例坐标转绝对坐标）。
+
 QA：每轮均 tsc 无错 + Browser agent 逐项验证全 PASS，console 无 error。
 
-**v0.3 待办**：Project 层级、真实分享后端、PDF 导出、Connection Map；AvatarMenu 三项（Profile/Materials/Settings）接真实功能；次要优化：resize 超 800px 宽高比保持、窄视口总览网格自适应、viewMode 默认总览、清理 QA 残留数据（localStorage 中多出的 rope/改色，可 Undo 或 `localStorage.clear()`）。
+**v0.3 待办**：Project 层级、真实分享后端、PDF 导出、Connection Map；AvatarMenu 三项（Profile/Materials/Settings）接真实功能；次要优化：resize 超 800px 宽高比保持、窄视口总览网格自适应、viewMode 默认总览、清理 QA 残留数据（QA 曾把 item-stamp-01 attach 到 item-paper-note-02，可 Undo 或 `localStorage.clear()`）。
 
 - v0.2 所有改动在 `feature/v0.2-interactions-chrome` 上进行，**不动 main**
 - 回滚方式：`git checkout main` 即回到 v0.1
@@ -177,6 +194,8 @@ src/
 - 图片 URL 必须带扩展名（`.jpg` / `.png`），Vite 对无扩展名路径返回 index.html
 - stampId 带 `stamp-` 前缀，STAMP_MAP key 不带，StampObject 已做 normalize
 - 附着 Stamp 的 x/y 是绝对坐标，PaperObject 渲染时已兼容（x > 1 判断）；附着子物件用比例坐标，不计入 Fit/初始包围盒
+- **附着坐标未钳制**：attach 时 stamp 若在宿主边界外，比例坐标可为负值（渲染在宿主外面），属当前设计行为，若 v0.3 保留 attach 可考虑钳制
+- **React onWheel 是 passive**：React 17+ 把 wheel 以 passive 挂在 root，合成事件里 preventDefault 无效且刷大量 console error；需用原生 `addEventListener('wheel', handler, { passive: false })`（InfiniteCanvas 已改，注意只挂画布容器，勿全局挂以免破坏 Overview 滚动）
 - 含 emoji 的项目路径在 shell 命令中必须完整引用
 - **画布变换层 div 无固有尺寸**（子元素全 absolute），内嵌 svg 用 `width:100%` 会得到 0×0，RopeLayer 已用固定 1px + `overflow:visible` 解决
 - **数据迁移必须放 `if (initialized) return;` 之前**：initialized 已持久化为 true，放在后面的一次性迁移永不执行（墙纸迁移已改为幂等前置检查）
