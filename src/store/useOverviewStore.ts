@@ -142,6 +142,15 @@ export const useOverviewStore = create<OverviewState>()(
         set({
           walls: [...walls, { id, name, wallpaper, itemCount: 0 }],
         });
+        // v0.4: 新墙自动归入 Uncategorized
+        const uc = get().projects.find((p) => p.id === 'project-uncategorized');
+        if (uc) {
+          set({
+            projects: get().projects.map((p) =>
+              p.id === 'project-uncategorized' ? { ...p, wallIds: [...p.wallIds, id] } : p,
+            ),
+          });
+        }
       },
 
       removeWall: (id: string) => {
@@ -155,6 +164,11 @@ export const useOverviewStore = create<OverviewState>()(
         set({
           walls: get().walls.filter((w) => !idSet.has(w.id)),
           wallData,
+          // v0.4: 从所有 project 中清除被删墙的引用
+          projects: get().projects.map((p) => ({
+            ...p,
+            wallIds: p.wallIds.filter((wid) => !idSet.has(wid)),
+          })),
         });
       },
 
@@ -398,6 +412,17 @@ export const useOverviewStore = create<OverviewState>()(
             },
           },
         });
+        // v0.4: 复制的墙与源墙归入同一 project，否则归入 Uncategorized
+        const sourceProject = get().projects.find((p) => p.wallIds.includes(id));
+        const targetProjectId = sourceProject?.id ?? 'project-uncategorized';
+        const tp = get().projects.find((p) => p.id === targetProjectId);
+        if (tp) {
+          set({
+            projects: get().projects.map((p) =>
+              p.id === targetProjectId ? { ...p, wallIds: [...p.wallIds, newId] } : p,
+            ),
+          });
+        }
         return newId;
       },
 
@@ -473,6 +498,15 @@ export const useOverviewStore = create<OverviewState>()(
             },
           },
         });
+        // v0.4: 导入墙自动归入 Uncategorized
+        const uc = get().projects.find((p) => p.id === 'project-uncategorized');
+        if (uc) {
+          set({
+            projects: get().projects.map((p) =>
+              p.id === 'project-uncategorized' ? { ...p, wallIds: [...p.wallIds, newId] } : p,
+            ),
+          });
+        }
         return newId;
       },
 
