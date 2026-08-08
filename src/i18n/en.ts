@@ -294,6 +294,10 @@ export const en = {
   'auth.authRequired': 'Sign in to save your walls',
   'auth.changePassword': 'Change Password',
   'auth.newPassword': 'New Password',
+
+  /* ── v0.5 Track B ── */
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 } as const;
 
 export type TKey = keyof typeof en;

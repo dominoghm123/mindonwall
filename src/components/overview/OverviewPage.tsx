@@ -43,6 +43,17 @@ export function OverviewPage() {
   const [newProjectInput, setNewProjectInput] = useState(false);
   const [manageMoveOpen, setManageMoveOpen] = useState(false);
 
+  // v0.5 B1/B2: Drag state
+  const [dragWallId, setDragWallId] = useState<string | null>(null);
+  const [dropProjectId, setDropProjectId] = useState<string | null>(null);
+  const [dropCardId, setDropCardId] = useState<string | null>(null);
+  const [mergeConfirm, setMergeConfirm] = useState<{ fromId: string; toId: string } | null>(null);
+
+  // v0.5 B3: Box selection state
+  const [boxSelect, setBoxSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const boxSelecting = useRef(false);
+
   // 进入总览页时快照当前编辑的墙
   useEffect(() => {
     captureCurrentWall();
@@ -156,6 +167,58 @@ export function OverviewPage() {
     setSelected([]);
     setManageMoveOpen(false);
   }, []);
+
+  // v0.5 B2: Merge walls handler
+  const handleMerge = useCallback((fromId: string, toId: string) => {
+    const overview = useOverviewStore.getState();
+    const fromData = overview.wallData[fromId];
+    const toData = overview.wallData[toId];
+    if (!fromData || !toData) return;
+    // Merge items and ropes into target wall
+    const mergedItems = [...toData.items, ...fromData.items.map((it: import('../../store/types').Item) => ({ ...it, id: `${it.id}-merged-${Date.now()}` }))];
+    const mergedRopes = [...toData.ropes, ...fromData.ropes.map((r: import('../../store/types').Rope) => ({ ...r, id: `${r.id}-merged-${Date.now()}` }))];
+    useOverviewStore.setState((state) => ({
+      wallData: {
+        ...state.wallData,
+        [toId]: { ...toData, items: mergedItems, ropes: mergedRopes },
+      },
+      walls: state.walls.filter((w) => w.id !== fromId),
+    }));
+    // Clean up projects
+    useOverviewStore.setState((state) => ({
+      projects: state.projects.map((p) => ({
+        ...p,
+        wallIds: p.wallIds.filter((id) => id !== fromId),
+      })),
+    }));
+    removeWalls([fromId]);
+    track('wall_merged', { fromId, toId });
+    showToast(t('toast.wallMerged') || 'Walls merged', 'success');
+  }, [removeWalls, showToast, t]);
+
+  // v0.5 B4: Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only when not in manage mode and no dialogs open
+      if (confirm || mergeConfirm || renamingId || menu) return;
+      if (selected.length === 0) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        setConfirm({ ids: selected });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        if (selected.length === 1) {
+          duplicateWall(selected[0]);
+          track('wall_duplicated', { wallId: selected[0] });
+          showToast(t('toast.wallDuplicated'), 'success');
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selected, confirm, mergeConfirm, renamingId, menu, duplicateWall, showToast, t]);
 
   return (
     <div
@@ -283,10 +346,54 @@ export function OverviewPage() {
 
       {/* v0.4: 按 Project 分组的卡片网格 */}
       <div
+        ref={gridRef}
         style={{
           flex: 1,
           overflow: 'auto',
           padding: '16px 24px',
+          position: 'relative',
+        }}
+        onPointerDown={(e) => {
+          // v0.5 B3: Box select — only start on empty area (not on cards)
+          if (e.target === e.currentTarget || (e.target as HTMLElement).dataset?.gridArea === 'true') {
+            boxSelecting.current = true;
+            setBoxSelect({ startX: e.clientX, startY: e.clientY, endX: e.clientX, endY: e.clientY });
+          }
+        }}
+        onPointerMove={(e) => {
+          if (!boxSelecting.current) return;
+          setBoxSelect((prev) => prev ? { ...prev, endX: e.clientX, endY: e.clientY } : null);
+        }}
+        onPointerUp={() => {
+          if (!boxSelecting.current || !boxSelect || !gridRef.current) {
+            boxSelecting.current = false;
+            setBoxSelect(null);
+            return;
+          }
+          boxSelecting.current = false;
+          // Calculate selection rectangle
+          const rect = { left: Math.min(boxSelect.startX, boxSelect.endX), right: Math.max(boxSelect.startX, boxSelect.endX), top: Math.min(boxSelect.startY, boxSelect.endY), bottom: Math.max(boxSelect.startY, boxSelect.endY) };
+          // If selection box is too small, ignore
+          if (rect.right - rect.left < 10 && rect.bottom - rect.top < 10) {
+            setBoxSelect(null);
+            return;
+          }
+          // Find cards that intersect with selection rectangle
+          const cardEls = gridRef.current.querySelectorAll('[data-wall-card]');
+          const newSelected: string[] = [];
+          cardEls.forEach((el) => {
+            const cardRect = el.getBoundingClientRect();
+            const wallId = (el as HTMLElement).dataset.wallCard;
+            if (!wallId) return;
+            if (cardRect.left < rect.right && cardRect.right > rect.left && cardRect.top < rect.bottom && cardRect.bottom > rect.top) {
+              newSelected.push(wallId);
+            }
+          });
+          if (newSelected.length > 0) {
+            setSelected(newSelected);
+            setManageMode(true);
+          }
+          setBoxSelect(null);
         }}
       >
         {projects.length > 0 ? (
@@ -295,7 +402,7 @@ export function OverviewPage() {
             const isCollapsed = collapsed[project.id];
             return (
               <div key={project.id} style={{ marginBottom: 20 }}>
-                {/* Project 标题栏 */}
+                {/* Project 标题栏 — v0.5 B1: drop zone for drag-to-project */}
                 <div
                   style={{
                     display: 'flex',
@@ -304,8 +411,30 @@ export function OverviewPage() {
                     marginBottom: 12,
                     cursor: 'pointer',
                     userSelect: 'none',
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    background: dropProjectId === project.id ? 'rgba(74,144,217,0.08)' : 'transparent',
+                    border: dropProjectId === project.id ? '1px dashed #4A90D9' : '1px solid transparent',
+                    transition: 'background 0.15s, border 0.15s',
                   }}
                   onClick={() => setCollapsed((prev) => ({ ...prev, [project.id]: !prev[project.id] }))}
+                  onDragOver={(e) => {
+                    if (!dragWallId) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    setDropProjectId(project.id);
+                  }}
+                  onDragLeave={() => setDropProjectId(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragWallId) {
+                      moveWallToProject(dragWallId, project.id);
+                      track('wall_moved_to_project', { projectId: project.id, wallId: dragWallId });
+                      showToast(t('toast.wallMoved') || 'Wall moved', 'success');
+                    }
+                    setDragWallId(null);
+                    setDropProjectId(null);
+                  }}
                 >
                   <span style={{ fontSize: 12, color: '#999', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', display: 'inline-block' }}>▼</span>
                   {project.color && (
@@ -333,6 +462,19 @@ export function OverviewPage() {
                         checked={selected.includes(wall.id)}
                         onClick={() => handleCardClick(wall)}
                         onMenuOpen={(x, y) => setMenu({ wallId: wall.id, x, y })}
+                        isDragging={dragWallId === wall.id}
+                        isDropTarget={dropCardId === wall.id}
+                        onDragStart={() => setDragWallId(wall.id)}
+                        onDragEnd={() => { setDragWallId(null); setDropCardId(null); }}
+                        onDragOver={() => { if (dragWallId && dragWallId !== wall.id) setDropCardId(wall.id); }}
+                        onDragLeave={() => setDropCardId(null)}
+                        onDrop={() => {
+                          if (dragWallId && dragWallId !== wall.id) {
+                            setMergeConfirm({ fromId: dragWallId, toId: wall.id });
+                          }
+                          setDragWallId(null);
+                          setDropCardId(null);
+                        }}
                       />
                     ))}
                   </div>
@@ -359,6 +501,19 @@ export function OverviewPage() {
                 checked={selected.includes(wall.id)}
                 onClick={() => handleCardClick(wall)}
                 onMenuOpen={(x, y) => setMenu({ wallId: wall.id, x, y })}
+                isDragging={dragWallId === wall.id}
+                isDropTarget={dropCardId === wall.id}
+                onDragStart={() => setDragWallId(wall.id)}
+                onDragEnd={() => { setDragWallId(null); setDropCardId(null); }}
+                onDragOver={() => { if (dragWallId && dragWallId !== wall.id) setDropCardId(wall.id); }}
+                onDragLeave={() => setDropCardId(null)}
+                onDrop={() => {
+                  if (dragWallId && dragWallId !== wall.id) {
+                    setMergeConfirm({ fromId: dragWallId, toId: wall.id });
+                  }
+                  setDragWallId(null);
+                  setDropCardId(null);
+                }}
               />
             ))}
           </div>
@@ -405,6 +560,36 @@ export function OverviewPage() {
       {/* 重命名弹窗 */}
       {renamingId && (
         <RenameCardOverlay wallId={renamingId} onClose={() => setRenamingId(null)} />
+      )}
+
+      {/* v0.5 B2: Merge 确认弹窗 */}
+      {mergeConfirm && (
+        <ConfirmDialog
+          message={t('ov.confirmMerge') || 'Merge these two walls? Items and ropes will be combined.'}
+          onCancel={() => setMergeConfirm(null)}
+          onConfirm={() => {
+            handleMerge(mergeConfirm.fromId, mergeConfirm.toId);
+            setMergeConfirm(null);
+          }}
+        />
+      )}
+
+      {/* v0.5 B3: Box selection rectangle overlay */}
+      {boxSelect && (
+        <div
+          style={{
+            position: 'fixed',
+            left: Math.min(boxSelect.startX, boxSelect.endX),
+            top: Math.min(boxSelect.startY, boxSelect.endY),
+            width: Math.abs(boxSelect.endX - boxSelect.startX),
+            height: Math.abs(boxSelect.endY - boxSelect.startY),
+            border: '1px solid #4A90D9',
+            background: 'rgba(74,144,217,0.08)',
+            borderRadius: 2,
+            pointerEvents: 'none',
+            zIndex: 9998,
+          }}
+        />
       )}
     </div>
   );
@@ -494,33 +679,77 @@ function WallCard({
   checked,
   onClick,
   onMenuOpen,
+  isDragging,
+  isDropTarget,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   wall: WallSummary;
   manageMode: boolean;
   checked: boolean;
   onClick: () => void;
   onMenuOpen: (x: number, y: number) => void;
+  isDragging?: boolean;
+  isDropTarget?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  onDragOver?: () => void;
+  onDragLeave?: () => void;
+  onDrop?: () => void;
 }) {
   const t = useT();
   const wallpaperStyle = getWallpaperStyle(wall.wallpaper);
 
   return (
     <div
+      data-wall-card={wall.id}
       onClick={onClick}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        // v0.5 B4: Double-click always opens wall
+        if (!manageMode) onClick();
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMenuOpen(e.clientX, e.clientY);
+      }}
+      draggable={!manageMode}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', wall.id);
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver?.();
+      }}
+      onDragLeave={() => onDragLeave?.()}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop?.();
+      }}
       style={{
         // v0.3: 宽度跟随网格列自适应
         width: '100%',
         height: 200,
         background: '#FFFFFF',
-        border: checked ? '2px solid #4A90D9' : 'none',
+        border: checked ? '2px solid #4A90D9' : isDropTarget ? '2px dashed #4A90D9' : 'none',
         borderRadius: 8,
         boxShadow: checked ? 'none' : '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
         overflow: 'hidden',
-        cursor: 'pointer',
+        cursor: manageMode ? 'pointer' : 'grab',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease, opacity 0.15s',
+        opacity: isDragging ? 0.4 : 1,
+        transform: isDropTarget ? 'scale(1.02)' : 'scale(1)',
       }}
     >
       {/* 管理模式 checkbox */}
