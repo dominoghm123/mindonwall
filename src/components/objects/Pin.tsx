@@ -129,8 +129,9 @@ export function Pin({
         width: size,
         height: size,
         borderRadius: '50%',
-        background: '#F8F8F8',
-        border: isRopeCreating ? '2px solid #4A90D9' : '1px solid #E0E0E0',
+        // v0.5: 金属质感 — 径向渐变 + 微阴影
+        background: 'radial-gradient(circle at 35% 35%, #FFFFFF 0%, #F8F8F8 40%, #E8E8E8 100%)',
+        border: isRopeCreating ? '2px solid #4A90D9' : '1px solid #D8D8D8',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -139,7 +140,7 @@ export function Pin({
         pointerEvents: 'auto',
         transform: hovered ? 'scale(1.1)' : 'scale(1)',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        boxShadow: isRopeTarget || isRopeSource ? '0 0 8px #4A90D9' : 'none',
+        boxShadow: isRopeTarget || isRopeSource ? '0 0 8px #4A90D9' : '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 1px rgba(255,255,255,0.8)',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -147,13 +148,14 @@ export function Pin({
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
     >
-      {/* 中心金色圆点 */}
+      {/* v0.5: 中心金色圆点 — 金属高光 */}
       <div
         style={{
           width: DOT_SIZE,
           height: DOT_SIZE,
           borderRadius: '50%',
-          background: '#C9A84C',
+          background: 'radial-gradient(circle at 35% 35%, #E8D48B 0%, #C9A84C 60%, #A8893A 100%)',
+          boxShadow: '0 0.5px 1px rgba(0,0,0,0.15)',
         }}
       />
     </div>

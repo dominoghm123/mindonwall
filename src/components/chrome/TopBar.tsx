@@ -13,7 +13,7 @@ import { track } from '../../utils/analytics';
 
 /**
  * 40px 高顶部栏，默认隐藏，鼠标触顶滑入。
- * 纯白背景 #FFFFFF，1px bottom border #E8E8E8，无阴影。
+ * v0.5: #FAFAFA 背景 + subtle shadow 替代 border，ghost 按钮风格。
  */
 export function TopBar({ zoom }: { zoom?: number }) {
   void zoom;
@@ -183,8 +183,9 @@ export function TopBar({ zoom }: { zoom?: number }) {
         left: 0,
         right: 0,
         height: 40,
-        background: '#FFFFFF',
-        borderBottom: '1px solid #E8E8E8',
+        background: '#FAFAFA',
+        borderBottom: 'none',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -348,12 +349,15 @@ export function TopBar({ zoom }: { zoom?: number }) {
               padding: '0 12px',
               fontSize: 12,
               color: '#333',
-              background: '#FFFFFF',
-              border: '1px solid #D0D0D0',
+              background: 'transparent',
+              border: '1px solid transparent',
               borderRadius: 6,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              transition: 'background 0.12s ease',
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
           >
             {exporting ? t('top.exporting') : t('top.export')}
           </button>
@@ -366,8 +370,9 @@ export function TopBar({ zoom }: { zoom?: number }) {
                 right: 0,
                 minWidth: 180,
                 background: '#FFFFFF',
-                border: '1px solid #E0E0E0',
+                border: 'none',
                 borderRadius: 8,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)',
                 padding: '4px 0',
                 zIndex: 9999,
                 userSelect: 'none',

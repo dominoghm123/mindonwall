@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
 import { useAssetStore } from '../../store/useAssetStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import type { Asset } from '../../store/types';
 import { useT } from '../../i18n/useT';
 import { LANGUAGES } from '../../i18n';
@@ -134,6 +135,14 @@ function SettingsPage() {
   const showToast = useUIStore((s) => s.showToast);
   const language = useOverviewStore((s) => s.language);
   const setLanguage = useOverviewStore((s) => s.setLanguage);
+  const syncToCloud = useOverviewStore((s) => s.syncToCloud);
+  const loadFromCloud = useOverviewStore((s) => s.loadFromCloud);
+  // v0.5: auth state
+  const user = useAuthStore((s) => s.user);
+  const isAuthEnabled = useAuthStore((s) => s.isAuthEnabled);
+  const signOut = useAuthStore((s) => s.signOut);
+  const updatePassword = useAuthStore((s) => s.updatePassword);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const t = useT();
 
   const [name, setName] = useState(userName);
@@ -143,6 +152,12 @@ function SettingsPage() {
   const [legal, setLegal] = useState<'privacy' | 'terms' | null>(null);
   // v0.3 r4: 重置应用二次确认
   const [resetConfirm, setResetConfirm] = useState(false);
+  // v0.5: account management states
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [newPw, setNewPw] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   const totalObjects = walls.reduce((sum, w) => sum + w.itemCount, 0);
   const totalRopes = walls.reduce((sum, w) => sum + (wallData[w.id]?.ropes.length ?? 0), 0);
@@ -276,6 +291,109 @@ function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* ── v0.5: Account Management (visible when auth enabled) ── */}
+      {isAuthEnabled && (
+        <section>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 4 }}>{t('auth.signIn')}</div>
+          {!user ? (
+            <div style={{ fontSize: 12, color: '#999' }}>{t('auth.authRequired')}</div>
+          ) : (
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E8E8E8',
+                borderRadius: 10,
+                padding: '14px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                maxWidth: 420,
+              }}
+            >
+              {/* User email */}
+              <div style={{ fontSize: 12, color: '#333' }}>{user.email}</div>
+
+              {/* Cloud sync buttons */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <MiniBtn
+                  label={syncLoading ? '…' : t('auth.syncToCloud')}
+                  onClick={async () => {
+                    setSyncLoading(true);
+                    const { error } = await syncToCloud();
+                    setSyncLoading(false);
+                    showToast(error ?? t('auth.syncToCloud') + ' ✓', error ? 'error' : 'success');
+                  }}
+                />
+                <MiniBtn
+                  label={syncLoading ? '…' : t('auth.syncFromCloud')}
+                  onClick={async () => {
+                    setSyncLoading(true);
+                    const { error } = await loadFromCloud();
+                    setSyncLoading(false);
+                    showToast(error ?? t('auth.syncFromCloud') + ' ✓', error ? 'error' : 'success');
+                  }}
+                />
+              </div>
+
+              {/* Change password */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MiniBtn
+                  label={t('auth.changePassword')}
+                  onClick={() => setShowChangePw((v) => !v)}
+                />
+              </div>
+              {showChangePw && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="password"
+                    value={newPw}
+                    onChange={(e) => setNewPw(e.target.value)}
+                    placeholder={t('auth.newPassword')}
+                    style={{
+                      height: 28, flex: 1, padding: '0 10px', fontSize: 12,
+                      border: '1px solid #D0D0D0', borderRadius: 6, outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (newPw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+                      setPwLoading(true);
+                      const { error } = await updatePassword(newPw);
+                      setPwLoading(false);
+                      if (!error) { setNewPw(''); setShowChangePw(false); }
+                      showToast(error ?? t('auth.changePassword') + ' ✓', error ? 'error' : 'success');
+                    }}
+                    disabled={pwLoading}
+                    style={{
+                      height: 28, padding: '0 14px', fontSize: 12, color: '#FFFFFF',
+                      background: pwLoading ? '#999' : '#4A90D9', border: 'none',
+                      borderRadius: 6, cursor: pwLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {t('common.save')}
+                  </button>
+                </div>
+              )}
+
+              {/* Sign out + Delete account */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <MiniBtn label={t('auth.signOut')} onClick={() => signOut()} />
+                <button
+                  onClick={() => setDeleteConfirm(true)}
+                  style={{
+                    height: 22, padding: '0 10px', fontSize: 10.5,
+                    color: '#E25C5C', background: '#FFFFFF',
+                    border: '1px solid #EFC4C4', borderRadius: 5, cursor: 'pointer',
+                  }}
+                >
+                  {t('auth.deleteAccount')}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Home background 区 ── */}
       <section>
@@ -570,6 +688,35 @@ function SettingsPage() {
                 style={{ height: 28, padding: '0 12px', fontSize: 12, background: '#E25C5C', border: 'none', borderRadius: 6, cursor: 'pointer', color: '#FFFFFF' }}
               >
                 {t('st.reset')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* v0.5: 删除账户确认弹窗 */}
+      {deleteConfirm && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 21000, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div style={{ background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: 10, padding: 16, width: 320 }}>
+            <div style={{ fontSize: 13, color: '#333', marginBottom: 14 }}>{t('auth.deleteConfirm')}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                style={{ height: 28, padding: '0 12px', fontSize: 12, background: '#FFFFFF', border: '1px solid #D0D0D0', borderRadius: 6, cursor: 'pointer', color: '#555' }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={async () => {
+                  const { error } = await deleteAccount();
+                  setDeleteConfirm(false);
+                  showToast(error ?? t('auth.deleteAccount'), error ? 'error' : 'success');
+                }}
+                style={{ height: 28, padding: '0 12px', fontSize: 12, background: '#E25C5C', border: 'none', borderRadius: 6, cursor: 'pointer', color: '#FFFFFF' }}
+              >
+                {t('common.confirm')}
               </button>
             </div>
           </div>

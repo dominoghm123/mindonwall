@@ -275,6 +275,29 @@ export const en = {
   'toast.projectCreated': 'Project created',
   'toast.projectDeleted': 'Project deleted',
   'toast.wallMoved': 'Wall moved to project',
+
+  /* ── v0.5 Auth ── */
+  'auth.signIn': 'Sign In',
+  'auth.signUp': 'Sign Up',
+  'auth.signOut': 'Sign Out',
+  'auth.email': 'Email',
+  'auth.password': 'Password',
+  'auth.confirmPassword': 'Confirm Password',
+  'auth.forgotPassword': 'Forgot password?',
+  'auth.orContinueWith': 'Or continue with',
+  'auth.noAccount': "Don't have an account?",
+  'auth.hasAccount': 'Already have an account?',
+  'auth.deleteAccount': 'Delete Account',
+  'auth.deleteConfirm': 'Are you sure? This will permanently delete your account and all data.',
+  'auth.syncToCloud': 'Sync to Cloud',
+  'auth.syncFromCloud': 'Load from Cloud',
+  'auth.authRequired': 'Sign in to save your walls',
+  'auth.changePassword': 'Change Password',
+  'auth.newPassword': 'New Password',
+
+  /* ── v0.5 Track B ── */
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 } as const;
 
 export type TKey = keyof typeof en;

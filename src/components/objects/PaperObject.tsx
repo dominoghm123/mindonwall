@@ -62,13 +62,17 @@ function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
         width: '100%',
         height: '100%',
         background: bg,
-        backgroundImage: bgAsset?.dataUrl ? `url(${bgAsset.dataUrl})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         // v0.2：细边框 + 内阴影让白纸在白色墙面上可辨认（文字一定在纸上），
         // 内阴影随纸面同比缩放，边框保持 1px 不放大
+        // v0.5: 纸张质感增强 — subtle noise overlay + 更柔和的阴影
         border: '1px solid #E3DED2',
-        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03), inset 0 2px 12px rgba(0,0,0,0.05)',
+        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03), inset 0 2px 12px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)',
+        // SVG noise texture overlay for paper grain
+        backgroundImage: bgAsset?.dataUrl
+          ? `url(${bgAsset.dataUrl})`
+          : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`,
+        backgroundSize: bgAsset?.dataUrl ? 'cover' : '200px 200px',
+        backgroundPosition: 'center',
         padding: 16 * ratio,
         boxSizing: 'border-box',
         overflow: 'auto',
@@ -206,8 +210,20 @@ function StickyNote({ item, onTextChange }: { item: Item; onTextChange?: (id: st
         padding: 12 * ratio,
         boxSizing: 'border-box',
         position: 'relative',
+        // v0.5: 便利贴质感 — 底部微阴影 + 边角微卷
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08), 2px 3px 6px rgba(0,0,0,0.04)',
       }}
     >
+      {/* v0.5: 便利贴底边微卷效果 */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 20,
+        height: 20,
+        background: `linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.04) 50%)`,
+        pointerEvents: 'none',
+      }} />
       <div
         ref={ref}
         contentEditable

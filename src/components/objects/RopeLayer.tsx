@@ -60,21 +60,34 @@ export function RopeLayer({
         const isSelected = rope.id === selectedRopeId;
 
         return (
-          <path
-            key={rope.id}
-            d={path}
-            fill="none"
-            stroke={rope.color ?? (isSelected ? '#6B5518' : '#8B6914')}
-            strokeWidth={isSelected ? 4 : 3}
-            strokeLinecap="round"
-            style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-            onClick={() => onRopeClick?.(rope.id)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onRopeContextMenu?.(rope.id, e.clientX, e.clientY);
-            }}
-          />
+          <g key={rope.id}>
+            {/* v0.5: 绳线手绘质感 — 主线 + 纤维纹理叠层 */}
+            <path
+              d={path}
+              fill="none"
+              stroke={rope.color ?? (isSelected ? '#6B5518' : '#8B6914')}
+              strokeWidth={isSelected ? 4 : 3}
+              strokeLinecap="round"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={() => onRopeClick?.(rope.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRopeContextMenu?.(rope.id, e.clientX, e.clientY);
+              }}
+            />
+            {/* v0.5: 纤维纹理层 — stroke-dasharray 模拟麻绳纤维 */}
+            <path
+              d={path}
+              fill="none"
+              stroke={rope.color ?? '#A88030'}
+              strokeWidth={1}
+              strokeDasharray="3 5"
+              strokeLinecap="round"
+              opacity={0.25}
+              style={{ pointerEvents: 'none' }}
+            />
+          </g>
         );
       })}
 
