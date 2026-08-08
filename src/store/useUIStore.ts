@@ -36,6 +36,8 @@ export interface UIState {
   sharedImport: SharedWallPayload | null;
   /** v0.3 r2: 全屏用户页面（Library / Settings，Profile 已并入 Settings） */
   page: 'materials' | 'settings' | null;
+  /** v0.6: 编辑模式（true = 可编辑，false = 仅浏览） */
+  editMode: boolean;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -81,6 +83,10 @@ export interface UIState {
   setSharedImport: (payload: SharedWallPayload | null) => void;
   /** v0.3 r2: 打开/关闭用户页面 */
   openPage: (page: 'materials' | 'settings' | null) => void;
+  /** v0.6: 切换编辑模式 */
+  toggleEditMode: () => void;
+  /** v0.6: 设置编辑模式 */
+  setEditMode: (mode: boolean) => void;
 }
 
 let toastCounter = 0;
@@ -100,6 +106,15 @@ export const useUIStore = create<UIState>()(
       toolbarPanel: null,
       sharedImport: null,
       page: null,
+      editMode: true,
+
+      toggleEditMode: () => {
+        set({ editMode: !get().editMode });
+      },
+
+      setEditMode: (mode: boolean) => {
+        set({ editMode: mode });
+      },
 
       selectItem: (id: string) => {
         set({ selectedIds: [id] });

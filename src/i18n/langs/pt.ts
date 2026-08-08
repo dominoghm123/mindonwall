@@ -276,4 +276,6 @@ export const pt: Record<TKey, string> = {
   'auth.newPassword': 'Nova senha',
   'toast.wallMerged': 'Walls merged',
   'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
-};
+}  'top.editMode': 'Edit',
+  'top.viewMode': 'View + Comment',
+;

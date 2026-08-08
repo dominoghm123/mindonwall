@@ -251,6 +251,9 @@ export const en = {
   'toast.ropeMode': 'Rope mode: click two pins to connect',
   'toast.savedToLibrary': 'Saved to Library',
   'toast.shareCopied': 'Share link copied',
+  // v0.6
+  'top.editMode': 'Edit',
+  'top.viewMode': 'View + Comment',
   'toast.copyFailed': 'Copy failed',
   'toast.stampAttached': 'Stamp attached',
   'toast.stampOnlyPaper': 'Stamp can only attach to a paper or photo',

@@ -20,6 +20,8 @@ export function TopBar({ zoom }: { zoom?: number }) {
   const name = useWallStore((s) => s.name);
   const renameWall = useWallStore((s) => s.renameWall);
   const viewMode = useUIStore((s) => s.viewMode);
+  const editMode = useUIStore((s) => s.editMode);
+  const toggleEditMode = useUIStore((s) => s.toggleEditMode);
   // v0.3: Map 视图下 Undo/Redo 走 Map 独立撤销栈
   const isMap = viewMode === 'map';
   const wallUndo = useWallStore((s) => s.undo);
@@ -291,6 +293,49 @@ export function TopBar({ zoom }: { zoom?: number }) {
 
       {/* 右区（v0.2：Saved + Undo/Redo + Share + 头像） */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* v0.6: Edit/View Toggle - 仅在 Wall/Map 视图显示 */}
+        {viewMode !== 'overview' && (
+          <button
+            onClick={() => toggleEditMode()}
+            style={{
+              height: 28,
+              padding: '0 14px',
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#333',
+              background: 'transparent',
+              border: '1px solid transparent',
+              borderRadius: 6,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'background 0.12s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+          >
+            {editMode ? (
+              // Edit mode icon (pencil)
+              <>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <path d="M12.1 2.9 L13.1 3.9 L12.6 5.1 L12.1 4.9 C12 4.9 11.9 4.8 11.8 4.7 L11.3 4.2 C11.2 4.1 11.1 4 11 3.9 L12.1 2.9 Z M11 3.9 L3.9 11 L2 14 L5 14 L7.1 11.9 L11 3.9 Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {t('top.editMode')}
+              </>
+            ) : (
+              // View mode icon (eye)
+              <>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 8 C2 8 4.5 4 8 4 C11.5 4 14 8 14 8 C14 8 11.5 12 8 12 C4.5 12 2 8 2 8 Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.2"/>
+                </svg>
+                {t('top.viewMode')}
+              </>
+            )}
+          </button>
+        )}
         {/* Saved 指示 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div
