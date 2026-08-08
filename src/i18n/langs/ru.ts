@@ -274,4 +274,6 @@ export const ru: Record<TKey, string> = {
   'auth.authRequired': 'Войдите, чтобы сохранить стены',
   'auth.changePassword': 'Изменить пароль',
   'auth.newPassword': 'Новый пароль',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };

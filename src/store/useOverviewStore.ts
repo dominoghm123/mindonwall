@@ -786,16 +786,16 @@ export const useOverviewStore = create<OverviewState>()(
     {
       name: 'mindonwall-overview', // base key; switchUser handles per-user isolation
       storage: {
-        getItem: (name: string) => {
+        getItem: (_name: string) => {
           const key = getStorageKey(_currentUserId);
           const raw = localStorage.getItem(`zustand:${key}`);
           return raw ? JSON.parse(raw) : null;
         },
-        setItem: (name: string, value: unknown) => {
+        setItem: (_name: string, value: unknown) => {
           const key = getStorageKey(_currentUserId);
           localStorage.setItem(`zustand:${key}`, JSON.stringify(value));
         },
-        removeItem: (name: string) => {
+        removeItem: (_name: string) => {
           const key = getStorageKey(_currentUserId);
           localStorage.removeItem(`zustand:${key}`);
         },

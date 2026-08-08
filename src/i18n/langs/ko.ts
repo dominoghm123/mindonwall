@@ -274,4 +274,6 @@ export const ko: Record<TKey, string> = {
   'auth.authRequired': '월을 저장하려면 로그인하세요',
   'auth.changePassword': '비밀번호 변경',
   'auth.newPassword': '새 비밀번호',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };

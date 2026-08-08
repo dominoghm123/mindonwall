@@ -275,4 +275,6 @@ export const zhCN: Record<TKey, string> = {
   'auth.authRequired': '登录以保存您的墙面',
   'auth.changePassword': '修改密码',
   'auth.newPassword': '新密码',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };

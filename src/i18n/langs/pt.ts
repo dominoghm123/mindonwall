@@ -274,4 +274,6 @@ export const pt: Record<TKey, string> = {
   'auth.authRequired': 'Faça login para salvar seus muros',
   'auth.changePassword': 'Alterar senha',
   'auth.newPassword': 'Nova senha',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };

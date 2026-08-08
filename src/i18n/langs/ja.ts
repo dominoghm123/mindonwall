@@ -274,4 +274,6 @@ export const ja: Record<TKey, string> = {
   'auth.authRequired': 'ウォールを保存するにはログインしてください',
   'auth.changePassword': 'パスワード変更',
   'auth.newPassword': '新しいパスワード',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };

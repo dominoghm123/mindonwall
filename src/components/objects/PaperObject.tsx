@@ -62,9 +62,6 @@ function NotePaper({ item, onTextChange }: { item: Item; onTextChange?: (id: str
         width: '100%',
         height: '100%',
         background: bg,
-        backgroundImage: bgAsset?.dataUrl ? `url(${bgAsset.dataUrl})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         // v0.2：细边框 + 内阴影让白纸在白色墙面上可辨认（文字一定在纸上），
         // 内阴影随纸面同比缩放，边框保持 1px 不放大
         // v0.5: 纸张质感增强 — subtle noise overlay + 更柔和的阴影

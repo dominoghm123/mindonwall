@@ -274,4 +274,6 @@ export const zhTW: Record<TKey, string> = {
   'auth.authRequired': '登入以儲存您的牆面',
   'auth.changePassword': '修改密碼',
   'auth.newPassword': '新密碼',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };

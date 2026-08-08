@@ -258,7 +258,7 @@ export const fr: Record<TKey, string> = {
     'toast.wallMoved': 'Mur déplacé vers le projet',
 
   'auth.signIn': 'Se connecter',
-  'auth.signUp': 'S'inscrire',
+  'auth.signUp': "S'inscrire",
   'auth.signOut': 'Se déconnecter',
   'auth.email': 'E-mail',
   'auth.password': 'Mot de passe',
@@ -274,4 +274,6 @@ export const fr: Record<TKey, string> = {
   'auth.authRequired': 'Connectez-vous pour sauvegarder vos murs',
   'auth.changePassword': 'Changer le mot de passe',
   'auth.newPassword': 'Nouveau mot de passe',
+  'toast.wallMerged': 'Walls merged',
+  'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
 };
