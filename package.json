@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "rm -rf node_modules dist node_modules/.vite .vite && npm ci && tsc --noEmit && vite build --force",
     "preview": "vite preview"
   },
   "dependencies": {
