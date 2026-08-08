@@ -26,6 +26,7 @@ import { UserPageOverlay } from './components/pages/UserPages';
 import { parseShareHash, parseSharePath, fetchSharedWall } from './utils/shareWall';
 import { useT } from './i18n/useT';
 import { track } from './utils/analytics';
+import { useAuthStore } from './store/useAuthStore';
 
 function App() {
   // Store selectors
@@ -50,6 +51,8 @@ function App() {
   useEffect(() => {
     useOverviewStore.getState().initIfNeeded();
     useWallStore.getState().initDefaultWall();
+    // v0.5: Initialize Supabase auth listener
+    const unsubAuth = useAuthStore.getState().initAuth();
     // v0.3: 检测分享链接（#/s/…）→ 弹出导入横幅
     const shared = parseShareHash();
     if (shared) {
@@ -65,6 +68,7 @@ function App() {
         }
       });
     }
+    return () => { unsubAuth(); };
   }, []);
 
   // MultiSelect hook
