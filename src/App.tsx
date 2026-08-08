@@ -27,6 +27,7 @@ import { parseShareHash, parseSharePath, fetchSharedWall } from './utils/shareWa
 import { useT } from './i18n/useT';
 import { track } from './utils/analytics';
 import { useAuthStore } from './store/useAuthStore';
+import { setCurrentUserId } from './store/useOverviewStore';
 
 function App() {
   // Store selectors
@@ -69,6 +70,19 @@ function App() {
       });
     }
     return () => { unsubAuth(); };
+  }, []);
+
+  // v0.5: React to auth state changes — switch user data isolation context
+  useEffect(() => {
+    const unsub = useAuthStore.subscribe((state, prevState) => {
+      const newUserId = state.user?.id ?? null;
+      const oldUserId = prevState.user?.id ?? null;
+      if (newUserId !== oldUserId) {
+        setCurrentUserId(newUserId);
+        useOverviewStore.getState().switchUser(newUserId);
+      }
+    });
+    return unsub;
   }, []);
 
   // MultiSelect hook

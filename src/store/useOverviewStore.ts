@@ -9,6 +9,15 @@ import type { MapViewSnapshot } from './useMapStore';
 import type { SharedWallPayload } from '../utils/shareWall';
 import type { Lang } from '../i18n';
 
+/** v0.5: localStorage key factory for user-isolated storage */
+export function getStorageKey(userId?: string | null): string {
+  return userId ? `mindonwall-overview-${userId}` : 'mindonwall-overview';
+}
+
+/** v0.5: current authenticated userId (set by App.tsx auth listener) */
+let _currentUserId: string | null = null;
+export function setCurrentUserId(id: string | null) { _currentUserId = id; }
+
 /** 持久化的墙数据（v0.2：多墙真正可切换） */
 export interface SavedWallData {
   name: string;
@@ -116,6 +125,12 @@ interface OverviewState {
   setProjectColor: (id: string, color: string) => void;
   /** v0.4: 移动墙到指定 Project */
   moveWallToProject: (wallId: string, projectId: string) => void;
+  /** v0.5: Sync all data to cloud (requires auth) */
+  syncToCloud: () => Promise<{ error: string | null }>;
+  /** v0.5: Load data from cloud (requires auth) */
+  loadFromCloud: () => Promise<{ error: string | null }>;
+  /** v0.5: Switch user context (save current, load new user data) */
+  switchUser: (userId: string | null) => void;
 }
 
 export const useOverviewStore = create<OverviewState>()(
@@ -653,9 +668,138 @@ export const useOverviewStore = create<OverviewState>()(
       restoreBuiltinAssets: () => {
         set({ removedBuiltins: [] });
       },
+
+      /* ── v0.5: Cloud sync ── */
+      syncToCloud: async () => {
+        const session = (await import('./useAuthStore')).useAuthStore.getState().session;
+        if (!session?.access_token) return { error: 'Not authenticated' };
+        try {
+          // Snapshot current wall before syncing
+          get().captureCurrentWall();
+          const { walls, wallData, projects, homeBackground, homeBackgroundImage,
+            userName, avatarDataUrl, collections, removedBuiltins, language } = get();
+          const payload = {
+            walls, wallData, projects, homeBackground, homeBackgroundImage,
+            userName, avatarDataUrl, collections, removedBuiltins, language,
+          };
+          const res = await fetch('/api/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) return { error: `Sync failed: ${res.status}` };
+          return { error: null };
+        } catch (err) {
+          return { error: String(err) };
+        }
+      },
+
+      loadFromCloud: async () => {
+        const session = (await import('./useAuthStore')).useAuthStore.getState().session;
+        if (!session?.access_token) return { error: 'Not authenticated' };
+        try {
+          const res = await fetch('/api/sync', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (!res.ok) return { error: `Load failed: ${res.status}` };
+          const json = await res.json();
+          if (!json.data) return { error: null }; // No cloud data yet
+          // Merge cloud data into store
+          const d = json.data;
+          set({
+            walls: d.walls ?? get().walls,
+            wallData: d.wallData ?? get().wallData,
+            projects: d.projects ?? get().projects,
+            homeBackground: d.homeBackground ?? get().homeBackground,
+            homeBackgroundImage: d.homeBackgroundImage ?? get().homeBackgroundImage,
+            userName: d.userName ?? get().userName,
+            avatarDataUrl: d.avatarDataUrl ?? get().avatarDataUrl,
+            collections: d.collections ?? get().collections,
+            removedBuiltins: d.removedBuiltins ?? get().removedBuiltins,
+            language: d.language ?? get().language,
+            initialized: true,
+          });
+          return { error: null };
+        } catch (err) {
+          return { error: String(err) };
+        }
+      },
+
+      switchUser: (userId: string | null) => {
+        // Save current state to old user's localStorage
+        const oldKey = getStorageKey(_currentUserId);
+        const stateToSave = get();
+        try {
+          const persistData = { state: stateToSave, version: 0 };
+          localStorage.setItem(`zustand:${oldKey}`, JSON.stringify(persistData));
+        } catch { /* ignore quota errors */ }
+
+        // Update current user
+        _currentUserId = userId;
+
+        // Load new user's data from localStorage
+        const newKey = getStorageKey(userId);
+        try {
+          const raw = localStorage.getItem(`zustand:${newKey}`);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed.state) {
+              set({
+                walls: parsed.state.walls ?? [],
+                wallData: parsed.state.wallData ?? {},
+                projects: parsed.state.projects ?? [],
+                homeBackground: parsed.state.homeBackground ?? '#FFFFFF',
+                homeBackgroundImage: parsed.state.homeBackgroundImage ?? null,
+                userName: parsed.state.userName ?? 'Wall Keeper',
+                avatarDataUrl: parsed.state.avatarDataUrl ?? null,
+                collections: parsed.state.collections ?? [],
+                removedBuiltins: parsed.state.removedBuiltins ?? [],
+                language: parsed.state.language ?? 'en',
+                initialized: parsed.state.initialized ?? false,
+              });
+              return;
+            }
+          }
+        } catch { /* ignore parse errors */ }
+
+        // No saved data for new user → reset to defaults
+        set({
+          walls: [],
+          wallData: {},
+          projects: [],
+          homeBackground: '#FFFFFF',
+          homeBackgroundImage: null,
+          userName: 'Wall Keeper',
+          avatarDataUrl: null,
+          collections: [],
+          removedBuiltins: [],
+          language: 'en',
+          initialized: false,
+        });
+        // Re-run init for default wall
+        get().initIfNeeded();
+      },
     }),
     {
-      name: 'mindonwall-overview',
+      name: 'mindonwall-overview', // base key; switchUser handles per-user isolation
+      storage: {
+        getItem: (name: string) => {
+          const key = getStorageKey(_currentUserId);
+          const raw = localStorage.getItem(`zustand:${key}`);
+          return raw ? JSON.parse(raw) : null;
+        },
+        setItem: (name: string, value: unknown) => {
+          const key = getStorageKey(_currentUserId);
+          localStorage.setItem(`zustand:${key}`, JSON.stringify(value));
+        },
+        removeItem: (name: string) => {
+          const key = getStorageKey(_currentUserId);
+          localStorage.removeItem(`zustand:${key}`);
+        },
+      },
     },
   ),
 );
