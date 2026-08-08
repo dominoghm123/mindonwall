@@ -52,9 +52,20 @@ export function StampObject({ item }: StampObjectProps) {
       style={{ width: '100%', height: '100%', display: 'block', pointerEvents: 'none' }}
       fill="none"
     >
-      <g stroke={color} opacity={0.9}>
+      <defs>
+        {/* v0.5: 印章墨迹质感滤镜 — 边缘微扩散 + 透明墨迹斑点 */}
+        <filter id={`ink-${normalizedId}`}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" />
+        </filter>
+      </defs>
+      <g stroke={color} opacity={0.9} filter={`url(#ink-${normalizedId})`}>
         {renderStampArt(normalizedId, color)}
       </g>
+      {/* v0.5: 微透明墨迹斑点叠加 */}
+      <circle cx={35} cy={40} r={1.5} fill={color} opacity={0.12} />
+      <circle cx={62} cy={58} r={1} fill={color} opacity={0.1} />
+      <circle cx={48} cy={72} r={0.8} fill={color} opacity={0.08} />
     </svg>
   );
 }

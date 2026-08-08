@@ -8,6 +8,7 @@ import { AvatarMenu } from '../shared/AvatarMenu';
 import { buildShareUrl, copyShareUrl, shareWallServer } from '../../utils/shareWall';
 import type { WallSummary } from '../../store/types';
 import { useT } from '../../i18n/useT';
+import logoSvg from '../../assets/logo.svg';
 import { track } from '../../utils/analytics';
 
 /**
@@ -179,11 +180,15 @@ export function OverviewPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 24px',
-          borderBottom: '1px solid #E8E8E8',
-          background: '#FFFFFF',
+          borderBottom: 'none',
+          background: '#FAFAFA',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#333' }}>Mind on Wall</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#333', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <img src={logoSvg} alt="" style={{ width: 18, height: 18 }} />
+          Mind on Wall
+        </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {manageMode ? (
             <>
@@ -204,8 +209,9 @@ export function OverviewPage() {
                         top: '100%',
                         marginTop: 4,
                         background: '#FFFFFF',
-                        border: '1px solid #E0E0E0',
+                        border: 'none',
                         borderRadius: 8,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)',
                         padding: '4px 0',
                         minWidth: 140,
                         zIndex: 10000,
@@ -303,9 +309,9 @@ export function OverviewPage() {
                 >
                   <span style={{ fontSize: 12, color: '#999', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', display: 'inline-block' }}>▼</span>
                   {project.color && (
-                    <span style={{ width: 10, height: 10, borderRadius: 2, background: project.color, flexShrink: 0 }} />
+                    <span style={{ width: 2, height: 16, background: project.color, flexShrink: 0, borderRadius: 1 }} />
                   )}
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>{project.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{project.name}</span>
                   <span style={{ fontSize: 11, color: '#BBB' }}>({projectWalls.length})</span>
                 </div>
                 {/* 墙卡片网格 */}
@@ -437,8 +443,9 @@ function RenameCardOverlay({ wallId, onClose }: { wallId: string; onClose: () =>
       <div
         style={{
           background: '#FFFFFF',
-          border: '1px solid #E0E0E0',
+          border: 'none',
           borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
           padding: 16,
           width: 300,
         }}
@@ -505,13 +512,15 @@ function WallCard({
         width: '100%',
         height: 200,
         background: '#FFFFFF',
-        border: checked ? '2px solid #4A90D9' : '1px solid #E8E8E8',
+        border: checked ? '2px solid #4A90D9' : 'none',
         borderRadius: 8,
+        boxShadow: checked ? 'none' : '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
         overflow: 'hidden',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
     >
       {/* 管理模式 checkbox */}
@@ -648,8 +657,9 @@ function CardMenu({
         left: Math.min(x, window.innerWidth - 200),
         top: Math.max(y - 160, 8),
         background: '#FFFFFF',
-        border: '1px solid #E0E0E0',
+        border: 'none',
         borderRadius: 8,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)',
         padding: '4px 0',
         minWidth: 160,
         zIndex: 9999,
@@ -690,8 +700,9 @@ function CardMenu({
                   left: '100%',
                   top: 0,
                   background: '#FFFFFF',
-                  border: '1px solid #E0E0E0',
+                  border: 'none',
                   borderRadius: 8,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)',
                   padding: '4px 0',
                   minWidth: 140,
                   zIndex: 10000,
@@ -758,8 +769,9 @@ function ConfirmDialog({
       <div
         style={{
           background: '#FFFFFF',
-          border: '1px solid #E0E0E0',
+          border: 'none',
           borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
           padding: 16,
           width: 320,
         }}
@@ -788,6 +800,7 @@ function dialogBtnStyle(primary: boolean): React.CSSProperties {
     border: primary ? 'none' : '1px solid #D0D0D0',
     borderRadius: 6,
     cursor: 'pointer',
+    transition: 'background 0.12s ease',
   };
 }
 
@@ -860,11 +873,18 @@ function HeaderButton({
         height: 28,
         padding: '0 12px',
         fontSize: 12,
-        color: disabled ? '#CCC' : danger ? '#C0392B' : '#333',
-        background: '#FFFFFF',
-        border: `1px solid ${danger && !disabled ? '#C0392B' : '#D0D0D0'}`,
+        color: disabled ? '#CCC' : danger ? '#C0392B' : '#1A1A1A',
+        background: 'transparent',
+        border: danger && !disabled ? '1px solid #C0392B' : '1px solid transparent',
         borderRadius: 6,
         cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.12s ease',
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
       }}
     >
       {label}
