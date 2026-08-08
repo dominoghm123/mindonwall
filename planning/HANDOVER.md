@@ -1,8 +1,8 @@
-# Handover — Mind on Wall v0.3 → 产品化部署 + v0.4
+# Handover — Mind on Wall
 
-**最后更新：** 2026-08-07（v0.3 五轮修订全部完成，等待用户审阅）
-**当前阶段：** v0.3 代码完成（`7b63324`），用户审阅通过后 → **产品化封装部署** → **基于已部署产品的 v0.4 迭代**
-**新窗口任务：** ① 制定并执行部署计划；② 规划 v0.4 迭代
+**最后更新：** 2026-08-08（v0.5 complete, pushed to main + tag v0.5）
+**当前阶段：** v0.5 部署中（Vercel），等待审阅后启动 v0.6 迭代
+**当前 main 分支 HEAD：** `9dcbd68` (tag v0.5)
 
 ## 项目一句话
 
@@ -12,12 +12,67 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 
 | 分支 | 状态 |
 |---|---|
-| `feature/v0.3-final-polish` | ⭐ 当前分支，HEAD `7b63324`（v0.3 r5）。**尚未推送远程**，部署前需 push |
-| `main` | v0.2 验收版（`a1b3368`，tag `v0.2`），已同步远程 |
+| `main` | ⭐ 最新稳定版，HEAD `9dcbd68`（tag `v0.5`）。**已推送远程**，Vercel 自动构建中 |
+| `feature/v0.5-auth-brand` | ✅ 已完成，已合并入 main |
 | 远程 | GitHub：`https://github.com/dominoghm123/mindonwall` |
+| Vercel | 🔄 构建中（预计 3-5 min）|
 
-- 版本号：package.json `0.3.0`（经 vite `define __APP_VERSION__` 注入，Settings 页展示）
-- v0.3 审阅通过后流程：合入 main → tag `v0.3` → 部署 → v0.4 从 main 新开 `feature/v0.4-*` 分支
+- 版本号：package.json `0.5.0`
+- v0.5 审阅通过后流程：合入 main + tag v0.5 → Vercel 自动构建部署 → v0.6 从 main 新开 `feature/v0.6-*` 分支
+
+## v0.4 Completed (tag v0.4)
+
+| Commit | 内容 |
+|---|---|
+| `307231c` | resolve Vercel build errors (@types/node, vite.config URL, defensive orphan check) |
+| `869360e` | Move-to Project in card menu + batch move + New Project in TopBar |
+
+### v0.4 核心特性
+- **短链分享**：`api/share.ts`（nanoid TTL 30天）+ `api/event.ts`（埋点 TTL 90天）
+- **Project 分组管理**：CRUD + 拖拽归组 + 批量移动 + 孤儿墙防御
+- **数据迁移**：一次性旧墙迁移入 Uncategorized
+
+## v0.5 Completed (tag v0.5)
+
+| Commit | 内容 |
+|---|---|
+| `c3d3688` | resolve build errors (duplicate props, missing i18n keys, unused params) |
+| `a004847` | Track B - drag/merge/multiselect/shortcuts (B1-B4) |
+| `5dd3cb3` | Track C - brand visual upgrade (C1-C6) |
+| `0a90893` | account management section (change password, cloud sync, delete account) |
+| `ec9fd61` | data isolation by userId, cloud sync API + store actions |
+| `6dd64fd` | AuthModal + AuthGuard components, AvatarMenu dual-state |
+| `283b304` | Supabase client, Auth Store, auth init in App, i18n auth keys |
+| `032d252` | init: bump to 0.5.0, install @supabase/supabase-js |
+
+### v0.5 核心特性
+
+- **账户管理 (Track A)**：
+  - Supabase Auth 集成（邮箱/GitHub/Google OAuth）
+  - AuthModal 组件（登录/注册/密码重置/登出/删除账户）
+  - AvatarMenu 双状态（未登录 = Sign In 按钮，已登录 = 头像菜单含 Settings/Logout/Delete）
+  - AuthGuard 保护云同步接口
+  - Change Password 页面（Settings 页 Tab 5 子项）
+
+- **云同步 (Cloud Sync)**：
+  - `api/sync.ts`（Supabase JWT 验证 + service role key upsert/select）
+  - useAuthStore（auth state listener + signUp/signIn/signOut/deleteAccount/changePassword）
+  - useOverviewStore 扩展（syncToCloud/loadFromCloud/switchUser，按 userId 隔离 localStorage key）
+  - `user_data` 表 + RLS（select/insert/update policy）
+  - `.env.local` 配置（VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY）
+
+- **品牌视觉升级 (Track C)**：
+  - Design Token System（src/theme/tokens.ts — 颜色/阴影/圆角/间距/字体/过渡常量）
+  - Ghost button pattern（透明背景 + hover #F0F0F0 + shadow 替代 border）
+  - Subtle shadow 替代 border（卡片 `0 1px 3px`、菜单 `0 4px 12px`、弹窗 `0 8px 24px`）
+  - Logo + Favicon（Pin + 纸卷 SVG → logo.svg / favicon.svg / index.html）
+  - Journal 物件纹理增强（PaperObject SVG noise overlay + sticky corner curl；Stamp ink filter feDisplacementMap；RopeLayer fiber stroke-dasharray；Pin radial gradient + highlight）
+
+- **交互深化 (Track B)**：
+  - B1 Drag & Drop — WallCard 拖到 Project header drop zone（html5 drag API, dataTransfer, onDragStart/Over/Drop/End）
+  - B2 Drag-to-Merge — WallCard 互相拖叠自动合并（drag overlay scale(1.02) dashed border, merge confirm dialog, handleMerge 函数）
+  - B3 Box Selection — 空区域 pointerdown 框选多卡片（getBoundingClientRect 交叉检测，pointer events 自动激活 manage mode）
+  - B4 Quick Actions — Double-click edit, right-click rename, Ctrl+D duplicate, Delete key delete
 
 ## v0.3 完成记录（提交链）
 
