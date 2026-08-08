@@ -276,6 +276,6 @@ export const ja: Record<TKey, string> = {
   'auth.newPassword': '新しいパスワード',
   'toast.wallMerged': 'Walls merged',
   'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
-}  'top.editMode': 'Edit',
+  'top.editMode': 'Edit',
   'top.viewMode': 'View + Comment',
-;
+};
