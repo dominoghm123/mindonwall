@@ -1,7 +1,7 @@
 {
   "name": "mindonwall",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "@upstash/redis": "^1.38.2",
     "html-to-image": "^1.11.13",
     "jspdf": "^4.2.1",
