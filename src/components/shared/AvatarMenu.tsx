@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useT } from '../../i18n/useT';
+import { AuthModal } from '../auth/AuthModal';
 
 /**
  * 头像入口（v0.2）。
@@ -10,11 +12,17 @@ import { useT } from '../../i18n/useT';
  */
 export function AvatarMenu() {
   const [open, setOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const openPage = useUIStore((s) => s.openPage);
   const userName = useOverviewStore((s) => s.userName);
   const avatarDataUrl = useOverviewStore((s) => s.avatarDataUrl);
+  const user = useAuthStore((s) => s.user);
+  const isAuthEnabled = useAuthStore((s) => s.isAuthEnabled);
+  const signOut = useAuthStore((s) => s.signOut);
   const t = useT();
+
+  const isLoggedIn = !!user;
 
   // 点击外部 / Esc 关闭
   useEffect(() => {
@@ -33,42 +41,69 @@ export function AvatarMenu() {
     };
   }, [open]);
 
+  // v0.5: Build items based on auth state
   const items = [
     { key: 'materials', label: t('av.library'), desc: t('av.libraryDesc') },
     { key: 'settings', label: t('av.settings'), desc: t('av.settingsDesc') },
+    ...(isLoggedIn ? [{ key: 'signOut', label: t('auth.signOut'), desc: '' }] : []),
   ];
 
-  const handleAction = (key: string) => {
+  const handleAction = async (key: string) => {
     setOpen(false);
+    if (key === 'signOut') {
+      await signOut();
+      return;
+    }
     // v0.3 r2：打开全屏用户页面
     openPage(key as 'materials' | 'settings');
   };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {/* 头像（28px 圆形：自定义头像或昵称首字母） */}
-      <div
-        title={userName}
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: '50%',
-          background: avatarDataUrl ? `center/cover no-repeat url("${avatarDataUrl}")` : '#F0F0F0',
-          border: open ? '1px solid #4A90D9' : '1px solid #E0E0E0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 12,
-          fontWeight: 700,
-          color: '#666',
-          cursor: 'pointer',
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-        }}
-      >
-        {avatarDataUrl ? null : (userName.trim()[0] ?? 'U').toUpperCase()}
-      </div>
+      {isAuthEnabled && !isLoggedIn ? (
+        /* v0.5: 未登录 → Sign In 按钮 */
+        <button
+          onClick={() => setShowAuth(true)}
+          style={{
+            height: 28,
+            padding: '0 12px',
+            background: '#1A1A1A',
+            color: '#FFF',
+            border: 'none',
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t('auth.signIn')}
+        </button>
+      ) : (
+        /* 已登录/未配置auth → 圆形头像 */
+        <div
+          title={isLoggedIn ? (user.email ?? userName) : userName}
+          onClick={() => setOpen((o) => !o)}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: avatarDataUrl ? `center/cover no-repeat url("${avatarDataUrl}")` : '#F0F0F0',
+            border: open ? '1px solid #4A90D9' : '1px solid #E0E0E0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#666',
+            cursor: 'pointer',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+          }}
+        >
+          {avatarDataUrl ? null : (userName.trim()[0] ?? 'U').toUpperCase()}
+        </div>
+      )}
 
       {/* 下拉菜单 */}
       {open && (
@@ -110,6 +145,7 @@ export function AvatarMenu() {
           ))}
         </div>
       )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }
