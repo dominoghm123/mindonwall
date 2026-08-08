@@ -14,12 +14,12 @@ const TTL_SECONDS = 30 * 24 * 60 * 60;
 /** Max payload size: 2 MB JSON */
 const MAX_BODY = 2 * 1024 * 1024;
 
-const CORS_HEADERS = {
+const CORS_HEADERS = new Headers({
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
-};
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS preflight

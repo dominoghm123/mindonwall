@@ -11,12 +11,12 @@ const EVENT_TTL = 90 * 24 * 60 * 60;
 /** Max events per day-key list (safety cap) */
 const MAX_EVENTS_PER_DAY = 100_000;
 
-const CORS_HEADERS = {
+const CORS_HEADERS = new Headers({
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
-};
+});
 
 interface EventPayload {
   event: string;
