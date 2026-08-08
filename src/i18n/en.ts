@@ -8,6 +8,7 @@ export const en = {
   'common.cancel': 'Cancel',
   'common.save': 'Save',
   'common.delete': 'Delete',
+  'common.merge': 'Merge',
   'common.confirm': 'Confirm',
   'common.upload': 'Upload',
   'common.remove': 'Remove',
@@ -295,6 +296,7 @@ export const en = {
   'auth.syncToCloud': 'Sync to Cloud',
   'auth.syncFromCloud': 'Load from Cloud',
   'auth.authRequired': 'Sign in to save your walls',
+  'auth.tagline': 'Organize your thoughts on a visual wall',
   'auth.changePassword': 'Change Password',
   'auth.newPassword': 'New Password',
 

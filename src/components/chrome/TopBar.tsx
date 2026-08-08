@@ -151,10 +151,12 @@ export function TopBar({ zoom }: { zoom?: number }) {
   }, [editing, editValue, name, renameWall]);
 
   const handleNameClick = useCallback(() => {
+    // v0.6: View mode 下不允许编辑墙名
+    if (!editMode) return;
     setEditValue(name);
     setEditing(true);
     setTimeout(() => inputRef.current?.focus(), 0);
-  }, [name]);
+  }, [name, editMode]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

@@ -23,6 +23,8 @@ import { ToastLayer } from './components/shared/ToastLayer';
 import { ConnectionMapPage } from './components/map/ConnectionMapPage';
 import { SharedWallBanner } from './components/shared/SharedWallBanner';
 import { UserPageOverlay } from './components/pages/UserPages';
+import { AuthModal } from './components/auth/AuthModal';
+import { LandingPage } from './components/auth/LandingPage';
 import { parseShareHash, parseSharePath, fetchSharedWall } from './utils/shareWall';
 import { useT } from './i18n/useT';
 import { track } from './utils/analytics';
@@ -38,6 +40,12 @@ function App() {
   const selectedIds = useUIStore((s) => s.selectedIds);
   const ropeCreating = useUIStore((s) => s.ropeCreating);
   const ropeMode = useUIStore((s) => s.ropeMode);
+  const editMode = useUIStore((s) => s.editMode);
+  const showAuthModal = useUIStore((s) => s.showAuthModal);
+  const setShowAuthModal = useUIStore((s) => s.setShowAuthModal);
+  const user = useAuthStore((s) => s.user);
+  const isAuthEnabled = useAuthStore((s) => s.isAuthEnabled);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const t = useT();
 
   // Store actions
@@ -211,6 +219,26 @@ function App() {
     [],
   );
 
+  // v0.6: Auth-gated landing page
+  // While auth is loading, show nothing (or a spinner)
+  if (authLoading) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F5F3' }}>
+        <div style={{ fontSize: 14, color: '#999' }}>Loading…</div>
+      </div>
+    );
+  }
+
+  // v0.6: When auth is enabled and user is not logged in, show landing page
+  if (isAuthEnabled && !user) {
+    return (
+      <>
+        <LandingPage />
+        <ToastLayer />
+      </>
+    );
+  }
+
   // Render overview page
   if (viewMode === 'overview') {
     return (
@@ -246,11 +274,12 @@ function App() {
       {/* TopBar */}
       <TopBar zoom={canvasView.zoom} />
 
-      {/* BottomToolbar */}
-      <BottomToolbar zoom={canvasView.zoom} panX={canvasView.panX} panY={canvasView.panY} />
+      {/* BottomToolbar — v0.6: View mode 隐藏 */}
+      {editMode && <BottomToolbar zoom={canvasView.zoom} panX={canvasView.panX} panY={canvasView.panY} />}
 
       {/* Canvas area */}
       <div style={{ position: 'absolute', inset: 0 }}>
+        {editMode ? (
         <SelectionBox
           items={items}
           zoom={canvasView.zoom}
@@ -300,6 +329,26 @@ function App() {
             })}
           </InfiniteCanvas>
         </SelectionBox>
+        ) : (
+          <InfiniteCanvas
+            ref={canvasRef}
+            wallpaper={wallpaper}
+            items={items}
+            onViewChange={handleViewChange}
+          >
+            <RopeLayer ropes={ropes} items={items} dragTail={null} onRopeContextMenu={() => {}} />
+            {items.map((item, index) => {
+              if (item.type === 'stamp' && item.parentId) return null;
+              return (
+                <div key={item.id} style={{ position: 'absolute', left: item.x, top: item.y, width: item.width, height: item.height, transform: `rotate(${item.rotation}deg)`, zIndex: index + 2, pointerEvents: 'none' }}>
+                  {item.type === 'picture' && <PictureObject item={item} zoom={canvasView.zoom} />}
+                  {item.type === 'paper' && <PaperObject item={item} onTextChange={() => {}} zoom={canvasView.zoom} />}
+                  {item.type === 'stamp' && <StampObject item={item} />}
+                </div>
+              );
+            })}
+          </InfiniteCanvas>
+        )}
       </div>
 
       {/* Context Menu */}
@@ -315,6 +364,9 @@ function App() {
       <SharedWallBanner />
       <UserPageOverlay />
       <ToastLayer />
+
+      {/* v0.6: AuthModal 在 App 层渲染，避开 TopBar transform 导致的 fixed 定位异常 */}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </div>
   );
 }

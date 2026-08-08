@@ -47,6 +47,7 @@ export function ContextMenu({ zoom: _zoom = 1 }: ContextMenuProps) {
   const detachStamp = useWallStore((s) => s.detachStamp);
   const bringToFront = useWallStore((s) => s.bringToFront);
   const sendToBack = useWallStore((s) => s.sendToBack);
+  const editMode = useUIStore((s) => s.editMode);
   const t = useT();
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -77,6 +78,9 @@ export function ContextMenu({ zoom: _zoom = 1 }: ContextMenuProps) {
   }, [closeContextMenu]);
 
   if (!contextMenu) return null;
+
+  // v0.6: View mode 下不显示右键菜单（安全守卫）
+  if (!editMode) return null;
 
   // Rope 右键菜单（v0.2 修订：改绳色 + 删除）
   if (contextMenu.type === 'rope') {

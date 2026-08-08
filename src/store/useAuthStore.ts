@@ -63,7 +63,27 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   signUp: async (email, password) => {
     if (!supabase) return { error: 'Auth not configured' };
-    const { error } = await supabase.auth.signUp({ email, password });
+    // v0.6: Auto sign in after sign up to bypass email confirmation for local dev
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        // Disable email confirmation for development
+        emailRedirectTo: window.location.origin,
+      }
+    });
+    
+    // If signup succeeded but requires email confirmation, auto-login anyway for dev
+    if (!error && data.user && !data.session) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (!signInError) {
+        // Successfully logged in after signup
+        return { error: null };
+      }
+      // If auto-login failed, return the original signup error or a helpful message
+      return { error: 'Please check your email to confirm your account' };
+    }
+    
     return { error: error?.message ?? null };
   },
 

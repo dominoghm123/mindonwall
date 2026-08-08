@@ -38,6 +38,8 @@ export interface UIState {
   page: 'materials' | 'settings' | null;
   /** v0.6: 编辑模式（true = 可编辑，false = 仅浏览） */
   editMode: boolean;
+  /** v0.6: 显示登录弹窗（从 TopBar AvatarMenu 触发，需在 App 层渲染以避开 TopBar transform） */
+  showAuthModal: boolean;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -87,6 +89,8 @@ export interface UIState {
   toggleEditMode: () => void;
   /** v0.6: 设置编辑模式 */
   setEditMode: (mode: boolean) => void;
+  /** v0.6: 打开/关闭登录弹窗 */
+  setShowAuthModal: (show: boolean) => void;
 }
 
 let toastCounter = 0;
@@ -107,9 +111,24 @@ export const useUIStore = create<UIState>()(
       sharedImport: null,
       page: null,
       editMode: true,
+      showAuthModal: false,
 
       toggleEditMode: () => {
-        set({ editMode: !get().editMode });
+        const next = !get().editMode;
+        // v0.6: 切换到 View mode 时清理所有编辑状态
+        if (!next) {
+          set({
+            editMode: false,
+            selectedIds: [],
+            ropeMode: false,
+            ropeCreating: false,
+            attachMode: null,
+            toolbarPanel: null,
+            contextMenu: null,
+          });
+        } else {
+          set({ editMode: true });
+        }
       },
 
       setEditMode: (mode: boolean) => {
@@ -220,6 +239,10 @@ export const useUIStore = create<UIState>()(
 
       openPage: (page) => {
         set({ page });
+      },
+
+      setShowAuthModal: (show: boolean) => {
+        set({ showAuthModal: show });
       },
     }),
     {

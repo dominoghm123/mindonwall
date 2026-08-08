@@ -84,9 +84,12 @@ export function useKeyboard({
         return;
       }
 
-      // Delete / Backspace → 删除选中（仅白墙）
+      // v0.6: View mode 下禁止编辑操作（Delete/Ctrl+A）
+      const isEditMode = uiRef.current.editMode;
+
+      // Delete / Backspace → 删除选中（仅白墙，且编辑模式）
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (isMap) return;
+        if (isMap || !isEditMode) return;
         e.preventDefault();
         onDeleteSelected?.();
         return;
@@ -100,9 +103,9 @@ export function useKeyboard({
         return;
       }
 
-      // Ctrl+A → 全选（仅白墙）
+      // Ctrl+A → 全选（仅白墙，且编辑模式）
       if (ctrl && e.key === 'a') {
-        if (isMap) return;
+        if (isMap || !isEditMode) return;
         e.preventDefault();
         onSelectAll?.();
         return;

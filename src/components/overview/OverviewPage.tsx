@@ -39,15 +39,15 @@ export function OverviewPage() {
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
   const [menu, setMenu] = useState<{ wallId: string; x: number; y: number } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [projectMenu, setProjectMenu] = useState<{ projectId: string; x: number; y: number } | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [newProjectInput, setNewProjectInput] = useState(false);
   const [manageMoveOpen, setManageMoveOpen] = useState(false);
 
-  // v0.5 B1/B2: Drag state
+  // v0.5 B1: Drag state
   const [dragWallId, setDragWallId] = useState<string | null>(null);
   const [dropProjectId, setDropProjectId] = useState<string | null>(null);
   const [dropCardId, setDropCardId] = useState<string | null>(null);
-  const [mergeConfirm, setMergeConfirm] = useState<{ fromId: string; toId: string } | null>(null);
 
   // v0.5 B3: Box selection state
   const [boxSelect, setBoxSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
@@ -168,39 +168,13 @@ export function OverviewPage() {
     setManageMoveOpen(false);
   }, []);
 
-  // v0.5 B2: Merge walls handler
-  const handleMerge = useCallback((fromId: string, toId: string) => {
-    const overview = useOverviewStore.getState();
-    const fromData = overview.wallData[fromId];
-    const toData = overview.wallData[toId];
-    if (!fromData || !toData) return;
-    // Merge items and ropes into target wall
-    const mergedItems = [...toData.items, ...fromData.items.map((it: import('../../store/types').Item) => ({ ...it, id: `${it.id}-merged-${Date.now()}` }))];
-    const mergedRopes = [...toData.ropes, ...fromData.ropes.map((r: import('../../store/types').Rope) => ({ ...r, id: `${r.id}-merged-${Date.now()}` }))];
-    useOverviewStore.setState((state) => ({
-      wallData: {
-        ...state.wallData,
-        [toId]: { ...toData, items: mergedItems, ropes: mergedRopes },
-      },
-      walls: state.walls.filter((w) => w.id !== fromId),
-    }));
-    // Clean up projects
-    useOverviewStore.setState((state) => ({
-      projects: state.projects.map((p) => ({
-        ...p,
-        wallIds: p.wallIds.filter((id) => id !== fromId),
-      })),
-    }));
-    removeWalls([fromId]);
-    track('wall_merged', { fromId, toId });
-    showToast(t('toast.wallMerged') || 'Walls merged', 'success');
-  }, [removeWalls, showToast, t]);
+
 
   // v0.5 B4: Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only when not in manage mode and no dialogs open
-      if (confirm || mergeConfirm || renamingId || menu) return;
+      if (confirm || renamingId || menu) return;
       if (selected.length === 0) return;
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -218,7 +192,7 @@ export function OverviewPage() {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selected, confirm, mergeConfirm, renamingId, menu, duplicateWall, showToast, t]);
+  }, [selected, confirm, renamingId, menu, duplicateWall, showToast, t]);
 
   return (
     <div
@@ -442,6 +416,31 @@ export function OverviewPage() {
                   )}
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{project.name}</span>
                   <span style={{ fontSize: 11, color: '#BBB' }}>({projectWalls.length})</span>
+                  {/* v0.6: Project 三点菜单 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProjectMenu({ projectId: project.id, x: e.clientX, y: e.clientY });
+                    }}
+                    style={{
+                      marginLeft: 'auto',
+                      width: 28,
+                      height: 28,
+                      border: 'none',
+                      background: 'transparent',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 16,
+                      color: '#999',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  >
+                    
+                  </button>
                 </div>
                 {/* 墙卡片网格 */}
                 {!isCollapsed && (
@@ -470,7 +469,14 @@ export function OverviewPage() {
                         onDragLeave={() => setDropCardId(null)}
                         onDrop={() => {
                           if (dragWallId && dragWallId !== wall.id) {
-                            setMergeConfirm({ fromId: dragWallId, toId: wall.id });
+                            // v0.6: Dragging a wall onto another wall moves it to the target wall's project
+                            const projects = useOverviewStore.getState().projects;
+                            const targetProject = projects.find((p) => p.wallIds.includes(wall.id));
+                            if (targetProject) {
+                              moveWallToProject(dragWallId, targetProject.id);
+                              track('wall_moved_to_project', { projectId: targetProject.id, wallId: dragWallId });
+                              showToast(t('toast.wallMoved') || 'Wall moved', 'success');
+                            }
                           }
                           setDragWallId(null);
                           setDropCardId(null);
@@ -509,7 +515,14 @@ export function OverviewPage() {
                 onDragLeave={() => setDropCardId(null)}
                 onDrop={() => {
                   if (dragWallId && dragWallId !== wall.id) {
-                    setMergeConfirm({ fromId: dragWallId, toId: wall.id });
+                    // v0.6: Dragging a wall onto another wall moves it to the target wall's project
+                    const projects = useOverviewStore.getState().projects;
+                    const targetProject = projects.find((p) => p.wallIds.includes(wall.id));
+                    if (targetProject) {
+                      moveWallToProject(dragWallId, targetProject.id);
+                      track('wall_moved_to_project', { projectId: targetProject.id, wallId: dragWallId });
+                      showToast(t('toast.wallMoved') || 'Wall moved', 'success');
+                    }
                   }
                   setDragWallId(null);
                   setDropCardId(null);
@@ -538,6 +551,24 @@ export function OverviewPage() {
         />
       )}
 
+      {/* v0.6: Project 三点菜单 */}
+      {projectMenu && (
+        <ProjectMenu
+          x={projectMenu.x}
+          y={projectMenu.y}
+          projectId={projectMenu.projectId}
+          onClose={() => setProjectMenu(null)}
+          onRename={() => {
+            setProjectMenu(null);
+            // TODO: Implement project rename
+          }}
+          onDelete={() => {
+            setProjectMenu(null);
+            // TODO: Implement project delete
+          }}
+        />
+      )}
+
       {/* 删除确认弹窗 */}
       {confirm && (
         <ConfirmDialog
@@ -560,18 +591,6 @@ export function OverviewPage() {
       {/* 重命名弹窗 */}
       {renamingId && (
         <RenameCardOverlay wallId={renamingId} onClose={() => setRenamingId(null)} />
-      )}
-
-      {/* v0.5 B2: Merge 确认弹窗 */}
-      {mergeConfirm && (
-        <ConfirmDialog
-          message={t('ov.confirmMerge') || 'Merge these two walls? Items and ropes will be combined.'}
-          onCancel={() => setMergeConfirm(null)}
-          onConfirm={() => {
-            handleMerge(mergeConfirm.fromId, mergeConfirm.toId);
-            setMergeConfirm(null);
-          }}
-        />
       )}
 
       {/* v0.5 B3: Box selection rectangle overlay */}
@@ -672,7 +691,9 @@ function RenameCardOverlay({ wallId, onClose }: { wallId: string; onClose: () =>
   );
 }
 
-/* ─── 卡片 ─── */
+/** v0.6: 重命名 Project 弹窗（合并后使用） */
+
+/* ── 卡片 ─── */
 function WallCard({
   wall,
   manageMode,
@@ -972,15 +993,98 @@ function CardMenu({
   );
 }
 
+/* ─── v0.6: Project 三点菜单 ─── */
+function ProjectMenu({
+  x,
+  y,
+  projectId,
+  onClose,
+  onRename,
+  onDelete,
+}: {
+  x: number;
+  y: number;
+  projectId: string;
+  onClose: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [onClose]);
+
+  const items = [
+    { key: 'rename', label: t('project.rename'), action: onRename },
+    { key: 'delete', label: t('common.delete'), danger: true, action: onDelete },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: 'fixed',
+        left: Math.min(x, window.innerWidth - 200),
+        top: Math.max(y - 160, 8),
+        background: '#FFFFFF',
+        border: 'none',
+        borderRadius: 8,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)',
+        padding: '4px 0',
+        minWidth: 160,
+        zIndex: 9999,
+        userSelect: 'none',
+      }}
+    >
+      {items.map((it) => (
+        <div
+          key={it.key}
+          onClick={() => it.action()}
+          style={{
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 14px',
+            fontSize: 13,
+            color: it.danger ? '#C0392B' : '#333',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#F5F5F5'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+        >
+          {it.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── 确认弹窗 ─── */
 function ConfirmDialog({
   message,
   onCancel,
   onConfirm,
+  confirmLabel,
+  confirmVariant,
 }: {
   message: string;
   onCancel: () => void;
   onConfirm: () => void;
+  confirmLabel?: string;
+  confirmVariant?: 'danger' | 'primary';
 }) {
   const t = useT();
   return (
@@ -1010,8 +1114,8 @@ function ConfirmDialog({
           <button onClick={onCancel} style={dialogBtnStyle(false)}>
             {t('common.cancel')}
           </button>
-          <button onClick={onConfirm} style={dialogBtnStyle(true)}>
-            {t('common.delete')}
+          <button onClick={onConfirm} style={dialogBtnStyle(true, confirmVariant)}>
+            {confirmLabel ?? t('common.delete')}
           </button>
         </div>
       </div>
@@ -1019,13 +1123,14 @@ function ConfirmDialog({
   );
 }
 
-function dialogBtnStyle(primary: boolean): React.CSSProperties {
+function dialogBtnStyle(primary: boolean, variant: 'danger' | 'primary' = 'danger'): React.CSSProperties {
   return {
     height: 28,
     padding: '0 12px',
     fontSize: 12,
+    fontWeight: 600,
     color: primary ? '#FFFFFF' : '#666',
-    background: primary ? '#C0392B' : '#FFFFFF',
+    background: primary ? (variant === 'primary' ? '#1A1A1A' : '#C0392B') : '#FFFFFF',
     border: primary ? 'none' : '1px solid #D0D0D0',
     borderRadius: 6,
     cursor: 'pointer',

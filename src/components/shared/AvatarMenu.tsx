@@ -3,7 +3,6 @@ import { useUIStore } from '../../store/useUIStore';
 import { useOverviewStore } from '../../store/useOverviewStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useT } from '../../i18n/useT';
-import { AuthModal } from '../auth/AuthModal';
 
 /**
  * 头像入口（v0.2）。
@@ -12,9 +11,9 @@ import { AuthModal } from '../auth/AuthModal';
  */
 export function AvatarMenu() {
   const [open, setOpen] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const openPage = useUIStore((s) => s.openPage);
+  const setShowAuthModal = useUIStore((s) => s.setShowAuthModal);
   const userName = useOverviewStore((s) => s.userName);
   const avatarDataUrl = useOverviewStore((s) => s.avatarDataUrl);
   const user = useAuthStore((s) => s.user);
@@ -63,7 +62,7 @@ export function AvatarMenu() {
       {isAuthEnabled && !isLoggedIn ? (
         /* v0.5: 未登录 → Sign In 按钮 */
         <button
-          onClick={() => setShowAuth(true)}
+          onClick={() => setShowAuthModal(true)}
           style={{
             height: 28,
             padding: '0 12px',
@@ -146,7 +145,6 @@ export function AvatarMenu() {
           ))}
         </div>
       )}
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 # Implementation Status
 
-**Overall:** v0.1 MVP complete; v0.2 complete ✅
-**Active version:** v0.2 — Interactions & Chrome Refinement (ready for review)
-**Last updated:** 2026-08-07
+**Overall:** v0.1 MVP complete; v0.2 complete ✅; v0.6 Phase 1-A in progress
+**Active version:** v0.6 — Edit/View Mode Toggle + Drag-to-Merge
+**Last updated:** 2026-08-08
 
 ## v0.1 Completed
 
@@ -46,6 +46,19 @@
 | **v0.2-A2**: 底部工具栏深化 | ✅ 完成 | a62a2eb — 48px 工具栏 + Image/Paper/Stamp 三面板 + rope 点击连线 + 上传 |
 | **v0.2-A3**: 顶部栏重布局 | ✅ 完成 | e66375e — Share+头像、右下角缩放/Fit/Map 浮窗、Toast 层 |
 | **v0.2-B**: 总览页管理功能 | ✅ 完成 | a715ed1 — Manage 多选删除、三点菜单、Duplicate/Export JSON、多墙数据切换 |
+
+## v0.6 Phase 1-A: Edit/View Mode Toggle
+
+| Slice | Status | Evidence / notes |
+|---|---|---|
+| **v0.6-A1**: useUIStore editMode | ✅ 完成 | `toggleEditMode` / `setEditMode` + 切换时清理编辑状态 |
+| **v0.6-A2**: TopBar Toggle Button | ✅ 完成 | 铅笔/眼睛图标 + ghost button 样式 |
+| **v0.6-A3**: BottomToolbar 条件隐藏 | ✅ 完成 | View mode 下整个工具栏不渲染 |
+| **v0.6-A4**: Canvas 交互条件渲染 | ✅ 完成 | View mode 使用纯 div 渲染（无 ObjectWrapper），pan/zoom 保留 |
+| **v0.6-A5**: ContextMenu 安全守卫 | ✅ 完成 | View mode 下不显示右键菜单 |
+| **v0.6-A6**: Keyboard 快捷键守卫 | ✅ 完成 | Delete/Ctrl+A 在 View mode 下禁用 |
+| **v0.6-A7**: TopBar 墙名编辑守卫 | ✅ 完成 | View mode 下点击墙名不进入编辑态 |
+| **v0.6-A8**: 浏览器全流程验证 | ✅ 完成 | Edit↔View 切换、BottomToolbar 隐藏/恢复、按钮状态切换正常 |
 
 ## v0.2 QA 结果（2026-08-07 浏览器全流程验证）
 
