@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useT } from '../../i18n/useT';
 import logoSvg from '../../assets/logo.svg';

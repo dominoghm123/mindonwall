@@ -1012,6 +1012,9 @@ function ProjectMenu({
   const ref = useRef<HTMLDivElement>(null);
   const t = useT();
 
+  // v0.6: projectId reserved for future rename/delete implementation
+  void projectId;
+
   useEffect(() => {
     const handle = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
@@ -1071,7 +1074,6 @@ function ProjectMenu({
     </div>
   );
 }
-
 /* ─── 确认弹窗 ─── */
 function ConfirmDialog({
   message,
