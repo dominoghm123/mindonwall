@@ -17,6 +17,7 @@ interface ZoomWidgetProps {
 export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
   const setViewMode = useUIStore((s) => s.setViewMode);
   const t = useT();
+  const [onboardingActive] = useState(() => !localStorage.getItem('mindonwall-onboarding-done'));
   const [visible, setVisible] = useState(false);
 
   /* ── 度数可编辑（v0.2 修订） ── */
@@ -55,6 +56,8 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
     <div
       data-toolbar-ui
       onMouseLeave={(e) => {
+        // onboarding 期间不隐藏
+        if (onboardingActive) return;
         // 离开浮窗且不在右下角触发区时隐藏
         const inCorner =
           e.clientX >= window.innerWidth - 90 && e.clientY >= window.innerHeight - 80;
@@ -74,7 +77,7 @@ export function ZoomWidget({ zoom, canvasRef }: ZoomWidgetProps) {
         height: 36,
         zIndex: 1000,
         userSelect: 'none',
-        transform: visible ? 'translateX(0)' : 'translateX(150%)',
+        transform: visible || onboardingActive ? 'translateX(0)' : 'translateX(150%)',
         transition: 'transform 0.25s ease',
       }}
     >

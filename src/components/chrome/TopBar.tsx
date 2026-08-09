@@ -111,7 +111,12 @@ export function TopBar({ zoom }: { zoom?: number }) {
   const [editValue, setEditValue] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 鼠标触顶滑入
+  // v0.7: onboarding 期间保持 TopBar 可见
+  const [onboardingActive, setOnboardingActive] = useState(
+    () => !localStorage.getItem('mindonwall-onboarding-done'),
+  );
+
+  // 鼠标触顶滑入（onboarding 期间始终可见）
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (e.clientY <= 8) {
@@ -119,7 +124,8 @@ export function TopBar({ zoom }: { zoom?: number }) {
       }
     };
     const handleMouseLeave = (e: MouseEvent) => {
-      // 当鼠标离开顶部栏区域（向下移出）时隐藏
+      // onboarding 期间不隐藏 TopBar
+      if (onboardingActive) return;
       const el = document.getElementById('top-bar');
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -135,7 +141,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, []);
+  }, [onboardingActive]);
 
   // 点击外部退出编辑
   useEffect(() => {
@@ -195,11 +201,11 @@ export function TopBar({ zoom }: { zoom?: number }) {
         justifyContent: 'space-between',
         padding: '0 16px',
         zIndex: 1000,
-        transform: visible ? 'translateY(0)' : 'translateY(-100%)',
+        transform: visible || onboardingActive ? 'translateY(0)' : 'translateY(-100%)',
         transition: 'transform 0.2s ease',
         userSelect: 'none',
       }}
-      onMouseLeave={() => setVisible(false)}
+      onMouseLeave={() => { if (!onboardingActive) setVisible(false); }}
     >
       {/* 左区 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -289,6 +295,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
             label={t('top.map')}
             active={isMap}
             onClick={() => setViewMode('map')}
+            data-onboarding-target="map"
           />
         </div>
       </div>
@@ -493,14 +500,17 @@ function TabButton({
   label,
   active,
   onClick,
+  'data-onboarding-target': dataOnboardingTarget,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
+  'data-onboarding-target'?: string;
 }) {
   return (
     <button
       onClick={onClick}
+      data-onboarding-target={dataOnboardingTarget}
       style={{
         height: 22,
         padding: '0 10px',

@@ -9,7 +9,7 @@ export type WallpaperType = 'cream' | 'none' | 'white' | 'beige' | 'textured' | 
 export type PaperVariant = 'note' | 'torn' | 'sticky' | 'tape';
 
 /** 物件类型 */
-export type ItemType = 'picture' | 'paper' | 'stamp';
+export type ItemType = 'picture' | 'paper' | 'stamp' | 'audio' | 'video';
 
 /** Pin 偏移（局部坐标，相对于物件，0-1 比例） */
 export interface PinOffset {
@@ -65,7 +65,7 @@ export interface Asset {
   /** v0.2: base64 data URL（本地存储模式下直接作为图片源） */
   dataUrl?: string;
   /** v0.2 修订：素材类型（对应上传面板），缺省为 picture */
-  kind?: 'picture' | 'paper' | 'stamp';
+  kind?: 'picture' | 'paper' | 'stamp' | 'audio' | 'video';
 }
 
 /** 撤销动作 */

@@ -17,6 +17,7 @@ import { ObjectWrapper } from './components/objects/ObjectWrapper';
 import { PictureObject } from './components/objects/PictureObject';
 import { PaperObject } from './components/objects/PaperObject';
 import { StampObject } from './components/objects/StampObject';
+import { AudioObject, VideoObject } from './components/objects/NewObjectTypes';
 import { ContextMenu } from './components/shared/ContextMenu';
 import { AssetPickerModal } from './components/shared/AssetPickerModal';
 import { ToastLayer } from './components/shared/ToastLayer';
@@ -25,6 +26,7 @@ import { SharedWallBanner } from './components/shared/SharedWallBanner';
 import { UserPageOverlay } from './components/pages/UserPages';
 import { AuthModal } from './components/auth/AuthModal';
 import { LandingPage } from './components/auth/LandingPage';
+import { Onboarding } from './components/shared/Onboarding';
 import { parseShareHash, parseSharePath, fetchSharedWall } from './utils/shareWall';
 import { useT } from './i18n/useT';
 import { track } from './utils/analytics';
@@ -56,7 +58,7 @@ function App() {
   const [canvasView, setCanvasView] = useState({ zoom: 1, panX: 0, panY: 0 });
   const canvasRef = useRef<InfiniteCanvasHandle>(null);
 
-  // Initialize stores
+  // Initialize stores & v0.7: Alt key tracker
   useEffect(() => {
     useOverviewStore.getState().initIfNeeded();
     useWallStore.getState().initDefaultWall();
@@ -88,6 +90,19 @@ function App() {
       if (newUserId !== oldUserId) {
         setCurrentUserId(newUserId);
         useOverviewStore.getState().switchUser(newUserId);
+        // v0.7: New user detection — if no saved wall data, go directly to Wall 01
+        if (newUserId) {
+          const overviewState = useOverviewStore.getState();
+          const hasSavedData = Object.keys(overviewState.wallData).length > 0;
+          if (!hasSavedData) {
+            // New user: open default wall directly
+            const defaultWall = overviewState.walls.find((w) => w.id === 'wall-default');
+            if (defaultWall) {
+              overviewState.openWall(defaultWall.id);
+              useUIStore.getState().setViewMode('wall');
+            }
+          }
+        }
       }
     });
     return unsub;
@@ -144,7 +159,8 @@ function App() {
         const it = useWallStore.getState().items.find((i) => i.id === itemId);
         const hasPin =
           it && !it.parentId &&
-          (it.type === 'picture' || (it.type === 'paper' && it.variant !== 'tape'));
+          (it.type === 'picture' || (it.type === 'paper' && it.variant !== 'tape')
+           || it.type === 'md' || it.type === 'audio' || it.type === 'video');
         if (hasPin && itemId) {
           ropeCreation.handlePinClick(itemId);
         } else {
@@ -324,6 +340,8 @@ function App() {
                     <PaperObject item={item} onTextChange={handleTextChange} zoom={canvasView.zoom} />
                   )}
                   {item.type === 'stamp' && <StampObject item={item} />}
+                  {item.type === 'audio' && <AudioObject item={item} />}
+                  {item.type === 'video' && <VideoObject item={item} />}
                 </ObjectWrapper>
               );
             })}
@@ -344,6 +362,8 @@ function App() {
                   {item.type === 'picture' && <PictureObject item={item} zoom={canvasView.zoom} />}
                   {item.type === 'paper' && <PaperObject item={item} onTextChange={() => {}} zoom={canvasView.zoom} />}
                   {item.type === 'stamp' && <StampObject item={item} />}
+                  {item.type === 'audio' && <AudioObject item={item} />}
+                  {item.type === 'video' && <VideoObject item={item} />}
                 </div>
               );
             })}
@@ -367,6 +387,9 @@ function App() {
 
       {/* v0.6: AuthModal 在 App 层渲染，避开 TopBar transform 导致的 fixed 定位异常 */}
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+
+      {/* v0.7: 新手引导 */}
+      {editMode && <Onboarding />}
     </div>
   );
 }

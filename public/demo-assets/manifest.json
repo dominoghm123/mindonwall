@@ -68,12 +68,30 @@
   "demo_paper_contents": {
     "description": "Default text content for Paper variants loaded with the demo wall",
     "papers": [
-      { "variant": "note", "text": "契迪龙寺的安静让人不想离开" },
-      { "variant": "note", "text": "Khao Soi — 泰北的灵魂咖喱面" },
-      { "variant": "note", "text": "白庙的震撼只有亲眼见到才懂" },
-      { "variant": "torn", "text": "暹罗广场的雨后彩虹" },
-      { "variant": "torn", "text": "7-11 的袋装小样让人走不出来" },
-      { "variant": "torn", "text": "泰国人把香氛做到了极致" }
+      {
+        "variant": "note",
+        "text": "契迪龙寺的安静让人不想离开"
+      },
+      {
+        "variant": "note",
+        "text": "Khao Soi — 泰北的灵魂咖喱面"
+      },
+      {
+        "variant": "note",
+        "text": "白庙的震撼只有亲眼见到才懂"
+      },
+      {
+        "variant": "torn",
+        "text": "暹罗广场的雨后彩虹"
+      },
+      {
+        "variant": "torn",
+        "text": "7-11 的袋装小样让人走不出来"
+      },
+      {
+        "variant": "torn",
+        "text": "泰国人把香氛做到了极致"
+      }
     ]
   },
   "demo_stamps": [
@@ -83,5 +101,15 @@
     "stamp-green-nature",
     "stamp-yellow-sunshine"
   ],
-  "demo_tape_count": 3
+  "demo_tape_count": 3,
+  "demo_audio": [
+    {
+      "id": "sample-piano",
+      "file": "sample-piano.wav",
+      "title": "钢琴 C4 音调",
+      "description": "Piano C4 (261.63 Hz) — 3 seconds with harmonic decay",
+      "duration": "3s",
+      "format": "WAV 44.1kHz mono"
+    }
+  ]
 }

@@ -44,6 +44,12 @@ export const en = {
   'tb.tipStamp': 'Stamp — add stickers',
   'tb.tipRope': 'Rope — connect items',
   'tb.ropeHint': 'Click two pins to connect · Esc to cancel',
+  'tb.tipAudio': 'Audio — add audio notes',
+  'tb.tipVideo': 'Video — add video clips',
+  'tb.addAudio': 'Add Audio',
+  'tb.addVideo': 'Add Video',
+  'tb.audioHint': 'Upload audio files (mp3, wav, m4a)',
+  'tb.videoHint': 'Upload video files (mp4, mov, webm)',
   'tb.uploadToLibrary': 'Upload to Library',
   'wp.none': 'Plain',
   'wp.cream': 'Cream',
@@ -315,6 +321,18 @@ export const en = {
   /* ── v0.5 Track B ── */
   'toast.wallMerged': 'Walls merged',
   'ov.confirmMerge': 'Merge these two walls? Items and ropes will be combined.',
+
+  /* ── v0.7 Phase 2 ── */
+  'tb.tipMd': 'Document — add markdown note',
+  'tb.tipAudio': 'Audio — add audio note',
+  'tb.tipVideo': 'Video — add video clip',
+  'tb.newObjects': 'More',
+  'ob.step1': 'Pin photos, notes & stamps on the wall',
+  'ob.step2': 'Use ropes to connect related items',
+  'ob.step3': 'See the big picture in Connection Map',
+  'ob.skip': 'Skip',
+  'ob.next': 'Next',
+  'ob.done': 'Got it',
 } as const;
 
 export type TKey = keyof typeof en;

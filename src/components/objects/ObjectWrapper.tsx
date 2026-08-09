@@ -192,11 +192,12 @@ export function ObjectWrapper({
 
       if (e.button !== 0) return;
       e.stopPropagation();
+
       onSelect?.(item.id, e.ctrlKey || e.metaKey);
       activeModeRef.current = 'drag';
       drag.handlePointerDown(e);
     },
-    [item.id, onSelect, drag, isRopeCreating],
+    [item.id, onSelect, drag, isRopeCreating, onPinRopeClick],
   );
 
   const handlePointerMove = useCallback(
@@ -229,7 +230,7 @@ export function ObjectWrapper({
       }
       activeModeRef.current = 'none';
     },
-    [drag, resize, rotate],
+    [drag, resize, rotate, item.id, onPinRopeClick],
   );
 
   /* ── 计算当前渲染参数 ── */
@@ -239,8 +240,9 @@ export function ObjectWrapper({
   const displayH = resize.isResizing ? resize.resizeHeight : item.height;
   const displayRotation = rotate.currentRotation;
 
-  // Pin 只出现在 picture 和非 tape 的 paper 上
-  const showPin = item.type === 'picture' || (item.type === 'paper' && item.variant !== 'tape');
+  // Pin 只出现在 picture、非 tape 的 paper、以及 v0.7 新类型（md/audio/video）
+  const showPin = item.type === 'picture' || (item.type === 'paper' && item.variant !== 'tape')
+    || item.type === 'md' || item.type === 'audio' || item.type === 'video';
   const pinOffset = item.pinOffset ?? { x: 0.5, y: 0 };
 
   return (

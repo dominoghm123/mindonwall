@@ -31,7 +31,7 @@ export interface UIState {
   /** v0.2: Rope 点击连线模式（工具栏激活） */
   ropeMode: boolean;
   /** v0.2: 底部工具栏当前打开的次级面板（同时只能开一个） */
-  toolbarPanel: 'image' | 'paper' | 'stamp' | null;
+  toolbarPanel: 'image' | 'paper' | 'stamp' | 'audio' | 'video' | null;
   /** v0.3: 通过分享链接打开的墙数据（待用户确认导入） */
   sharedImport: SharedWallPayload | null;
   /** v0.3 r2: 全屏用户页面（Library / Settings，Profile 已并入 Settings） */
@@ -78,7 +78,7 @@ export interface UIState {
   /** v0.2: 设置 Rope 点击连线模式 */
   setRopeMode: (value: boolean) => void;
   /** v0.2: 切换工具栏次级面板（再点同一图标关闭） */
-  toggleToolbarPanel: (panel: 'image' | 'paper' | 'stamp') => void;
+  toggleToolbarPanel: (panel: 'image' | 'paper' | 'stamp' | 'audio' | 'video') => void;
   /** v0.2: 关闭次级面板 */
   closeToolbarPanel: () => void;
   /** v0.3: 设置分享导入数据 */

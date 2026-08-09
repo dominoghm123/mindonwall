@@ -41,6 +41,21 @@ const IconRope = ({ color = '#666' }: { color?: string }) => (
   </svg>
 );
 
+const IconAudio = ({ color = '#666' }: { color?: string }) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+    <path d="M7 14V6l6-1v9" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="5" cy="14" r="2" stroke={color} strokeWidth="1" />
+    <circle cx="15" cy="13" r="2" stroke={color} strokeWidth="1" />
+  </svg>
+);
+
+const IconVideo = ({ color = '#666' }: { color?: string }) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+    <rect x="2" y="4" width="12" height="12" rx="2" stroke={color} strokeWidth="1.2" />
+    <path d="M14 8l4-2v8l-4-2" stroke={color} strokeWidth="1.2" strokeLinejoin="round" />
+  </svg>
+);
+
 let idCounter = 0;
 function genId(prefix: string) {
   return `${prefix}-${Date.now()}-${++idCounter}`;
@@ -54,6 +69,11 @@ const DEMO_IMAGES = [
   { id: 'bangkok-01', src: '/demo-assets/bangkok-01.jpg' },
   { id: 'bangkok-02', src: '/demo-assets/bangkok-02.jpg' },
   { id: 'bangkok-03', src: '/demo-assets/bangkok-03.jpg' },
+];
+
+/** 样例音频（v0.7） */
+const DEMO_AUDIO = [
+  { id: 'sample-piano', src: '/demo-assets/sample-piano.wav', label: 'Piano C4' },
 ];
 
 /** Stamp 预设（v0.2 修订：透明矢量，弃用白底 PNG） */
@@ -116,7 +136,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   const assets = useAssetStore((s) => s.assets);
   const addAsset = useAssetStore((s) => s.addAsset);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadKindRef = useRef<'picture' | 'paper' | 'stamp'>('picture');
+  const uploadKindRef = useRef<'picture' | 'paper' | 'stamp' | 'audio' | 'video'>('picture');
   const t = useT();
   // v0.3: paper 面板新增 wallpaper 子 tab
   const [paperTab, setPaperTab] = useState<PaperVariant | 'wallpaper'>('note');
@@ -137,7 +157,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     document.addEventListener('mousemove', onMove);
     return () => document.removeEventListener('mousemove', onMove);
   }, []);
-  const shown = hoverVisible || toolbarPanel !== null || ropeMode;
+  const shown = hoverVisible || toolbarPanel !== null || ropeMode || !localStorage.getItem('mindonwall-onboarding-done');
 
   /* ── v0.2：面板打开时，点击工具栏/面板以外的任意位置关闭次级浮窗 ── */
   useEffect(() => {
@@ -171,7 +191,7 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
   );
 
   /* ── 上传（v0.2 修订：存入素材库，不直接上墙） ── */
-  const openUpload = useCallback((kind: 'picture' | 'paper' | 'stamp') => {
+  const openUpload = useCallback((kind: 'picture' | 'paper' | 'stamp' | 'audio' | 'video') => {
     uploadKindRef.current = kind;
     fileInputRef.current?.click();
   }, []);
@@ -182,7 +202,8 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
       if (!files || files.length === 0) return;
       const kind = uploadKindRef.current;
       Array.from(files).forEach((file) => {
-        if (!file.type.startsWith('image/')) return;
+        const isMedia = file.type.startsWith('audio/') || file.type.startsWith('video/');
+        if (!file.type.startsWith('image/') && !isMedia) return;
         const reader = new FileReader();
         reader.onload = () => {
           const dataUrl = reader.result as string;
@@ -265,6 +286,14 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     [addItem, placeItem],
   );
 
+  const handleAddAudio = useCallback(() => {
+    toggleToolbarPanel('audio');
+  }, [toggleToolbarPanel]);
+
+  const handleAddVideo = useCallback(() => {
+    toggleToolbarPanel('video');
+  }, [toggleToolbarPanel]);
+
   /** 从素材库添加 Paper（上传的图片作为纸面） */
   const handleAddPaperAsset = useCallback(
     (assetId: string) => {
@@ -297,6 +326,63 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         height: 64,
         rotation: 0,
         assetId,
+      };
+      addItem(item);
+    },
+    [addItem, placeItem],
+  );
+
+  /** 从素材库添加 Audio */
+  const handleAddAudioAsset = useCallback(
+    (assetId: string) => {
+      const place = placeItem(160, 120);
+      const item: Item = {
+        id: genId('item-audio'),
+        type: 'audio',
+        ...place,
+        width: 160,
+        height: 120,
+        text: 'Audio Note',
+        assetId,
+        pinOffset: { x: 0.5, y: 0 },
+      };
+      addItem(item);
+    },
+    [addItem, placeItem],
+  );
+
+  /** 添加预设 Demo 音频 */
+  const handleAddDemoAudio = useCallback(
+    (audioId: string) => {
+      const place = placeItem(160, 120);
+      const item: Item = {
+        id: genId('item-audio'),
+        type: 'audio',
+        ...place,
+        width: 160,
+        height: 120,
+        text: 'Piano C4',
+        assetId: audioId,
+        pinOffset: { x: 0.5, y: 0 },
+      };
+      addItem(item);
+    },
+    [addItem, placeItem],
+  );
+
+  /** 从素材库添加 Video */
+  const handleAddVideoAsset = useCallback(
+    (assetId: string) => {
+      const place = placeItem(220, 150);
+      const item: Item = {
+        id: genId('item-video'),
+        type: 'video',
+        ...place,
+        width: 220,
+        height: 150,
+        text: '',
+        assetId,
+        pinOffset: { x: 0.5, y: 0 },
       };
       addItem(item);
     },
@@ -469,6 +555,40 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         </Panel>
       )}
 
+      {/* v0.7: Audio 面板 */}
+      {toolbarPanel === 'audio' && (
+        <Panel title={t('tb.addAudio')}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <UploadTile onClick={() => openUpload('audio')} />
+            {assets.filter((a) => a.dataUrl && a.kind === 'audio').map((a) => (
+              <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddAudioAsset(a.id)} />
+            ))}
+            {/* 预设音频素材 */}
+            {DEMO_AUDIO.map((d) => (
+              <Thumb key={d.id} src={d.src} onClick={() => handleAddDemoAudio(d.id)} label={d.label} />
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: '#999', textAlign: 'center', padding: '8px 0' }}>
+            {t('tb.audioHint')}
+          </div>
+        </Panel>
+      )}
+
+      {/* v0.7: Video 面板 */}
+      {toolbarPanel === 'video' && (
+        <Panel title={t('tb.addVideo')}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <UploadTile onClick={() => openUpload('video')} />
+            {assets.filter((a) => a.dataUrl && a.kind === 'video').map((a) => (
+              <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddVideoAsset(a.id)} />
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: '#999', textAlign: 'center', padding: '8px 0' }}>
+            {t('tb.videoHint')}
+          </div>
+        </Panel>
+      )}
+
       {/* Rope 模式提示 */}
       {ropeMode && (
         <div
@@ -511,7 +631,9 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         }}
       >
         {/* v0.3: hover 提示图标含义 */}
-        <ToolButton tip={t('tb.tipPicture')} active={toolbarPanel === 'image'} onClick={() => toggleToolbarPanel('image')}>
+        {/* v0.7: 引导 Step 1 高亮前 3 个添加按钮 */}
+        <div data-onboarding-target="add" style={{ display: 'flex', gap: 0 }}>
+        <ToolButton tip={t("tb.tipPicture")} active={toolbarPanel === "image"} onClick={() => toggleToolbarPanel("image")}>
           <IconImage color={toolbarPanel === 'image' ? '#333' : '#666'} />
         </ToolButton>
         <ToolButton tip={t('tb.tipPaper')} active={toolbarPanel === 'paper'} onClick={() => toggleToolbarPanel('paper')}>
@@ -520,8 +642,20 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
         <ToolButton tip={t('tb.tipStamp')} active={toolbarPanel === 'stamp'} onClick={() => toggleToolbarPanel('stamp')}>
           <IconStamp color={toolbarPanel === 'stamp' ? '#333' : '#666'} />
         </ToolButton>
-        <ToolButton tip={t('tb.tipRope')} active={ropeMode} onClick={handleRopeToggle}>
+        </div>
+        <ToolButton tip={t('tb.tipRope')} active={ropeMode} onClick={handleRopeToggle} data-onboarding-target="rope">
           <IconRope color={ropeMode ? '#333' : '#666'} />
+        </ToolButton>
+
+        {/* v0.7: 分隔线 */}
+        <div style={{ width: 1, height: 24, background: '#E5E5E5', margin: '0 2px', flexShrink: 0 }} />
+
+        {/* v0.7 Phase 2: 新物件类型按钮 */}
+        <ToolButton tip={t('tb.tipAudio')} active={toolbarPanel === 'audio'} onClick={handleAddAudio}>
+          <IconAudio color={toolbarPanel === 'audio' ? '#333' : '#666'} />
+        </ToolButton>
+        <ToolButton tip={t('tb.tipVideo')} active={toolbarPanel === 'video'} onClick={handleAddVideo}>
+          <IconVideo color={toolbarPanel === 'video' ? '#333' : '#666'} />
         </ToolButton>
       </div>
 
@@ -612,16 +746,19 @@ function ToolButton({
   active,
   onClick,
   children,
+  'data-onboarding-target': dataOnboardingTarget,
 }: {
   tip: string;
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  'data-onboarding-target'?: string;
 }) {
   const [hover, setHover] = useState(false);
   return (
     <div
       style={{ position: 'relative' }}
+      data-onboarding-target={dataOnboardingTarget}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -653,7 +790,8 @@ function ToolButton({
 }
 
 /** 图片缩略图 */
-function Thumb({ src, onClick }: { src: string; onClick: () => void }) {
+function Thumb({ src, onClick, label }: { src: string; onClick: () => void; label?: string }) {
+  const isAudio = src.endsWith('.wav') || src.endsWith('.mp3') || src.endsWith('.m4a');
   return (
     <div
       onClick={onClick}
@@ -664,14 +802,32 @@ function Thumb({ src, onClick }: { src: string; onClick: () => void }) {
         overflow: 'hidden',
         border: '1px solid #E8E8E8',
         cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: isAudio ? '#F0EEFF' : '#FFFFFF',
       }}
     >
-      <img
-        src={src}
-        alt=""
-        draggable={false}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-      />
+      {isAudio ? (
+        <>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 18V5l12-2v13" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="6" cy="18" r="3" stroke="#667eea" strokeWidth="2"/>
+            <circle cx="18" cy="16" r="3" stroke="#667eea" strokeWidth="2"/>
+          </svg>
+          <div style={{ fontSize: 9, color: '#667eea', marginTop: 2, textAlign: 'center', lineHeight: 1.1 }}>
+            {label ?? 'Audio'}
+          </div>
+        </>
+      ) : (
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      )}
     </div>
   );
 }
