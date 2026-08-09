@@ -383,33 +383,33 @@ export function LandingPage() {
             viewBox="0 0 1100 750"
             preserveAspectRatio="xMidYMid meet"
           >
-            {/* Rope 1: Photo1(175,25) → Note1(130,340) */}
-            <path d="M 175 25 Q 145 175 130 340" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="340" strokeDashoffset="340" opacity="0.55">
-              <animate attributeName="stroke-dashoffset" from="340" to="0" dur="1.5s" fill="freeze" begin="2.0s" />
+            {/* Rope 1: Photo1(175,25) → Note1(130,290) */}
+            <path d="M 175 25 Q 145 150 130 290" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="290" strokeDashoffset="290" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="290" to="0" dur="1.5s" fill="freeze" begin="2.0s" />
             </path>
-            {/* Rope 2: Photo2(538,15) → Note2(680,325) */}
-            <path d="M 538 15 Q 610 165 680 325" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="345" strokeDashoffset="345" opacity="0.55">
-              <animate attributeName="stroke-dashoffset" from="345" to="0" dur="1.5s" fill="freeze" begin="2.3s" />
+            {/* Rope 2: Photo2(538,15) → Note2(680,275) */}
+            <path d="M 538 15 Q 610 140 680 275" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="300" strokeDashoffset="300" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="300" to="0" dur="1.5s" fill="freeze" begin="2.3s" />
             </path>
-            {/* Rope 3: Photo3(899,22) → StickyYellow(938,405) */}
-            <path d="M 899 22 Q 920 210 938 405" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="425" strokeDashoffset="425" opacity="0.55">
-              <animate attributeName="stroke-dashoffset" from="425" to="0" dur="1.7s" fill="freeze" begin="2.6s" />
+            {/* Rope 3: Photo3(899,22) → StickyYellow(938,240) */}
+            <path d="M 899 22 Q 920 125 938 240" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="230" strokeDashoffset="230" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="230" to="0" dur="1.3s" fill="freeze" begin="2.6s" />
             </path>
-            {/* Rope 4: Note1(130,340) → TornPaper1(110,580) */}
-            <path d="M 130 340 Q 115 455 110 580" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="265" strokeDashoffset="265" opacity="0.45">
-              <animate attributeName="stroke-dashoffset" from="265" to="0" dur="1.4s" fill="freeze" begin="2.9s" />
+            {/* Rope 4: Note1(130,290) → TornPaper1(110,530) */}
+            <path d="M 130 290 Q 115 405 110 530" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="250" strokeDashoffset="250" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="250" to="0" dur="1.4s" fill="freeze" begin="2.9s" />
             </path>
-            {/* Rope 5: Note2(680,325) → StickyGreen(365,420) */}
-            <path d="M 680 325 Q 520 370 365 420" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="340" strokeDashoffset="340" opacity="0.45">
-              <animate attributeName="stroke-dashoffset" from="340" to="0" dur="1.5s" fill="freeze" begin="3.2s" />
+            {/* Rope 5: Note2(680,275) → StickyGreen(365,340) */}
+            <path d="M 680 275 Q 520 305 365 340" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="325" strokeDashoffset="325" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="325" to="0" dur="1.5s" fill="freeze" begin="3.2s" />
             </path>
-            {/* Rope 6: StickyGreen(365,500) → TornPaper2(478,605) */}
-            <path d="M 365 500 Q 420 550 478 605" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="155" strokeDashoffset="155" opacity="0.45">
-              <animate attributeName="stroke-dashoffset" from="155" to="0" dur="1.0s" fill="freeze" begin="3.5s" />
+            {/* Rope 6: StickyGreen(365,340) → TornPaper2(478,555) */}
+            <path d="M 365 340 Q 420 445 478 555" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="245" strokeDashoffset="245" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="245" to="0" dur="1.3s" fill="freeze" begin="3.5s" />
             </path>
-            {/* Rope 7: TitleNote(525,720) → Photo2(538,15) — long cross */}
-            <path d="M 525 720 Q 535 400 538 15" stroke="#8B7355" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeDasharray="720" strokeDashoffset="720" opacity="0.35">
-              <animate attributeName="stroke-dashoffset" from="720" to="0" dur="2.2s" fill="freeze" begin="3.8s" />
+            {/* Rope 7: TitleNote(525,620) → Photo2(538,15) — long cross */}
+            <path d="M 525 620 Q 535 340 538 15" stroke="#8B7355" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeDasharray="620" strokeDashoffset="620" opacity="0.35">
+              <animate attributeName="stroke-dashoffset" from="620" to="0" dur="2.0s" fill="freeze" begin="3.8s" />
             </path>
           </svg>
 
@@ -427,10 +427,10 @@ export function LandingPage() {
             <rect width="1100" height="750" fill="url(#grid)" />
             {[
               [175, 25], [538, 15], [899, 22],
-              [130, 340], [680, 325],
-              [938, 405], [365, 420],
-              [110, 580], [478, 605], [819, 590],
-              [525, 720],
+              [130, 290], [680, 275],
+              [938, 240], [365, 340],
+              [110, 530], [478, 555], [819, 540],
+              [525, 620],
             ].map(([cx, cy], i) => (
               <g key={`node-${i}`}>
                 <circle cx={cx} cy={cy} r="20" fill="rgba(139,115,85,0.06)">
