@@ -270,30 +270,30 @@ export function LandingPage() {
           }}
         />
 
-        {/* Collage canvas wrapper */}
-        <div style={{ position: 'relative', width: 620, height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'relative', width: 1000, height: 680, transform: 'scale(0.58)', transformOrigin: 'center center', flexShrink: 0 }}>
+        {/* Collage canvas wrapper — larger to show more spread */}
+        <div style={{ position: 'relative', width: 750, height: 520, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'relative', width: 1100, height: 750, transform: 'scale(0.62)', transformOrigin: 'center center', flexShrink: 0 }}>
 
           {/* ── PHOTOS (top center, prominent) ── */}
           {/* Photo 1 — Wat Chedi Luang */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 130, top: 40, transform: 'rotate(-3deg)', animationDelay: '0.1s' }}>
-            <div style={{ width: 220, height: 155, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
+          <div className="landing-obj" style={{ position: 'absolute', left: 80, top: 30, transform: 'rotate(-3deg)', animationDelay: '0.1s' }}>
+            <div style={{ width: 240, height: 170, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
               <img src="/demo-assets/north-01-wat-chedi-luang.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
           </div>
 
           {/* Photo 2 — Khao Soi */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 390, top: 30, transform: 'rotate(2deg)', animationDelay: '0.2s' }}>
-            <div style={{ width: 215, height: 150, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
+          <div className="landing-obj" style={{ position: 'absolute', left: 360, top: 20, transform: 'rotate(2deg)', animationDelay: '0.2s' }}>
+            <div style={{ width: 235, height: 165, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
               <img src="/demo-assets/north-02-khao-soi.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
           </div>
 
           {/* Photo 3 — White Temple */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 660, top: 38, transform: 'rotate(-1.5deg)', animationDelay: '0.3s' }}>
-            <div style={{ width: 218, height: 152, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
+          <div className="landing-obj" style={{ position: 'absolute', left: 650, top: 28, transform: 'rotate(-1.5deg)', animationDelay: '0.3s' }}>
+            <div style={{ width: 238, height: 168, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
               <img src="/demo-assets/north-03-white-temple.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
@@ -301,123 +301,123 @@ export function LandingPage() {
 
           {/* ─ NOTES (scattered, natural) ── */}
           {/* Note 1 — left area */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 30, top: 270, transform: 'rotate(-3deg)', animationDelay: '0.45s' }}>
-            <div style={{ width: 210, minHeight: 110, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px 20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 15, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>The quiet of Wat Chedi Luang makes me not want to leave</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 20, top: 280, transform: 'rotate(-3deg)', animationDelay: '0.45s' }}>
+            <div style={{ width: 230, minHeight: 120, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>The quiet of Wat Chedi Luang makes me not want to leave</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Note 2 — center-right */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 470, top: 255, transform: 'rotate(1.5deg)', animationDelay: '0.55s' }}>
-            <div style={{ width: 200, minHeight: 105, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px 20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 15, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>Khao Soi — the soul curry noodles of Northern Thailand</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 520, top: 260, transform: 'rotate(1.5deg)', animationDelay: '0.55s' }}>
+            <div style={{ width: 220, minHeight: 115, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>Khao Soi — the soul curry noodles of Northern Thailand</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* ── STICKIES (scattered) ── */}
           {/* Sticky Yellow — right side */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 760, top: 220, transform: 'rotate(5deg)', animationDelay: '0.65s' }}>
-            <div style={{ width: 160, height: 160, background: '#FFF9C4', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 16, color: '#5D4E37', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>Must go back to Chiang Mai!</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 820, top: 230, transform: 'rotate(5deg)', animationDelay: '0.65s' }}>
+            <div style={{ width: 175, height: 175, background: '#FFF9C4', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 17, color: '#5D4E37', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>Must go back to Chiang Mai!</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Sticky Green — center */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 270, top: 310, transform: 'rotate(-4deg)', animationDelay: '0.7s' }}>
-            <div style={{ width: 155, height: 155, background: '#C8E6C9', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 15, color: '#3E5F3E', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>First step in Thai: sawatdee</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 290, top: 320, transform: 'rotate(-4deg)', animationDelay: '0.7s' }}>
+            <div style={{ width: 170, height: 170, background: '#C8E6C9', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 16, color: '#3E5F3E', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>First step in Thai: sawatdee</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* ── STAMPS (scattered, more visible) ── */}
-          {/* Stamp 1 — left-center */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 180, top: 400, transform: 'rotate(-10deg)', animationDelay: '0.8s' }}>
-            <img src="/demo-assets/stamps/stamp-red-passport.png" alt="" style={{ width: 110, height: 110, display: 'block' }} />
+          {/* Stamp 1 — left-center, transparent PNG */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 150, top: 420, transform: 'rotate(-10deg)', animationDelay: '0.8s' }}>
+            <img src="/demo-assets/stamps/stamp-red-passport.png" alt="" style={{ width: 130, height: 130, display: 'block', mixBlendMode: 'multiply' }} />
           </div>
 
-          {/* Stamp 2 — right-center */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 620, top: 410, transform: 'rotate(8deg)', animationDelay: '0.85s' }}>
-            <img src="/demo-assets/stamps/stamp-blue-travel.png" alt="" style={{ width: 105, height: 105, display: 'block' }} />
+          {/* Stamp 2 — right-center, transparent PNG */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 680, top: 430, transform: 'rotate(8deg)', animationDelay: '0.85s' }}>
+            <img src="/demo-assets/stamps/stamp-blue-travel.png" alt="" style={{ width: 125, height: 125, display: 'block', mixBlendMode: 'multiply' }} />
           </div>
 
           {/* ── TORN PAPERS (bottom, scattered) ── */}
           {/* Torn Paper 1 — far left */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 10, top: 470, transform: 'rotate(-5deg)', animationDelay: '0.9s' }}>
-            <div style={{ width: 200, minHeight: 105, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px 20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 15, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Rainbow after rain at Siam Square</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 5, top: 500, transform: 'rotate(-5deg)', animationDelay: '0.9s' }}>
+            <div style={{ width: 220, minHeight: 115, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Rainbow after rain at Siam Square</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Torn Paper 2 — center */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 310, top: 490, transform: 'rotate(3.5deg)', animationDelay: '0.95s' }}>
-            <div style={{ width: 195, minHeight: 100, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px 20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 15, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Can not stop buying samples at 7-11</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 340, top: 520, transform: 'rotate(3.5deg)', animationDelay: '0.95s' }}>
+            <div style={{ width: 215, minHeight: 110, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Can not stop buying samples at 7-11</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Torn Paper 3 — right */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 580, top: 480, transform: 'rotate(-3deg)', animationDelay: '1.0s' }}>
-            <div style={{ width: 198, minHeight: 105, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px 20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 15, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Thai people take fragrance to the extreme</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 640, top: 510, transform: 'rotate(-3deg)', animationDelay: '1.0s' }}>
+            <div style={{ width: 218, minHeight: 115, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Thai people take fragrance to the extreme</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* ─ TITLE NOTE (bottom center) ── */}
-          <div className="landing-obj" style={{ position: 'absolute', left: 370, top: 555, transform: 'rotate(1deg)', animationDelay: '1.05s' }}>
-            <div style={{ width: 230, minHeight: 100, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px 20px', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontWeight: 600 }}>Thailand Trip — Chiang Mai & Bangkok</div>
+          <div className="landing-obj" style={{ position: 'absolute', left: 400, top: 590, transform: 'rotate(1deg)', animationDelay: '1.05s' }}>
+            <div style={{ width: 250, minHeight: 110, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 17, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontWeight: 600 }}>Thailand Trip — Chiang Mai & Bangkok</div>
             </div>
             <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
-          {/* ── ROPE CONNECTIONS (Pin-to-Pin, viewBox matches canvas 1000×680) ── */}
+          {/* ── ROPE CONNECTIONS (Pin-to-Pin, viewBox matches canvas 1100×750) ── */}
           <svg
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
-            viewBox="0 0 1000 680"
+            viewBox="0 0 1100 750"
             preserveAspectRatio="xMidYMid meet"
           >
-            {/* Rope 1: Photo1(240,40) → Note1(135,320) */}
-            <path d="M 240 40 Q 180 170 135 320" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="340" strokeDashoffset="340" opacity="0.55">
-              <animate attributeName="stroke-dashoffset" from="340" to="0" dur="1.5s" fill="freeze" begin="2.0s" />
+            {/* Rope 1: Photo1(200,30) → Note1(135,330) */}
+            <path d="M 200 30 Q 160 170 135 330" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="360" strokeDashoffset="360" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="360" to="0" dur="1.5s" fill="freeze" begin="2.0s" />
             </path>
-            {/* Rope 2: Photo2(498,30) → Note2(570,302) */}
-            <path d="M 498 30 Q 530 160 570 302" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="330" strokeDashoffset="330" opacity="0.55">
-              <animate attributeName="stroke-dashoffset" from="330" to="0" dur="1.5s" fill="freeze" begin="2.3s" />
+            {/* Rope 2: Photo2(478,20) → Note2(630,310) */}
+            <path d="M 478 20 Q 550 160 630 310" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="350" strokeDashoffset="350" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="350" to="0" dur="1.5s" fill="freeze" begin="2.3s" />
             </path>
-            {/* Rope 3: Photo3(769,38) → StickyYellow(840,372) */}
-            <path d="M 769 38 Q 810 190 840 372" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="380" strokeDashoffset="380" opacity="0.55">
-              <animate attributeName="stroke-dashoffset" from="380" to="0" dur="1.6s" fill="freeze" begin="2.6s" />
+            {/* Rope 3: Photo3(769,28) → StickyYellow(908,392) */}
+            <path d="M 769 28 Q 840 200 908 392" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="420" strokeDashoffset="420" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="420" to="0" dur="1.7s" fill="freeze" begin="2.6s" />
             </path>
-            {/* Rope 4: Note1(135,320) → TornPaper1(110,517) */}
-            <path d="M 135 320 Q 115 410 110 517" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="260" strokeDashoffset="260" opacity="0.45">
-              <animate attributeName="stroke-dashoffset" from="260" to="0" dur="1.3s" fill="freeze" begin="2.9s" />
+            {/* Rope 4: Note1(135,330) → TornPaper1(115,550) */}
+            <path d="M 135 330 Q 120 430 115 550" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="280" strokeDashoffset="280" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="280" to="0" dur="1.4s" fill="freeze" begin="2.9s" />
             </path>
-            {/* Rope 5: Note2(570,302) → StickyGreen(348,382) */}
-            <path d="M 570 302 Q 470 330 348 382" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="280" strokeDashoffset="280" opacity="0.45">
-              <animate attributeName="stroke-dashoffset" from="280" to="0" dur="1.4s" fill="freeze" begin="3.2s" />
+            {/* Rope 5: Note2(630,310) → StickyGreen(375,402) */}
+            <path d="M 630 310 Q 510 350 375 402" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="320" strokeDashoffset="320" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="320" to="0" dur="1.5s" fill="freeze" begin="3.2s" />
             </path>
-            {/* Rope 6: StickyGreen(348,458) → TornPaper2(408,533) */}
-            <path d="M 348 458 Q 370 495 408 533" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="120" strokeDashoffset="120" opacity="0.45">
-              <animate attributeName="stroke-dashoffset" from="120" to="0" dur="0.9s" fill="freeze" begin="3.5s" />
+            {/* Rope 6: StickyGreen(375,482) → TornPaper2(448,570) */}
+            <path d="M 375 482 Q 410 520 448 570" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="140" strokeDashoffset="140" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="140" to="0" dur="1.0s" fill="freeze" begin="3.5s" />
             </path>
 
-            {/* Rope 7: TitleNote(485,648) → Photo2(498,30) — long cross connection */}
-            <path d="M 485 648 Q 520 380 498 30" stroke="#8B7355" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeDasharray="680" strokeDashoffset="680" opacity="0.35">
-              <animate attributeName="stroke-dashoffset" from="680" to="0" dur="2.0s" fill="freeze" begin="3.8s" />
+            {/* Rope 7: TitleNote(525,700) → Photo2(478,20) — long cross connection */}
+            <path d="M 525 700 Q 540 400 478 20" stroke="#8B7355" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeDasharray="750" strokeDashoffset="750" opacity="0.35">
+              <animate attributeName="stroke-dashoffset" from="750" to="0" dur="2.2s" fill="freeze" begin="3.8s" />
             </path>
           </svg>
 
           {/* ── CONNECTION MAP NODE OVERLAY (stage 3) ── */}
           <svg
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2, opacity: animStage >= 3 ? 1 : 0, transition: 'opacity 2s ease' }}
-            viewBox="0 0 1000 680"
+            viewBox="0 0 1100 750"
             preserveAspectRatio="xMidYMid meet"
           >
             {/* Grid pattern */}
@@ -426,15 +426,15 @@ export function LandingPage() {
                 <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(139,115,85,0.04)" strokeWidth="0.5" />
               </pattern>
             </defs>
-            <rect width="1000" height="680" fill="url(#grid)" />
+            <rect width="1100" height="750" fill="url(#grid)" />
 
             {/* Glow at each pin position */}
             {[
-              [240, 40], [498, 30], [769, 38],
-              [135, 320], [570, 302],
-              [840, 372], [348, 382],
-              [110, 517], [408, 533], [679, 527],
-              [485, 648],
+              [200, 30], [478, 20], [769, 28],
+              [135, 330], [630, 310],
+              [908, 392], [375, 402],
+              [115, 550], [448, 570], [749, 560],
+              [525, 700],
             ].map(([cx, cy], i) => (
               <g key={`node-${i}`}>
                 <circle cx={cx} cy={cy} r="20" fill="rgba(139,115,85,0.06)">
