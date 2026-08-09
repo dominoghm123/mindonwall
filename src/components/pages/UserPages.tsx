@@ -565,7 +565,7 @@ function SettingsPage() {
         </div>
       </section>
 
-      {/* ── v0.3 r4: About & Version ── */}
+      {/* ── v0.7: About & Version (expanded) ── */}
       <section>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 12 }}>{t('st.about')}</div>
         <div
@@ -573,14 +573,40 @@ function SettingsPage() {
             background: '#FFFFFF',
             border: '1px solid #E8E8E8',
             borderRadius: 10,
-            padding: '14px 20px',
+            padding: '20px 24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 8,
-            maxWidth: 420,
+            gap: 12,
+            maxWidth: 480,
           }}
         >
-          <div style={{ fontSize: 12, color: '#333' }}>{t('st.version', { v: __APP_VERSION__ })}</div>
+          {/* Version + Tagline */}
+          <div style={{ fontSize: 12, color: '#333', fontWeight: 600 }}>{t('st.version', { v: __APP_VERSION__ })}</div>
+          <div style={{ fontSize: 14, color: '#6B7280', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{t('st.aboutTagline')}</div>
+
+          {/* Brand story */}
+          <div style={{ fontSize: 12, color: '#555', lineHeight: 1.6 }}>{t('st.aboutDesc')}</div>
+          <div style={{ fontSize: 12, color: '#333', fontWeight: 600 }}>{t('st.aboutNotWorkspace')}</div>
+
+          {/* Philosophy */}
+          <div style={{ borderTop: '1px solid #F0F0F0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: 1 }}>{t('st.philosophyTitle')}</div>
+            <div style={{ fontSize: 12, color: '#555', lineHeight: 1.5 }}>{t('st.philosophyFree')}</div>
+            <div style={{ fontSize: 12, color: '#555', lineHeight: 1.5 }}>{t('st.philosophyPrivate')}</div>
+            <div style={{ fontSize: 12, color: '#555', lineHeight: 1.5 }}>{t('st.philosophyDiscovery')}</div>
+          </div>
+
+          {/* Links */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', borderTop: '1px solid #F0F0F0', paddingTop: 12 }}>
+            <a href="https://github.com/dominoghm123/mindonwall" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#4A90D9', textDecoration: 'none' }}>
+              {t('st.githubRepo')}
+            </a>
+            <a href="https://github.com/dominoghm123/mindonwall" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#4A90D9', textDecoration: 'none' }}>
+              {t('st.viewSource')}
+            </a>
+          </div>
+
+          {/* Legal */}
           <div style={{ display: 'flex', gap: 8 }}>
             <MiniBtn label={t('st.privacy')} onClick={() => setLegal('privacy')} />
             <MiniBtn label={t('st.terms')} onClick={() => setLegal('terms')} />

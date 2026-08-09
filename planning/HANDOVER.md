@@ -1,24 +1,26 @@
 # Handover — Mind on Wall
 
-**最后更新：** 2026-08-08（v0.5 complete, pushed to main + tag v0.5）
-**当前阶段：** v0.5 部署中（Vercel），等待审阅后启动 v0.6 迭代
-**当前 main 分支 HEAD：** `9dcbd68` (tag v0.5)
+**最后更新：** 2026-08-09（v0.7 品牌升级实施中）
+**当前阶段：** v0.7 品牌升级 — i18n/LandingPage/Settings 已更新，待提交
+**当前 main 分支 HEAD：** `076a713`
+**开发模式：** Multi-Agent 协同开发（延续 v0.5/v0.6 模式）
 
 ## 项目一句话
 
 Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想法与随手记贴到可换墙纸的白墙上，用 Paper、Stamp 与 Rope 慢慢看见碎片间的关系。
 
+**Slogan（v0.7 已更新）：** *Where ideas find each other.*
+
 ## 分支与版本状态（重要）
 
 | 分支 | 状态 |
 |---|---|
-| `main` | ⭐ 最新稳定版，HEAD `9dcbd68`（tag `v0.5`）。**已推送远程**，Vercel 自动构建中 |
-| `feature/v0.5-auth-brand` | ✅ 已完成，已合并入 main |
+| `main` | ⭐ 最新稳定版，HEAD `076a713`。**已推送远程**，Vercel 自动构建部署完成 |
 | 远程 | GitHub：`https://github.com/dominoghm123/mindonwall` |
-| Vercel | 🔄 构建中（预计 3-5 min）|
+| Vercel | ✅ 已部署（mindonwall.vercel.app），构建产物 ~1,136 kB |
 
-- 版本号：package.json `0.5.0`
-- v0.5 审阅通过后流程：合入 main + tag v0.5 → Vercel 自动构建部署 → v0.6 从 main 新开 `feature/v0.6-*` 分支
+- 版本号：package.json `0.5.0`（⚠️ 未随 v0.6 更新，v0.7 需 bump 到 `0.7.0`）
+- 流程：合入 main + tag → Vercel 自动构建部署
 
 ## v0.4 Completed (tag v0.4)
 
@@ -31,6 +33,73 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 - **短链分享**：`api/share.ts`（nanoid TTL 30天）+ `api/event.ts`（埋点 TTL 90天）
 - **Project 分组管理**：CRUD + 拖拽归组 + 批量移动 + 孤儿墙防御
 - **数据迁移**：一次性旧墙迁移入 Uncategorized
+
+## v0.7 品牌升级（进行中）
+
+### 品牌核心决策
+
+| 要素 | 内容 |
+|------|------|
+| **Tagline** | Where ideas find each other. |
+| **定位** | 私人拼贴墙 vs 效率工作台（对立于 Milanote/Notion） |
+| **品牌人格** | 创造者 + 探险家 |
+| **信息架构** | My Spaces → Space → Wall → 物件 |
+| **价值观** | 自由优先 / 私人空间 / 发现乐趣 |
+| **目标用户** | 年轻设计师、写作者、旅行者 |
+| **商业化** | 免费 + 高级功能（Freemium） |
+| **传播** | 小红书 + 黑客松 |
+
+### 已完成的变更
+
+| 文件 | 变更内容 |
+|------|----------|
+| `README.md` | 中英双语重写，品牌调性（不是技术文档风格） |
+| `src/i18n/en.ts` + 9 语言文件 | tagline、auth、Settings About、Project→Space 文案全量更新 |
+| `src/components/auth/LandingPage.tsx` | 右侧视觉升级（纸张纹理 + 手帐物件拼贴 + Rope 动画）；左侧文案 + GitHub 链接 |
+| `src/components/pages/UserPages.tsx` | Settings About 区块扩展（品牌故事 + 哲学 + GitHub 链接） |
+
+### 待完成
+
+- 交互优化：物件类型扩展（md文档/声音/视频）、TopBar/Spaces 逻辑重构、Rope 连线方案 B（Alt+拖拽）
+- Onboarding：示例墙 + 3 步引导气泡
+- 版本号 bump 到 0.7.0
+
+### 方案文档
+
+详见 `docs/superpowers/specs/brand-upgrade-v0.7.md`
+
+---
+
+## v0.6 Completed
+
+| Commit | 内容 |
+|---|---|
+| `076a713` | fix(build): 移除无效的 --force 标志 |
+| `0399aca` | fix(build): 强制 Vite 重新构建并清除所有缓存 |
+| `b9bafe5` | fix(vercel): 移除非法的 disableBuildCache 属性 |
+| `4986c0e` | fix(vercel): 禁用 build cache 以解决部署产物大小异常 |
+| `9fb515c` | fix(build): 改用 tsc --noEmit 替代 tsc -b 解决 Vercel 缓存问题 |
+| `31eafd3` | fix(build): 清除 TypeScript 增量编译缓存以修复 Vercel 部署 |
+| `84eca71` | fix(api): 修复 CORS_HEADERS 类型错误 (TS2345) |
+| `20066f1` | fix(v0.6): 修复 TypeScript 编译错误（未使用的导入和参数） |
+| `6548b2f` | feat(v0.6): 注册登录、LandingPage 重构、Merge 逻辑修正、Project 菜单 |
+
+### v0.6 核心特性
+
+- **注册登录系统**：
+  - Supabase Auth 集成（邮箱/GitHub/Google OAuth）
+  - LandingPage 左右分栏布局（左侧表单 + 右侧品牌视觉）
+  - signUp auto-login 逻辑（绕过邮箱验证）
+  - OAuth `redirectTo: window.location.origin`
+
+- **Merge 逻辑修正**：拖拽 Wall 到 Project 改为移动（非合并内容）
+
+- **Project 卡片三点菜单**：Rename/Delete 入口（功能待补充）
+
+- **Vercel 部署修复**：
+  - API 文件 CORS_HEADERS 类型修复（`{}` → `new Headers({})`）
+  - 构建脚本改为 `tsc --noEmit && vite build`（绕过增量编译缓存）
+  - Vercel Dashboard 环境变量配置（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）
 
 ## v0.5 Completed (tag v0.5)
 
@@ -129,16 +198,133 @@ src/
 └── utils/{ropeGeometry,wallpaperCSS}.ts
 ```
 
-## 部署相关事实（制定部署计划的依据）
+## 部署相关事实
 
-- **纯静态 SPA**：Vite 7，构建 `npm run build`（输出 `dist/`），无后端、无数据库
+- **纯静态 SPA**：Vite 7，构建 `npm run build`（即 `tsc --noEmit && vite build`，输出 `dist/`）
+- **Vercel 部署**：
+  - `vercel.json` 配置 SPA 路由（所有路径 fallback 到 `index.html`）
+  - 环境变量需在 Vercel Dashboard 配置（`.env.local` 不提交 git）：`VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`
+  - 构建产物正常大小 ~1,136 kB；若产物异常缩小（~918 kB），优先检查环境变量是否缺失
+  - API Routes（`api/` 目录）由 Vercel 单独进行 TS 类型检查，`CORS_HEADERS` 必须用 `new Headers({})` 而非 `{}`
 - **数据全在浏览器 localStorage**：keys `mindonwall-wall` / `-ui` / `-overview` / `-map` / `-assets`；换设备/清缓存即丢数据——Settings 已提供"导出全量 JSON"作为备份手段
+- **云同步后端**：`api/sync.ts`（Supabase JWT 验证 + service role key upsert/select）
 - **demo 素材在 `public/demo-assets/`**，会随构建打包
 - **版本号注入**：`vite.config.ts` `define: { __APP_VERSION__ }` 读 package.json，改版本后 dev server 必须重启
-- 部署注意点：SPA 路由需 fallback 到 index.html（当前用 hash-less 内部 state 路由，实际无 path 路由，静态托管即可）；无环境变量
-- 候选方案（待与用户确认）：Vercel / Cloudflare Pages / GitHub Pages
+- **OAuth Redirect URLs**：Supabase Dashboard → Authentication → URL Configuration 需添加 `https://mindonwall.vercel.app` 和 `http://localhost:*`
 
-## 下一窗口任务
+## v0.7 迭代规划
+
+### 优先级 1：品牌升级（全触点）
+
+**目标**：统一品牌表达，覆盖 LandingPage、GitHub README、Settings 产品介绍等所有用户触点。
+
+**⚠️ 审阅流程**：品牌升级方案需先出截图/预览，用户审阅回复通过后才可实施代码修改。
+
+**具体任务**：
+
+#### 1.1 LandingPage 升级
+- [ ] **嵌入动效示意**：右侧 SVG 静态图改为 CSS/JS 动效，展示 pin → rope → connection 的动态过程
+  - 参考：pin 逐个出现 → rope 线条生长动画 → 节点高亮
+  - 技术：CSS `@keyframes` + `stroke-dashoffset` 动画，或 Lottie/FRAMER Motion
+- [ ] **GitHub 仓库链接**：添加按钮/链接跳转到 `https://github.com/dominoghm123/mindonwall`
+  - 说明项目核心目的、解决的痛点和使用场景（可链接到 README 特定章节）
+- [ ] **Slogan 更新**：`"Map Your Thoughts"` → `"Let's connect and organise your random ideas on a visual wall."`
+  - 文件：`LandingPage.tsx` 第 284 行 + `i18n/en.ts` 对应 key
+- [ ] **右侧视觉层次**：当前 SVG rope 图较平淡，考虑增加：
+  - 真实手帐素材缩略图（photo/paper/stamp）作为节点
+  - 更丰富的色彩和纹理
+  - 微交互（hover 节点时 rope 高亮）
+
+#### 1.2 GitHub README 品牌化
+- [ ] 重写 `README.md`，包含：
+  - 项目一句话介绍 + Slogan
+  - 核心痛点（想法碎片化、难以建立关联）
+  - 使用场景（旅行手帐、研究笔记、创意头脑风暴、项目管理）
+  - 功能特性列表（Wall Editor / Connection Map / Cloud Sync / i18n）
+  - 技术栈（Vite + React + TS + Supabase + Vercel）
+  - 截图/GIF 展示（LandingPage、Wall Editor、Connection Map）
+  - 本地开发 & 部署指南
+
+#### 1.3 Settings / About 产品介绍
+- [ ] Settings 页面的 About & Version 区块增加产品介绍文案
+  - 简述项目愿景和核心功能
+  - 链接到 GitHub 仓库
+  - 可考虑添加"What's New"更新日志区域
+
+**涉及文件**：
+- `src/components/auth/LandingPage.tsx`（LandingPage 动效）
+- `README.md`（GitHub 品牌化）
+- `src/components/pages/UserPages.tsx`（Settings About 区块）
+- `src/i18n/en.ts` + 9 个语言文件（slogan / about 文案 key）
+
+### 优先级 2：TopBar 编辑项下移 + 鼠标 Bug 修复
+
+**目标**：将 TopBar 中的编辑相关按钮移到底部工具栏区域，修复鼠标交互 bug。
+
+**⚠️ 审阅流程**：UI 布局变更需先出截图/预览，用户审阅回复通过后才可实施代码修改。
+
+**具体任务**：
+- [ ] **TopBar 精简**：将以下编辑项从 TopBar 移到主页面/BottomToolbar：
+  - Edit/View Toggle 按钮（`TopBar.tsx` 第 299-340 行）→ 移到底部工具栏或画布内浮窗
+  - Undo/Redo 按钮（`TopBar.tsx` 第 355-388 行）→ 考虑移到画布角落或键盘快捷键提示
+  - Export 下拉菜单（`TopBar.tsx` 第 391-447 行）→ 可保留或移到 AvatarMenu 下拉
+- [ ] **鼠标 Bug 排查**：用户反馈"鼠标所在处有 bug"
+  - 可能原因：TopBar 的 `handleMouseLeave` 逻辑（第 121-131 行）在鼠标快速移动时异常触发
+  - 可能原因：`onMouseLeave={() => setVisible(false)}`（第 202 行）与 `handleMouseMove` 冲突
+  - 建议：用浏览器 DevTools 录制鼠标交互，定位具体触发条件
+- [ ] **TopBar 保留项**：返回箭头、墙名、Wall/Map Tab、Saved 指示、AvatarMenu
+
+**涉及文件**：
+- `src/components/chrome/TopBar.tsx`（主要修改）
+- `src/components/chrome/BottomToolbar.tsx`（接收下移的编辑项）
+
+### 优先级 3：整体 UI 优化
+
+**目标**：提升 Settings、Library 和 Wall 内页的视觉质量和交互体验。
+
+**⚠️ 审阅流程**：UI 优化方案需先出截图/预览，用户审阅回复通过后才可实施代码修改。
+
+**具体任务**：
+- [ ] **Settings 页面重构**：
+  - 当前 `UserPages.tsx` ~1470 行，Settings 部分代码冗长
+  - 考虑拆分为独立组件：`SettingsPage.tsx`（含 Profile/Storage/Language/Data/About 子 Tab）
+  - 视觉升级：参考现代 SaaS 设置页（如 Linear、Notion）的分组卡片布局
+- [ ] **Library 页面优化**：
+  - 素材网格布局优化（当前 64×64 缩略图偏小）
+  - 添加拖拽素材直接上墙的功能（当前需先点击再放置）
+  - 收藏夹交互优化
+- [ ] **Wall 内页交互升级**：
+  - Rope 创建交互优化（当前需进入 rope 模式，考虑改为按住 modifier key 直接连线）
+  - 物件选中/移动的微动效（scale/shadow transition）
+  - 双击物件快速编辑（当前部分支持）
+  - 右键菜单功能扩展（改色、复制、锁定等）
+- [ ] **Design Token 应用**：`src/theme/tokens.ts` 已定义颜色/阴影/圆角常量，但部分组件仍用硬编码值，需统一替换
+
+**涉及文件**：
+- `src/components/pages/UserPages.tsx`（Settings/Library 重构）
+- `src/components/chrome/BottomToolbar.tsx`（Library 拖拽上墙）
+- `src/components/objects/ObjectWrapper.tsx`（选中/移动动效）
+- `src/theme/tokens.ts`（统一 design token）
+
+### 开发工作流（Multi-Agent 协同）
+
+延续 v0.5/v0.6 的 Multi-Agent 协同开发模式：
+- **Agent 分工**：按功能模块拆分任务，多个 Agent 并行处理不同模块（如 LandingPage / TopBar / Settings 可同时推进）
+- **审阅门禁**：品牌升级和 UI 优化的任何变更，必须先出截图/预览 → 用户审阅回复通过 → 才可实施代码修改
+- **提交规范**：每完成一个功能点立即 commit；修订轮整轮一个 commit
+- **分支策略**：v0.7 从 main 新开 `feature/v0.7-*` 分支，完成后合入 main + tag
+
+### 待确认事项
+
+- [ ] **URL 路由方案**：当前使用状态路由（URL 不变），是否需要引入 hash 路由（`/#overview`、`/#wall`）以支持：
+  - 浏览器前进/后退
+  - 分享特定页面状态的链接
+  - SEO（虽然 SPA 意义有限）
+- [x] ~~**Supabase OAuth Redirect**~~：✅ 已修复，Dashboard 已添加 `https://mindonwall.vercel.app` 到 Redirect URLs
+- [ ] **移动端适配**：当前桌面优先，v0.7 暂不做（用户确认延后）
+- [ ] **版本号**：package.json 仍为 `0.5.0`，v0.7 启动时需 bump 到 `0.7.0`
+
+## 下一窗口任务（历史，供参考）
 
 ### 1. 产品化部署（用户已预告：审阅通过后立即开始）
 
@@ -176,9 +362,18 @@ src/
 - `pointerEvents:'none'` 容器收不到 mouseleave，浮窗隐藏用 document 级 mousemove
 - **SearchReplace 经验**：Grep 显示会剥离匹配行前导空白，验证文件状态必须用 Read；报 "save failed unknown" 时内容可能已写入，先 Read 验证再决定重试
 - 浏览器自动化验证：Chrome 窗口最小化时截图超时，改用 DOM 检查 / evaluate_script
+- **Vercel 环境变量缺失导致 tree-shaking**：`.env.local` 不提交 git，Vercel Dashboard 必须手动配置 `VITE_*` 变量。缺失时 Vite 静默删除相关代码，产物体积异常缩小但不报错
+- **Vercel API Routes 类型检查**：`api/` 目录不在 `tsconfig.app.json` include 中，本地 `tsc -b` 不检查，但 Vercel 会单独检查。`setHeaders()` 参数必须是 `new Headers({})` 而非普通对象 `{}`
+- **`tsc -b` 增量编译与 Vercel build cache 冲突**：Vercel 恢复旧 `.tsbuildinfo` 导致跳过编译。解决方案：改用 `tsc --noEmit`（只做类型检查，不生成缓存文件）
+- **`disableBuildCache` 不是合法 vercel.json 字段**：会导致 Vercel 构建报错。清除 build cache 只能通过 Dashboard 手动操作
+- **`vite build --force` 无效**：`--force` 只适用于 `vite` dev 模式，build 模式不支持
 
 ## UI 规范（新增组件必须遵守）
 
 - 所有 UI 文字默认英文，走 i18n key（见上）
-- 浮窗：纯白 #FFFFFF + 1px border，无阴影无毛玻璃；顶栏 40px；物件零投影
+- **Design Token**：颜色/阴影/圆角/间距/字体/过渡常量定义在 `src/theme/tokens.ts`，新组件优先使用 token 而非硬编码
+- **Ghost Button 模式**：透明背景 + hover `#F0F0F0` + subtle shadow 替代 border（v0.5 引入）
+- **Subtle Shadow 层级**：卡片 `0 1px 3px`、菜单 `0 4px 12px`、弹窗 `0 8px 24px`（v0.5 引入）
+- 浮窗：纯白 #FFFFFF + 1px border，无毛玻璃；顶栏 40px；物件零投影
 - 返回按钮样式全站统一（r4 已统一，改任何页面返回按钮参考 UserPages 的 Back 组件）
+- **i18n 新增 key 流程**：先在 `en.ts` 加 key → `TKey` 自动更新 → 补全 9 个语言文件 → 否则 tsc 报错

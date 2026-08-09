@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useT } from '../../i18n/useT';
 import logoSvg from '../../assets/logo.svg';
@@ -54,7 +54,18 @@ export function LandingPage() {
   
   const isSignUp = mode === 'signUp';
 
+  // Three-stage animation: pin → rope → connections
+  const [animStage, setAnimStage] = useState<0 | 1 | 2 | 3>(0);
+  useEffect(() => {
+    const t1 = setTimeout(() => setAnimStage(1), 200);   // objects appear → "Pin it."
+    const t2 = setTimeout(() => setAnimStage(2), 2000);  // ropes start drawing → "Rope it."
+    const t3 = setTimeout(() => setAnimStage(3), 6200);  // ropes done, connection map → "See the connections."
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+
   return (
+    <>
+      <style>{landingObjStyle}</style>
     <div
       style={{
         width: '100%',
@@ -93,18 +104,19 @@ export function LandingPage() {
               lineHeight: 1.2,
             }}
           >
-            Welcome to Mind on Wall
+            {t('auth.welcomeTitle')}
           </h1>
           <p
             style={{
-              fontSize: 16,
-              color: '#666',
+              fontSize: 15,
+              color: '#6B7280',
               marginTop: 12,
               marginBottom: 0,
               lineHeight: 1.5,
+              fontStyle: 'italic',
             }}
           >
-            {t('auth.tagline') || 'Map your thoughts on a visual wall'}
+            {t('auth.tagline')}
           </p>
         </div>
 
@@ -199,13 +211,34 @@ export function LandingPage() {
             <GitHubIcon /> GitHub
           </button>
         </div>
+
+        {/* GitHub star link */}
+        <div style={{ textAlign: 'center', marginTop: 20 }}>
+          <a
+            href="https://github.com/dominoghm123/mindonwall"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 13,
+              color: '#4A90D9',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => { (e.target as HTMLElement).style.textDecoration = 'underline'; }}
+            onMouseLeave={(e) => { (e.target as HTMLElement).style.textDecoration = 'none'; }}
+          >
+            {t('auth.githubStar')}
+          </a>
+        </div>
       </div>
 
-      {/* Right side: Brand visuals */}
+      {/* Right side: Brand visuals — collage wall */}
       <div
         style={{
           flex: 1,
-          background: '#F5F5F3',
+          minWidth: 640,
+          flexShrink: 0,
+          background: '#F5F0E8',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -213,91 +246,240 @@ export function LandingPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Rope connection illustration (SVG) */}
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 800 600"
-          preserveAspectRatio="xMidYMid slice"
-          style={{ position: 'absolute', inset: 0 }}
-        >
-          {/* Background subtle grid */}
+        {/* Paper texture */}
+        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
           <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E0E0E0" strokeWidth="0.5"/>
-            </pattern>
+            <filter id="paperNoise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
           </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" opacity="0.3"/>
-          
-          {/* Rope connections - emphasizing the "map your thoughts" concept */}
-          <g stroke="#C0392B" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.6">
-            {/* Central hub */}
-            <circle cx="400" cy="300" r="8" fill="#1A1A1A"/>
-            
-            {/* Ropes radiating out */}
-            <path d="M 400 300 Q 350 250 300 200"/>
-            <path d="M 400 300 Q 450 250 500 200"/>
-            <path d="M 400 300 Q 350 350 300 400"/>
-            <path d="M 400 300 Q 450 350 500 400"/>
-            <path d="M 400 300 Q 400 250 400 150"/>
-            <path d="M 400 300 Q 400 350 400 450"/>
-            
-            {/* End nodes */}
-            <circle cx="300" cy="200" r="6" fill="#4A90D9"/>
-            <circle cx="500" cy="200" r="6" fill="#4A90D9"/>
-            <circle cx="300" cy="400" r="6" fill="#4A90D9"/>
-            <circle cx="500" cy="400" r="6" fill="#4A90D9"/>
-            <circle cx="400" cy="150" r="6" fill="#4A90D9"/>
-            <circle cx="400" cy="450" r="6" fill="#4A90D9"/>
-            
-            {/* Secondary connections */}
-            <path d="M 300 200 Q 250 180 200 150" stroke="#C0392B" strokeWidth="2" opacity="0.4"/>
-            <path d="M 500 200 Q 550 180 600 150" stroke="#C0392B" strokeWidth="2" opacity="0.4"/>
-            <path d="M 300 400 Q 250 420 200 450" stroke="#C0392B" strokeWidth="2" opacity="0.4"/>
-            <path d="M 500 400 Q 550 420 600 450" stroke="#C0392B" strokeWidth="2" opacity="0.4"/>
-            
-            <circle cx="200" cy="150" r="5" fill="#4A90D9" opacity="0.7"/>
-            <circle cx="600" cy="150" r="5" fill="#4A90D9" opacity="0.7"/>
-            <circle cx="200" cy="450" r="5" fill="#4A90D9" opacity="0.7"/>
-            <circle cx="600" cy="450" r="5" fill="#4A90D9" opacity="0.7"/>
-          </g>
         </svg>
-        
-        {/* Overlay text */}
+        <div style={{ position: 'absolute', inset: 0, filter: 'url(#paperNoise)', opacity: 0.03 }} />
+
+        {/* Connection map glow overlay (stage 3) */}
         <div
           style={{
-            position: 'relative',
-            zIndex: 1,
-            textAlign: 'center',
-            color: '#1A1A1A',
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(ellipse at center, rgba(139,115,85,0.08) 0%, transparent 70%)',
+            opacity: animStage >= 3 ? 1 : 0,
+            transition: 'opacity 1.5s ease',
+            pointerEvents: 'none',
+            zIndex: 0,
           }}
-        >
-          <h2
-            style={{
-              fontSize: 48,
-              fontWeight: 700,
-              margin: 0,
-              letterSpacing: '-1px',
-              lineHeight: 1.2,
-            }}
+        />
+
+        {/* Collage canvas wrapper */}
+        <div style={{ position: 'relative', width: 620, height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'relative', width: 900, height: 600, transform: 'scale(0.65)', transformOrigin: 'center center', flexShrink: 0 }}>
+
+          {/* ── PHOTOS (top center, prominent) ── */}
+          {/* Photo 1 — Wat Chedi Luang */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 195, top: 55, transform: 'rotate(-3deg)', animationDelay: '0.1s' }}>
+            <div style={{ width: 195, height: 140, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
+              <img src="/demo-assets/north-01-wat-chedi-luang.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+            <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
+          </div>
+
+          {/* Photo 2 — Khao Soi */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 410, top: 48, transform: 'rotate(2deg)', animationDelay: '0.2s' }}>
+            <div style={{ width: 185, height: 135, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
+              <img src="/demo-assets/north-02-khao-soi.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+            <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
+          </div>
+
+          {/* Photo 3 — White Temple */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 615, top: 52, transform: 'rotate(-1.5deg)', animationDelay: '0.3s' }}>
+            <div style={{ width: 190, height: 138, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
+              <img src="/demo-assets/north-03-white-temple.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+            <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
+          </div>
+
+          {/* ─ NOTES (scattered, natural) ── */}
+          {/* Note 1 — left area */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 55, top: 260, transform: 'rotate(-3deg)', animationDelay: '0.45s' }}>
+            <div style={{ width: 185, minHeight: 95, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '16px 18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 14, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>The quiet of Wat Chedi Luang makes me not want to leave</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* Note 2 — center-right */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 420, top: 245, transform: 'rotate(1.5deg)', animationDelay: '0.55s' }}>
+            <div style={{ width: 175, minHeight: 90, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '16px 18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 14, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>Khao Soi — the soul curry noodles of Northern Thailand</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* ── STICKIES (scattered) ── */}
+          {/* Sticky Yellow — right side */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 670, top: 215, transform: 'rotate(5deg)', animationDelay: '0.65s' }}>
+            <div style={{ width: 140, height: 140, background: '#FFF9C4', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 15, color: '#5D4E37', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>Must go back to Chiang Mai!</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* Sticky Green — center */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 310, top: 290, transform: 'rotate(-4deg)', animationDelay: '0.7s' }}>
+            <div style={{ width: 130, height: 130, background: '#C8E6C9', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 14, color: '#3E5F3E', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>First step in Thai: sawatdee</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* ── STAMPS (scattered, more visible) ── */}
+          {/* Stamp 1 — left-center */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 230, top: 380, transform: 'rotate(-10deg)', animationDelay: '0.8s' }}>
+            <div style={{ width: 95, height: 95, borderRadius: 3, overflow: 'hidden', boxShadow: '0 3px 10px rgba(0,0,0,0.15)' }}>
+              <img src="/demo-assets/stamps/stamp-red-passport.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+          </div>
+
+          {/* Stamp 2 — right-center */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 560, top: 395, transform: 'rotate(8deg)', animationDelay: '0.85s' }}>
+            <div style={{ width: 90, height: 90, borderRadius: 3, overflow: 'hidden', boxShadow: '0 3px 10px rgba(0,0,0,0.15)' }}>
+              <img src="/demo-assets/stamps/stamp-blue-travel.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+          </div>
+
+          {/* ── TORN PAPERS (bottom, scattered) ── */}
+          {/* Torn Paper 1 — far left */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 15, top: 420, transform: 'rotate(-5deg)', animationDelay: '0.9s' }}>
+            <div style={{ width: 175, minHeight: 95, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '16px 18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 14, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Rainbow after rain at Siam Square</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* Torn Paper 2 — center */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 270, top: 440, transform: 'rotate(3.5deg)', animationDelay: '0.95s' }}>
+            <div style={{ width: 165, minHeight: 90, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '16px 18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 14, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Can not stop buying samples at 7-11</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* Torn Paper 3 — right */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 510, top: 430, transform: 'rotate(-3deg)', animationDelay: '1.0s' }}>
+            <div style={{ width: 170, minHeight: 95, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '16px 18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 14, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Thai people take fragrance to the extreme</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* ── TITLE NOTE (bottom center) ── */}
+          <div className="landing-obj" style={{ position: 'absolute', left: 340, top: 478, transform: 'rotate(1deg)', animationDelay: '1.05s' }}>
+            <div style={{ width: 200, minHeight: 90, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '16px 18px', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: 15, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontWeight: 600 }}>Thailand Trip — Chiang Mai & Bangkok</div>
+            </div>
+            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
+          </div>
+
+          {/* ── ROPE CONNECTIONS (Pin-to-Pin, viewBox matches canvas 900×600) ── */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
+            viewBox="0 0 900 600"
+            preserveAspectRatio="xMidYMid meet"
           >
-            Map Your Thoughts
-          </h2>
-          <p
-            style={{
-              fontSize: 18,
-              color: '#666',
-              marginTop: 16,
-              marginBottom: 0,
-            }}
+            {/* Rope 1: Photo1(293,47) → Note1(148,253) */}
+            <path d="M 293 47 Q 210 140 148 253" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="300" strokeDashoffset="300" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="300" to="0" dur="1.5s" fill="freeze" begin="2.0s" />
+            </path>
+            {/* Rope 2: Photo2(503,40) → Note2(508,238) */}
+            <path d="M 503 40 Q 510 130 508 238" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="260" strokeDashoffset="260" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="260" to="0" dur="1.4s" fill="freeze" begin="2.3s" />
+            </path>
+            {/* Rope 3: Photo3(710,44) → StickyYellow(740,208) */}
+            <path d="M 710 44 Q 725 120 740 208" stroke="#8B7355" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="240" strokeDashoffset="240" opacity="0.55">
+              <animate attributeName="stroke-dashoffset" from="240" to="0" dur="1.3s" fill="freeze" begin="2.6s" />
+            </path>
+            {/* Rope 4: Note1(148,300) → TornPaper1(103,413) */}
+            <path d="M 148 300 Q 120 355 103 413" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="200" strokeDashoffset="200" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="200" to="0" dur="1.2s" fill="freeze" begin="2.9s" />
+            </path>
+            {/* Rope 5: Note2(508,282) → StickyGreen(375,283) */}
+            <path d="M 508 282 Q 440 270 375 283" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="200" strokeDashoffset="200" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="200" to="0" dur="1.3s" fill="freeze" begin="3.2s" />
+            </path>
+            {/* Rope 6: StickyGreen(375,413) → TornPaper2(353,433) */}
+            <path d="M 375 413 Q 365 420 353 433" stroke="#8B7355" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeDasharray="60" strokeDashoffset="60" opacity="0.45">
+              <animate attributeName="stroke-dashoffset" from="60" to="0" dur="0.8s" fill="freeze" begin="3.5s" />
+            </path>
+
+            {/* Rope 8: TitleNote(440,471) → Photo2(503,40) — long cross connection */}
+            <path d="M 440 471 Q 480 300 503 40" stroke="#8B7355" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeDasharray="500" strokeDashoffset="500" opacity="0.35">
+              <animate attributeName="stroke-dashoffset" from="500" to="0" dur="2.0s" fill="freeze" begin="4.1s" />
+            </path>
+          </svg>
+
+          {/* ── CONNECTION MAP NODE OVERLAY (stage 3) ── */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2, opacity: animStage >= 3 ? 1 : 0, transition: 'opacity 2s ease' }}
+            viewBox="0 0 900 600"
+            preserveAspectRatio="xMidYMid meet"
           >
-            Connect ideas with ropes
+            {/* Grid pattern */}
+            <defs>
+              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(139,115,85,0.04)" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="900" height="600" fill="url(#grid)" />
+
+            {/* Glow at each pin position */}
+            {[
+              [293, 47], [503, 40], [710, 44],
+              [148, 253], [508, 238],
+              [740, 208], [375, 283],
+              [103, 413], [353, 433], [595, 423],
+              [440, 471],
+            ].map(([cx, cy], i) => (
+              <g key={`node-${i}`}>
+                <circle cx={cx} cy={cy} r="20" fill="rgba(139,115,85,0.06)">
+                  <animate attributeName="r" values="16;24;16" dur="3s" repeatCount="indefinite" begin={`${i * 0.2}s`} />
+                  <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite" begin={`${i * 0.2}s`} />
+                </circle>
+                <circle cx={cx} cy={cy} r="5" fill="rgba(139,115,85,0.25)" />
+              </g>
+            ))}
+          </svg>
+        </div>
+        </div>
+
+        {/* Three-stage tagline — dramatic, cinematic */}
+        <div style={{ position: 'absolute', bottom: 36, left: 0, right: 0, textAlign: 'center', zIndex: 10 }}>
+          <p style={{ fontSize: 30, color: '#5D4E37', margin: 0, fontFamily: 'Georgia, serif', fontStyle: 'italic', letterSpacing: '2px', fontWeight: 600, opacity: animStage >= 1 ? 1 : 0, transform: animStage >= 1 ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.95)', transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            Pin it.
+          </p>
+          <p style={{ fontSize: 30, color: '#5D4E37', margin: '6px 0 0', fontFamily: 'Georgia, serif', fontStyle: 'italic', letterSpacing: '2px', fontWeight: 600, opacity: animStage >= 2 ? 1 : 0, transform: animStage >= 2 ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.95)', transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            Rope it.
+          </p>
+          <p style={{ fontSize: 30, color: '#5D4E37', margin: '6px 0 0', fontFamily: 'Georgia, serif', fontStyle: 'italic', letterSpacing: '2px', fontWeight: 600, opacity: animStage >= 3 ? 1 : 0, transform: animStage >= 3 ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.95)', transition: 'opacity 1.2s ease, transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            See the connections.
           </p>
         </div>
       </div>
     </div>
+    </>
   );
 }
+
+/* ── Landing page entrance animations ── */
+const landingObjStyle = `
+  .landing-obj {
+    animation: objFadeIn 0.6s ease-out both;
+  }
+  @keyframes objFadeIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; }
+  }
+`;
 
 /* ── Shared styles ── */
 const labelStyle: React.CSSProperties = {
