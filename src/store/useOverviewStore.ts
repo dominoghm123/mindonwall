@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { WallSummary, WallpaperType, Item, Rope, Project } from './types';
+import type { WallSummary, WallpaperType, Item, Rope, Space } from './types';
 import { DEFAULT_WALL_ID, DEFAULT_WALL_NAME, DEFAULT_WALLPAPER } from './initialData';
 import { useWallStore } from './useWallStore';
 import { useMapStore } from './useMapStore';
@@ -62,10 +62,10 @@ interface OverviewState {
   removedBuiltins: string[];
   /** v0.3 r4: 界面语言（i18n） */
   language: Lang;
-  /** v0.4: Project 分组 */
-  projects: Project[];
-  /** v0.4: 是否已执行 Project 迁移（已有墙归入 Uncategorized） */
-  projectsMigrated?: boolean;
+  /** v0.4: Space 分组 */
+  spaces: Space[];
+  /** v0.4: 是否已执行 Space 迁移（已有墙归入 Uncategorized） */
+  spacesMigrated?: boolean;
 
   /** 添加新墙 */
   addWall: (id: string, name: string, wallpaper?: WallpaperType) => void;
@@ -115,16 +115,16 @@ interface OverviewState {
   restoreBuiltinAssets: () => void;
   /** v0.3 r4: 设置界面语言 */
   setLanguage: (lang: Lang) => void;
-  /** v0.4: 新建 Project */
-  addProject: (name: string) => void;
-  /** v0.4: 删除 Project（墙移回 Uncategorized） */
-  removeProject: (id: string) => void;
-  /** v0.4: 重命名 Project */
-  renameProject: (id: string, name: string) => void;
-  /** v0.4: 设置 Project 颜色 */
-  setProjectColor: (id: string, color: string) => void;
-  /** v0.4: 移动墙到指定 Project */
-  moveWallToProject: (wallId: string, projectId: string) => void;
+  /** v0.4: 新建 Space */
+  addSpace: (name: string) => void;
+  /** v0.4: 删除 Space（墙移回 Uncategorized） */
+  removeSpace: (id: string) => void;
+  /** v0.4: 重命名 Space */
+  renameSpace: (id: string, name: string) => void;
+  /** v0.4: 设置 Space 颜色 */
+  setSpaceColor: (id: string, color: string) => void;
+  /** v0.4: 移动墙到指定 Space */
+  moveWallToSpace: (wallId: string, spaceId: string) => void;
   /** v0.5: Sync all data to cloud (requires auth) */
   syncToCloud: () => Promise<{ error: string | null }>;
   /** v0.5: Load data from cloud (requires auth) */
@@ -148,8 +148,8 @@ export const useOverviewStore = create<OverviewState>()(
       collections: [],
       removedBuiltins: [],
       language: 'en',
-      projects: [],
-      projectsMigrated: false,
+      spaces: [],
+      spacesMigrated: false,
 
       addWall: (id: string, name: string, wallpaper: WallpaperType = 'none') => {
         const { walls } = get();
@@ -158,11 +158,11 @@ export const useOverviewStore = create<OverviewState>()(
           walls: [...walls, { id, name, wallpaper, itemCount: 0 }],
         });
         // v0.4: 新墙自动归入 Uncategorized
-        const uc = get().projects.find((p) => p.id === 'project-uncategorized');
+        const uc = get().spaces.find((p) => p.id === 'space-uncategorized');
         if (uc) {
           set({
-            projects: get().projects.map((p) =>
-              p.id === 'project-uncategorized' ? { ...p, wallIds: [...p.wallIds, id] } : p,
+            spaces: get().spaces.map((p) =>
+              p.id === 'space-uncategorized' ? { ...p, wallIds: [...p.wallIds, id] } : p,
             ),
           });
         }
@@ -180,7 +180,7 @@ export const useOverviewStore = create<OverviewState>()(
           walls: get().walls.filter((w) => !idSet.has(w.id)),
           wallData,
           // v0.4: 从所有 project 中清除被删墙的引用
-          projects: get().projects.map((p) => ({
+          spaces: get().spaces.map((p) => ({
             ...p,
             wallIds: p.wallIds.filter((wid) => !idSet.has(wid)),
           })),
@@ -249,42 +249,42 @@ export const useOverviewStore = create<OverviewState>()(
           set({ creamMigrated: true });
         }
         // v0.4 一次性迁移：已有墙归入默认 project "Uncategorized"
-        if (!get().projectsMigrated) {
-          const { walls, projects } = get();
-          if (walls.length > 0 && projects.length === 0) {
-            const defaultProject: Project = {
-              id: 'project-uncategorized',
+        if (!get().spacesMigrated) {
+          const { walls, spaces } = get();
+          if (walls.length > 0 && spaces.length === 0) {
+            const defaultSpace: Space = {
+              id: 'space-uncategorized',
               name: 'Uncategorized',
               wallIds: walls.map((w) => w.id),
               createdAt: Date.now(),
             };
-            set({ projects: [defaultProject] });
+            set({ spaces: [defaultSpace] });
           }
-          set({ projectsMigrated: true });
+          set({ spacesMigrated: true });
         }
         // v0.4 defensive: 确保所有墙都在某个 project 中（防止迁移后墙被孤立）
         {
-          const { walls, projects } = get();
-          const assignedIds = new Set(projects.flatMap((p) => p.wallIds));
+          const { walls, spaces } = get();
+          const assignedIds = new Set(spaces.flatMap((p) => p.wallIds));
           const orphans = walls.filter((w) => !assignedIds.has(w.id));
           if (orphans.length > 0) {
-            let uc = projects.find((p) => p.id === 'project-uncategorized');
+            let uc = spaces.find((p) => p.id === 'space-uncategorized');
             if (uc) {
               set({
-                projects: projects.map((p) =>
-                  p.id === 'project-uncategorized'
+                spaces: spaces.map((p) =>
+                  p.id === 'space-uncategorized'
                     ? { ...p, wallIds: [...p.wallIds, ...orphans.map((w) => w.id)] }
                     : p,
                 ),
               });
             } else {
-              const newUc: Project = {
-                id: 'project-uncategorized',
+              const newUc: Space = {
+                id: 'space-uncategorized',
                 name: 'Uncategorized',
                 wallIds: orphans.map((w) => w.id),
                 createdAt: Date.now(),
               };
-              set({ projects: [newUc, ...projects] });
+              set({ spaces: [newUc, ...spaces] });
             }
           }
         }
@@ -454,13 +454,13 @@ export const useOverviewStore = create<OverviewState>()(
           },
         });
         // v0.4: 复制的墙与源墙归入同一 project，否则归入 Uncategorized
-        const sourceProject = get().projects.find((p) => p.wallIds.includes(id));
-        const targetProjectId = sourceProject?.id ?? 'project-uncategorized';
-        const tp = get().projects.find((p) => p.id === targetProjectId);
+        const sourceSpace = get().spaces.find((p) => p.wallIds.includes(id));
+        const targetSpaceId = sourceSpace?.id ?? 'space-uncategorized';
+        const tp = get().spaces.find((p) => p.id === targetSpaceId);
         if (tp) {
           set({
-            projects: get().projects.map((p) =>
-              p.id === targetProjectId ? { ...p, wallIds: [...p.wallIds, newId] } : p,
+            spaces: get().spaces.map((p) =>
+              p.id === targetSpaceId ? { ...p, wallIds: [...p.wallIds, newId] } : p,
             ),
           });
         }
@@ -540,11 +540,11 @@ export const useOverviewStore = create<OverviewState>()(
           },
         });
         // v0.4: 导入墙自动归入 Uncategorized
-        const uc = get().projects.find((p) => p.id === 'project-uncategorized');
+        const uc = get().spaces.find((p) => p.id === 'space-uncategorized');
         if (uc) {
           set({
-            projects: get().projects.map((p) =>
-              p.id === 'project-uncategorized' ? { ...p, wallIds: [...p.wallIds, newId] } : p,
+            spaces: get().spaces.map((p) =>
+              p.id === 'space-uncategorized' ? { ...p, wallIds: [...p.wallIds, newId] } : p,
             ),
           });
         }
@@ -572,58 +572,58 @@ export const useOverviewStore = create<OverviewState>()(
         set({ language: lang });
       },
 
-      /* ── v0.4: Project 分组 ── */
-      addProject: (name: string) => {
+      /* ── v0.4: Space 分组 ── */
+      addSpace: (name: string) => {
         const trimmed = name.trim();
         if (!trimmed) return;
-        const id = `project-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-        const project: Project = {
+        const id = `space-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+        const space: Space = {
           id,
           name: trimmed,
           wallIds: [],
           createdAt: Date.now(),
         };
-        set({ projects: [...get().projects, project] });
+        set({ spaces: [...get().spaces, space] });
       },
 
-      removeProject: (id: string) => {
-        const { projects } = get();
-        const target = projects.find((p) => p.id === id);
+      removeSpace: (id: string) => {
+        const { spaces } = get();
+        const target = spaces.find((p) => p.id === id);
         if (!target) return;
         // 把墙移回 Uncategorized（如果有的话）
-        const uncategorized = projects.find((p) => p.id === 'project-uncategorized');
-        if (uncategorized && id !== 'project-uncategorized') {
+        const uncategorized = spaces.find((p) => p.id === 'space-uncategorized');
+        if (uncategorized && id !== 'space-uncategorized') {
           const merged = [...new Set([...uncategorized.wallIds, ...target.wallIds])];
           set({
-            projects: projects
+            spaces: spaces
               .filter((p) => p.id !== id)
-              .map((p) => (p.id === 'project-uncategorized' ? { ...p, wallIds: merged } : p)),
+              .map((p) => (p.id === 'space-uncategorized' ? { ...p, wallIds: merged } : p)),
           });
         } else {
-          set({ projects: projects.filter((p) => p.id !== id) });
+          set({ spaces: spaces.filter((p) => p.id !== id) });
         }
       },
 
-      renameProject: (id: string, name: string) => {
+      renameSpace: (id: string, name: string) => {
         const trimmed = name.trim();
         if (!trimmed) return;
         set({
-          projects: get().projects.map((p) => (p.id === id ? { ...p, name: trimmed } : p)),
+          spaces: get().spaces.map((p) => (p.id === id ? { ...p, name: trimmed } : p)),
         });
       },
 
-      setProjectColor: (id: string, color: string) => {
+      setSpaceColor: (id: string, color: string) => {
         set({
-          projects: get().projects.map((p) => (p.id === id ? { ...p, color } : p)),
+          spaces: get().spaces.map((p) => (p.id === id ? { ...p, color } : p)),
         });
       },
 
-      moveWallToProject: (wallId: string, projectId: string) => {
+      moveWallToSpace: (wallId: string, spaceId: string) => {
         set({
-          projects: get().projects.map((p) => {
-            // 从所有 project 中移除该 wall，再加到目标 project
+          spaces: get().spaces.map((p) => {
+            // 从所有 space 中移除该 wall，再加到目标 space
             const without = p.wallIds.filter((id) => id !== wallId);
-            if (p.id === projectId) {
+            if (p.id === spaceId) {
               return { ...p, wallIds: [...without, wallId] };
             }
             return { ...p, wallIds: without };
@@ -676,10 +676,10 @@ export const useOverviewStore = create<OverviewState>()(
         try {
           // Snapshot current wall before syncing
           get().captureCurrentWall();
-          const { walls, wallData, projects, homeBackground, homeBackgroundImage,
+          const { walls, wallData, spaces, homeBackground, homeBackgroundImage,
             userName, avatarDataUrl, collections, removedBuiltins, language } = get();
           const payload = {
-            walls, wallData, projects, homeBackground, homeBackgroundImage,
+            walls, wallData, spaces, homeBackground, homeBackgroundImage,
             userName, avatarDataUrl, collections, removedBuiltins, language,
           };
           const res = await fetch('/api/sync', {
@@ -712,7 +712,7 @@ export const useOverviewStore = create<OverviewState>()(
           set({
             walls: d.walls ?? get().walls,
             wallData: d.wallData ?? get().wallData,
-            projects: d.projects ?? get().projects,
+            spaces: d.spaces ?? get().spaces,
             homeBackground: d.homeBackground ?? get().homeBackground,
             homeBackgroundImage: d.homeBackgroundImage ?? get().homeBackgroundImage,
             userName: d.userName ?? get().userName,
@@ -750,7 +750,7 @@ export const useOverviewStore = create<OverviewState>()(
               set({
                 walls: parsed.state.walls ?? [],
                 wallData: parsed.state.wallData ?? {},
-                projects: parsed.state.projects ?? [],
+                spaces: parsed.state.spaces ?? [],
                 homeBackground: parsed.state.homeBackground ?? '#FFFFFF',
                 homeBackgroundImage: parsed.state.homeBackgroundImage ?? null,
                 userName: parsed.state.userName ?? 'Wall Keeper',
@@ -769,7 +769,7 @@ export const useOverviewStore = create<OverviewState>()(
         set({
           walls: [],
           wallData: {},
-          projects: [],
+          spaces: [],
           homeBackground: '#FFFFFF',
           homeBackgroundImage: null,
           userName: 'Wall Keeper',

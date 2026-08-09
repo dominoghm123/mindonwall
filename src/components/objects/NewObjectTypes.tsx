@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import type { Item } from '../../store/types';
 
 /**
@@ -55,9 +55,37 @@ export function MdObject({ item }: { item: Item }) {
   );
 }
 
-/* ─── 音频物件 ─── */
+/* ─── 音频物件（v0.7：真实播放） ─── */
 export function AudioObject({ item }: { item: Item }) {
   const ratio = Math.max(0.5, item.width / 160);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const src = item.assetId ? `/demo-assets/${item.assetId}.wav` : undefined;
+
+  const togglePlay = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      audio.play().catch(() => {});
+      setPlaying(true);
+    }
+  }, [playing]);
+
+  const handleTimeUpdate = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    setProgress(audio.currentTime / audio.duration);
+  }, []);
+
+  const handleEnded = useCallback(() => {
+    setPlaying(false);
+    setProgress(0);
+  }, []);
 
   return (
     <div
@@ -73,23 +101,82 @@ export function AudioObject({ item }: { item: Item }) {
         padding: 12 * ratio,
         boxSizing: 'border-box',
         boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Hidden audio element */}
+      {src && (
+        <audio
+          ref={audioRef}
+          src={src}
+          onTimeUpdate={handleTimeUpdate}
+          onEnded={handleEnded}
+          preload="metadata"
+        />
+      )}
+
       {/* 音频图标 */}
-      <svg width={32 * ratio} height={32 * ratio} viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 * ratio }}>
+      <svg width={28 * ratio} height={28 * ratio} viewBox="0 0 24 24" fill="none" style={{ marginBottom: 6 * ratio }}>
         <path d="M9 18V5l12-2v13" stroke="#FFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         <circle cx="6" cy="18" r="3" stroke="#FFF" strokeWidth="2"/>
         <circle cx="18" cy="16" r="3" stroke="#FFF" strokeWidth="2"/>
       </svg>
-      <div style={{ color: '#FFF', fontSize: 12 * ratio, fontWeight: 600, textAlign: 'center' }}>
+
+      {/* 标题 */}
+      <div style={{ color: '#FFF', fontSize: 11 * ratio, fontWeight: 600, textAlign: 'center', marginBottom: 8 * ratio }}>
         {item.text ?? 'Audio Note'}
       </div>
-      {/* 模拟播放按钮 */}
-      <div style={{ marginTop: 8 * ratio, width: 28 * ratio, height: 28 * ratio, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width={12 * ratio} height={12 * ratio} viewBox="0 0 24 24" fill="#FFF">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-      </div>
+
+      {/* 播放按钮 */}
+      <button
+        onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+        style={{
+          width: 32 * ratio,
+          height: 32 * ratio,
+          borderRadius: '50%',
+          background: playing ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          transition: 'background 0.2s',
+        }}
+      >
+        {playing ? (
+          <svg width={14 * ratio} height={14 * ratio} viewBox="0 0 24 24" fill="#FFF">
+            <rect x="6" y="4" width="4" height="16" rx="1"/>
+            <rect x="14" y="4" width="4" height="16" rx="1"/>
+          </svg>
+        ) : (
+          <svg width={14 * ratio} height={14 * ratio} viewBox="0 0 24 24" fill="#FFF">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        )}
+      </button>
+
+      {/* 进度条 */}
+      {src && (
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '100%',
+          maxWidth: '100%',
+          height: 3 * ratio,
+          background: 'rgba(255,255,255,0.15)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${Math.min(progress, 1) * 100}%`,
+            height: '100%',
+            background: 'rgba(255,255,255,0.7)',
+            transition: 'width 0.1s linear',
+          }} />
+        </div>
+      )}
     </div>
   );
 }

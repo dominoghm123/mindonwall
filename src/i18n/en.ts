@@ -104,6 +104,7 @@ export const en = {
 
   /* ── 素材选择器 ── */
   'pk.sample': 'Sample Photos',
+  'pk.audio': 'Audio',
   'pk.uploaded': 'Uploaded',
 
   /* ── 分享横幅 ── */
@@ -283,16 +284,21 @@ export const en = {
   'toast.dataExported': 'Data exported',
   'toast.resetDone': 'App reset',
 
-  /* ── v0.4: Space (was Project) ─ */
-  'project.new': 'New Space',
-  'project.newPlaceholder': 'Space name',
-  'project.uncategorized': 'Uncategorized',
-  'project.rename': 'Rename Space',
-  'project.delete': 'Delete Space',
-  'project.moveTo': 'Move to',
-  'project.walls': '{n} walls',
-  'toast.projectCreated': 'Space created',
-  'toast.projectDeleted': 'Space deleted',
+  /* ── v0.7: Space ── */
+  'space.new': 'New Space',
+  'space.newPlaceholder': 'Space name',
+  'space.uncategorized': 'Uncategorized',
+  'space.rename': 'Rename Space',
+  'space.delete': 'Delete Space',
+  'space.moveTo': 'Move to',
+  'space.walls': '{n} walls',
+  'space.wallOne': '{n} wall',
+  'space.wallMany': '{n} walls',
+  'space.confirmDelete': 'Delete this Space? Walls inside will be moved to Uncategorized.',
+  'space.listView': 'List View',
+  'space.folderView': 'Folder View',
+  'toast.spaceCreated': 'Space created',
+  'toast.spaceDeleted': 'Space deleted',
   'toast.wallMoved': 'Wall moved to space',
 
   /* ── v0.5 Auth ── */

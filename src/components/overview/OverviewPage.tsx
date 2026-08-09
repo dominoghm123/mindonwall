@@ -19,15 +19,17 @@ import { track } from '../../utils/analytics';
  */
 export function OverviewPage() {
   const walls = useOverviewStore((s) => s.walls);
-  const projects = useOverviewStore((s) => s.projects);
+  const spaces = useOverviewStore((s) => s.spaces);
   const addWall = useOverviewStore((s) => s.addWall);
-  const addProject = useOverviewStore((s) => s.addProject);
+  const addSpace = useOverviewStore((s) => s.addSpace);
   const openWall = useOverviewStore((s) => s.openWall);
   const duplicateWall = useOverviewStore((s) => s.duplicateWall);
   const exportWallJSON = useOverviewStore((s) => s.exportWallJSON);
   const removeWalls = useOverviewStore((s) => s.removeWalls);
   const captureCurrentWall = useOverviewStore((s) => s.captureCurrentWall);
-  const moveWallToProject = useOverviewStore((s) => s.moveWallToProject);
+  const moveWallToSpace = useOverviewStore((s) => s.moveWallToSpace);
+  const renameSpace = useOverviewStore((s) => s.renameSpace);
+  const removeSpace = useOverviewStore((s) => s.removeSpace);
   const homeBackground = useOverviewStore((s) => s.homeBackground);
   const homeBackgroundImage = useOverviewStore((s) => s.homeBackgroundImage);
   const showToast = useUIStore((s) => s.showToast);
@@ -39,14 +41,17 @@ export function OverviewPage() {
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
   const [menu, setMenu] = useState<{ wallId: string; x: number; y: number } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [projectMenu, setProjectMenu] = useState<{ projectId: string; x: number; y: number } | null>(null);
+  const [spaceMenu, setSpaceMenu] = useState<{ spaceId: string; x: number; y: number } | null>(null);
+  const [renamingSpaceId, setRenamingSpaceId] = useState<string | null>(null);
+  const [confirmSpaceDelete, setConfirmSpaceDelete] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [newProjectInput, setNewProjectInput] = useState(false);
+  const [spaceViewMode, setSpaceViewMode] = useState<'folder' | 'list'>('folder');
+  const [newSpaceInput, setNewSpaceInput] = useState(false);
   const [manageMoveOpen, setManageMoveOpen] = useState(false);
 
   // v0.5 B1: Drag state
   const [dragWallId, setDragWallId] = useState<string | null>(null);
-  const [dropProjectId, setDropProjectId] = useState<string | null>(null);
+  const [dropSpaceId, setDropSpaceId] = useState<string | null>(null);
   const [dropCardId, setDropCardId] = useState<string | null>(null);
 
   // v0.5 B3: Box selection state
@@ -231,10 +236,10 @@ export function OverviewPage() {
             <>
               <span style={{ fontSize: 12, color: '#999' }}>{t('common.selected', { n: selected.length })}</span>
               {/* v0.4: Manage 模式 Move-to 批量归类 */}
-              {projects.length > 1 && (
+              {spaces.length > 1 && (
                 <div style={{ position: 'relative' }}>
                   <HeaderButton
-                    label={t('project.moveTo')}
+                    label={t('space.moveTo')}
                     disabled={selected.length === 0}
                     onClick={() => setManageMoveOpen((v) => !v)}
                   />
@@ -254,12 +259,12 @@ export function OverviewPage() {
                         zIndex: 10000,
                       }}
                     >
-                      {projects.map((p) => (
+                      {spaces.map((p) => (
                         <div
                           key={p.id}
                           onClick={() => {
-                            selected.forEach((id) => moveWallToProject(id, p.id));
-                            track('wall_moved_to_project', { projectId: p.id, count: selected.length });
+                            selected.forEach((id) => moveWallToSpace(id, p.id));
+                            track('wall_moved_to_space', { spaceId: p.id, count: selected.length });
                             setManageMoveOpen(false);
                           }}
                           style={{
@@ -299,16 +304,30 @@ export function OverviewPage() {
           ) : (
             <>
               <HeaderButton label={t('ov.manage')} onClick={() => setManageMode(true)} />
-              {/* v0.4: + New Project 移到 TopBar */}
-              {newProjectInput ? (
-                <NewProjectInline
-                  onDone={(name) => { addProject(name); track('project_created'); setNewProjectInput(false); }}
-                  onCancel={() => setNewProjectInput(false)}
+              {/* v0.7: + New Space */}
+              {newSpaceInput ? (
+                <NewSpaceInline
+                  onDone={(name) => { addSpace(name); track('space_created'); setNewSpaceInput(false); }}
+                  onCancel={() => setNewSpaceInput(false)}
                 />
               ) : (
-                <HeaderButton label={`+ ${t('project.new')}`} onClick={() => setNewProjectInput(true)} />
+                <HeaderButton label={`+ ${t('space.new')}`} onClick={() => setNewSpaceInput(true)} />
               )}
               <HeaderButton label={t('ov.newWall')} onClick={handleNewWall} />
+              {/* v0.7: 视图切换（文件夹 / 列表） */}
+              <button
+                onClick={() => setSpaceViewMode((v) => v === 'folder' ? 'list' : 'folder')}
+                title={spaceViewMode === 'folder' ? t('space.listView') : t('space.folderView')}
+                style={{
+                  width: 28, height: 28, border: 'none', background: 'transparent',
+                  borderRadius: 6, cursor: 'pointer', fontSize: 14, color: '#666',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+              >
+                {spaceViewMode === 'folder' ? '☰' : '⊞'}
+              </button>
               {/* 头像入口（v0.2：顶栏最右侧） */}
               <div style={{ marginLeft: 8 }}>
                 <AvatarMenu />
@@ -318,7 +337,7 @@ export function OverviewPage() {
         </div>
       </div>
 
-      {/* v0.4: 按 Project 分组的卡片网格 */}
+      {/* v0.7: 按 Space 分组的卡片网格 */}
       <div
         ref={gridRef}
         style={{
@@ -370,13 +389,14 @@ export function OverviewPage() {
           setBoxSelect(null);
         }}
       >
-        {projects.length > 0 ? (
-          projects.map((project) => {
-            const projectWalls = walls.filter((w) => project.wallIds.includes(w.id));
-            const isCollapsed = collapsed[project.id];
+        {spaceViewMode === 'folder' ? (
+        spaces.length > 0 ? (
+          spaces.map((space) => {
+            const spaceWalls = walls.filter((w) => space.wallIds.includes(w.id));
+            const isCollapsed = collapsed[space.id];
             return (
-              <div key={project.id} style={{ marginBottom: 20 }}>
-                {/* Project 标题栏 — v0.5 B1: drop zone for drag-to-project */}
+              <div key={space.id} style={{ marginBottom: 20 }}>
+                {/* Space 标题栏 — 文件夹样式 */}
                 <div
                   style={{
                     display: 'flex',
@@ -387,40 +407,40 @@ export function OverviewPage() {
                     userSelect: 'none',
                     padding: '4px 8px',
                     borderRadius: 6,
-                    background: dropProjectId === project.id ? 'rgba(74,144,217,0.08)' : 'transparent',
-                    border: dropProjectId === project.id ? '1px dashed #4A90D9' : '1px solid transparent',
+                    background: dropSpaceId === space.id ? 'rgba(74,144,217,0.08)' : 'transparent',
+                    border: dropSpaceId === space.id ? '1px dashed #4A90D9' : '1px solid transparent',
                     transition: 'background 0.15s, border 0.15s',
                   }}
-                  onClick={() => setCollapsed((prev) => ({ ...prev, [project.id]: !prev[project.id] }))}
+                  onClick={() => setCollapsed((prev) => ({ ...prev, [space.id]: !prev[space.id] }))}
                   onDragOver={(e) => {
                     if (!dragWallId) return;
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
-                    setDropProjectId(project.id);
+                    setDropSpaceId(space.id);
                   }}
-                  onDragLeave={() => setDropProjectId(null)}
+                  onDragLeave={() => setDropSpaceId(null)}
                   onDrop={(e) => {
                     e.preventDefault();
                     if (dragWallId) {
-                      moveWallToProject(dragWallId, project.id);
-                      track('wall_moved_to_project', { projectId: project.id, wallId: dragWallId });
+                      moveWallToSpace(dragWallId, space.id);
+                      track('wall_moved_to_space', { spaceId: space.id, wallId: dragWallId });
                       showToast(t('toast.wallMoved') || 'Wall moved', 'success');
                     }
                     setDragWallId(null);
-                    setDropProjectId(null);
+                    setDropSpaceId(null);
                   }}
                 >
                   <span style={{ fontSize: 12, color: '#999', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', display: 'inline-block' }}>▼</span>
-                  {project.color && (
-                    <span style={{ width: 2, height: 16, background: project.color, flexShrink: 0, borderRadius: 1 }} />
+                  {space.color && (
+                    <span style={{ width: 2, height: 16, background: space.color, flexShrink: 0, borderRadius: 1 }} />
                   )}
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{project.name}</span>
-                  <span style={{ fontSize: 11, color: '#BBB' }}>({projectWalls.length})</span>
-                  {/* v0.6: Project 三点菜单 */}
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{space.name}</span>
+                  <span style={{ fontSize: 11, color: '#BBB' }}>({spaceWalls.length})</span>
+                  {/* Space 三点菜单 */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setProjectMenu({ projectId: project.id, x: e.clientX, y: e.clientY });
+                      setSpaceMenu({ spaceId: space.id, x: e.clientX, y: e.clientY });
                     }}
                     style={{
                       marginLeft: 'auto',
@@ -439,7 +459,7 @@ export function OverviewPage() {
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                   >
-                    
+                    ⋮
                   </button>
                 </div>
                 {/* 墙卡片网格 */}
@@ -453,7 +473,7 @@ export function OverviewPage() {
                       alignContent: 'start',
                     }}
                   >
-                    {projectWalls.map((wall) => (
+                    {spaceWalls.map((wall) => (
                       <WallCard
                         key={wall.id}
                         wall={wall}
@@ -469,12 +489,25 @@ export function OverviewPage() {
                         onDragLeave={() => setDropCardId(null)}
                         onDrop={() => {
                           if (dragWallId && dragWallId !== wall.id) {
-                            // v0.6: Dragging a wall onto another wall moves it to the target wall's project
-                            const projects = useOverviewStore.getState().projects;
-                            const targetProject = projects.find((p) => p.wallIds.includes(wall.id));
-                            if (targetProject) {
-                              moveWallToProject(dragWallId, targetProject.id);
-                              track('wall_moved_to_project', { projectId: targetProject.id, wallId: dragWallId });
+                            // v0.7: Dragging a wall onto another wall — if different Space, create new Space
+                            const allSpaces = useOverviewStore.getState().spaces;
+                            const srcSpace = allSpaces.find((p) => p.wallIds.includes(dragWallId));
+                            const tgtSpace = allSpaces.find((p) => p.wallIds.includes(wall.id));
+                            if (srcSpace && tgtSpace && srcSpace.id !== tgtSpace.id) {
+                              // Different spaces: create new Space and merge both walls
+                              const newName = `Space ${String(allSpaces.length + 1).padStart(2, '0')}`;
+                              addSpace(newName);
+                              const newSpaces = useOverviewStore.getState().spaces;
+                              const created = newSpaces[newSpaces.length - 1];
+                              if (created) {
+                                moveWallToSpace(dragWallId, created.id);
+                                moveWallToSpace(wall.id, created.id);
+                                track('space_created_from_merge', { spaceId: created.id });
+                                showToast(t('toast.spaceCreated') || 'Space created', 'success');
+                              }
+                            } else if (tgtSpace) {
+                              moveWallToSpace(dragWallId, tgtSpace.id);
+                              track('wall_moved_to_space', { spaceId: tgtSpace.id, wallId: dragWallId });
                               showToast(t('toast.wallMoved') || 'Wall moved', 'success');
                             }
                           }
@@ -489,7 +522,7 @@ export function OverviewPage() {
             );
           })
         ) : (
-          // 无 project 时直接显示所有墙（兼容旧数据未迁移场景）
+          // 无 Space 时直接显示所有墙（兼容旧数据未迁移场景）
           <div
             style={{
               display: 'grid',
@@ -515,13 +548,18 @@ export function OverviewPage() {
                 onDragLeave={() => setDropCardId(null)}
                 onDrop={() => {
                   if (dragWallId && dragWallId !== wall.id) {
-                    // v0.6: Dragging a wall onto another wall moves it to the target wall's project
-                    const projects = useOverviewStore.getState().projects;
-                    const targetProject = projects.find((p) => p.wallIds.includes(wall.id));
-                    if (targetProject) {
-                      moveWallToProject(dragWallId, targetProject.id);
-                      track('wall_moved_to_project', { projectId: targetProject.id, wallId: dragWallId });
-                      showToast(t('toast.wallMoved') || 'Wall moved', 'success');
+                    // v0.7: Drag wall onto wall — different Spaces → create new Space merge
+                    const allSp = useOverviewStore.getState().spaces;
+                    const srcSp = allSp.find((p) => p.wallIds.includes(dragWallId));
+                    const tgtSp = allSp.find((p) => p.wallIds.includes(wall.id));
+                    if (srcSp && tgtSp && srcSp.id !== tgtSp.id) {
+                      const nm = `Space ${String(allSp.length + 1).padStart(2, '0')}`;
+                      addSpace(nm);
+                      const ns = useOverviewStore.getState().spaces;
+                      const cr = ns[ns.length - 1];
+                      if (cr) { moveWallToSpace(dragWallId, cr.id); moveWallToSpace(wall.id, cr.id); }
+                    } else if (tgtSp) {
+                      moveWallToSpace(dragWallId, tgtSp.id);
                     }
                   }
                   setDragWallId(null);
@@ -530,7 +568,56 @@ export function OverviewPage() {
               />
             ))}
           </div>
-        )}
+        )
+        ) : (
+          /* v0.7: 列表视图 — 每行 Space 名称 + 墙数量 + 操作 */
+          <div style={{ maxWidth: 600, margin: '0 auto' }}>
+            {spaces.map((space) => {
+              const spaceWalls = walls.filter((w) => space.wallIds.includes(w.id));
+              return (
+                <div
+                  key={space.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', marginBottom: 2,
+                    background: '#FFFFFF', borderRadius: 6,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    if (spaceWalls.length === 1) {
+                      openWall(spaceWalls[0].id);
+                      setViewMode('wall');
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>📁</span>
+                  {space.color && <span style={{ width: 3, height: 20, background: space.color, borderRadius: 2, flexShrink: 0 }} />}
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#333', flex: 1 }}>{space.name}</span>
+                  <span style={{ fontSize: 11, color: '#BBB' }}>
+                    {spaceWalls.length === 1
+                      ? t('space.wallOne', { n: spaceWalls.length })
+                      : t('space.wallMany', { n: spaceWalls.length })}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSpaceMenu({ spaceId: space.id, x: e.clientX, y: e.clientY });
+                    }}
+                    style={{
+                      width: 24, height: 24, border: 'none', background: 'transparent',
+                      borderRadius: 4, cursor: 'pointer', fontSize: 14, color: '#999',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F0F0'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  >⋮</button>
+                </div>
+              );
+            })}
+          </div>
+        )
+        }
       </div>
 
       {/* 三点菜单 */}
@@ -551,20 +638,20 @@ export function OverviewPage() {
         />
       )}
 
-      {/* v0.6: Project 三点菜单 */}
-      {projectMenu && (
-        <ProjectMenu
-          x={projectMenu.x}
-          y={projectMenu.y}
-          projectId={projectMenu.projectId}
-          onClose={() => setProjectMenu(null)}
+      {/* Space 三点菜单 */}
+      {spaceMenu && (
+        <SpaceMenu
+          x={spaceMenu.x}
+          y={spaceMenu.y}
+          spaceId={spaceMenu.spaceId}
+          onClose={() => setSpaceMenu(null)}
           onRename={() => {
-            setProjectMenu(null);
-            // TODO: Implement project rename
+            setSpaceMenu(null);
+            setRenamingSpaceId(spaceMenu.spaceId);
           }}
           onDelete={() => {
-            setProjectMenu(null);
-            // TODO: Implement project delete
+            setSpaceMenu(null);
+            setConfirmSpaceDelete(spaceMenu.spaceId);
           }}
         />
       )}
@@ -593,6 +680,25 @@ export function OverviewPage() {
         <RenameCardOverlay wallId={renamingId} onClose={() => setRenamingId(null)} />
       )}
 
+      {/* Space 重命名弹窗 */}
+      {renamingSpaceId && (
+        <RenameSpaceOverlay spaceId={renamingSpaceId} onClose={() => setRenamingSpaceId(null)} />
+      )}
+
+      {/* Space 删除确认 */}
+      {confirmSpaceDelete && (
+        <ConfirmDialog
+          message={t('space.confirmDelete')}
+          onCancel={() => setConfirmSpaceDelete(null)}
+          onConfirm={() => {
+            removeSpace(confirmSpaceDelete);
+            track('space_deleted', { spaceId: confirmSpaceDelete });
+            setConfirmSpaceDelete(null);
+            showToast(t('toast.deleted'), 'success');
+          }}
+        />
+      )}
+
       {/* v0.5 B3: Box selection rectangle overlay */}
       {boxSelect && (
         <div
@@ -610,6 +716,55 @@ export function OverviewPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function RenameSpaceOverlay({ spaceId, onClose }: { spaceId: string; onClose: () => void }) {
+  const spaces = useOverviewStore((s) => s.spaces);
+  const renameSpaceFn = useOverviewStore((s) => s.renameSpace);
+  const t = useT();
+  const space = spaces.find((s) => s.id === spaceId);
+  const [value, setValue] = useState(space?.name ?? '');
+
+  if (!space) return null;
+
+  const commit = () => {
+    const v = value.trim();
+    if (v && v !== space.name) renameSpaceFn(space.id, v);
+    onClose();
+  };
+
+  return (
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) commit(); }}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+      }}
+    >
+      <div style={{
+        background: '#FFFFFF', border: 'none', borderRadius: 10,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
+        padding: 16, width: 300,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#333', marginBottom: 10 }}>
+          {t('space.rename')}
+        </div>
+        <input
+          autoFocus value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') onClose(); }}
+          style={{
+            width: '100%', boxSizing: 'border-box', fontSize: 13, padding: '6px 8px',
+            border: '1px solid #D0D0D0', borderRadius: 6, outline: 'none',
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+          <button onClick={onClose} style={dialogBtnStyle(false)}>{t('common.cancel')}</button>
+          <button onClick={commit} style={dialogBtnStyle(true)}>{t('common.save')}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -691,7 +846,7 @@ function RenameCardOverlay({ wallId, onClose }: { wallId: string; onClose: () =>
   );
 }
 
-/** v0.6: 重命名 Project 弹窗（合并后使用） */
+/** v0.7: 重命名 Space 弹窗（合并后使用） */
 
 /* ── 卡片 ─── */
 function WallCard({
@@ -867,8 +1022,10 @@ function CardMenu({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useT();
-  const projects = useOverviewStore((s) => s.projects);
-  const moveWallToProject = useOverviewStore((s) => s.moveWallToProject);
+  const spaces = useOverviewStore((s) => s.spaces);
+  const moveWallToSpace = useOverviewStore((s) => s.moveWallToSpace);
+  const renameSpace = useOverviewStore((s) => s.renameSpace);
+  const removeSpace = useOverviewStore((s) => s.removeSpace);
   const [showMoveTo, setShowMoveTo] = useState(false);
 
   useEffect(() => {
@@ -889,15 +1046,15 @@ function CardMenu({
   const items = [
     { key: 'rename', label: t('common.rename') },
     { key: 'duplicate', label: t('ov.duplicate') },
-    { key: 'moveTo', label: t('project.moveTo'), hasSub: true },
+    { key: 'moveTo', label: t('space.moveTo'), hasSub: true },
     { key: 'export', label: t('ov.exportJson') },
     { key: 'share', label: t('common.share') },
     { key: 'delete', label: t('common.delete'), danger: true },
   ];
 
-  // 当前墙所属的 project
-  const currentProject = projects.find((p) => p.wallIds.includes(wallId));
-  const otherProjects = projects.filter((p) => p.id !== currentProject?.id);
+  // 当前墙所属的 Space
+  const currentSpace = spaces.find((p) => p.wallIds.includes(wallId));
+  const otherSpaces = spaces.filter((p) => p.id !== currentSpace?.id);
 
   return (
     <div
@@ -917,7 +1074,7 @@ function CardMenu({
       }}
     >
       {items.map((it) => {
-        if (it.key === 'moveTo' && otherProjects.length === 0) return null;
+        if (it.key === 'moveTo' && otherSpaces.length === 0) return null;
         return (
           <div
             key={it.key}
@@ -958,13 +1115,13 @@ function CardMenu({
                   zIndex: 10000,
                 }}
               >
-                {otherProjects.map((p) => (
+                {otherSpaces.map((p) => (
                   <div
                     key={p.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      moveWallToProject(wallId, p.id);
-                      track('wall_moved_to_project', { projectId: p.id });
+                      moveWallToSpace(wallId, p.id);
+                      track('wall_moved_to_space', { spaceId: p.id });
                       onClose();
                     }}
                     style={{
@@ -993,18 +1150,18 @@ function CardMenu({
   );
 }
 
-/* ─── v0.6: Project 三点菜单 ─── */
-function ProjectMenu({
+/* ─── Space 三点菜单 ─── */
+function SpaceMenu({
   x,
   y,
-  projectId,
+  spaceId,
   onClose,
   onRename,
   onDelete,
 }: {
   x: number;
   y: number;
-  projectId: string;
+  spaceId: string;
   onClose: () => void;
   onRename: () => void;
   onDelete: () => void;
@@ -1012,8 +1169,7 @@ function ProjectMenu({
   const ref = useRef<HTMLDivElement>(null);
   const t = useT();
 
-  // v0.6: projectId reserved for future rename/delete implementation
-  void projectId;
+  void spaceId;
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -1031,7 +1187,7 @@ function ProjectMenu({
   }, [onClose]);
 
   const items = [
-    { key: 'rename', label: t('project.rename'), action: onRename },
+    { key: 'rename', label: t('space.rename'), action: onRename },
     { key: 'delete', label: t('common.delete'), danger: true, action: onDelete },
   ];
 
@@ -1140,8 +1296,8 @@ function dialogBtnStyle(primary: boolean, variant: 'danger' | 'primary' = 'dange
   };
 }
 
-/* ─── v0.4: 新建 Project 内联输入 ─── */
-function NewProjectInline({
+/* ─── v0.7: 新建 Space 内联输入 ─── */
+function NewSpaceInline({
   onDone,
   onCancel,
 }: {
@@ -1172,7 +1328,7 @@ function NewProjectInline({
           if (e.key === 'Enter') commit();
           if (e.key === 'Escape') onCancel();
         }}
-        placeholder={t('project.newPlaceholder')}
+        placeholder={t('space.newPlaceholder')}
         style={{
           height: 30,
           width: 180,

@@ -95,6 +95,7 @@ export const zhCN: Record<TKey, string> = {
   'ctx.replaceImage': '更换图片',
   'ctx.customColor': '自定义颜色',
 
+  'pk.audio': '音频',
   'pk.sample': '示例照片',
   'pk.uploaded': '已上传',
 
@@ -263,15 +264,20 @@ export const zhCN: Record<TKey, string> = {
   'toast.resetDone': '应用已重置',
 
   /* ── v0.4: Space (was Project) ── */
-  'project.new': '新建空间',
-  'project.newPlaceholder': '空间名称',
-  'project.uncategorized': '未分类',
-  'project.rename': '重命名空间',
-  'project.delete': '删除空间',
-  'project.moveTo': '移动到',
-  'project.walls': '{n} 面墙',
-  'toast.projectCreated': '空间已创建',
-  'toast.projectDeleted': '空间已删除',
+  'space.new': '新建空间',
+  'space.newPlaceholder': '空间名称',
+  'space.uncategorized': '未分类',
+  'space.rename': '重命名空间',
+  'space.delete': '删除空间',
+  'space.moveTo': '移动到',
+  'space.walls': '{n} 面墙',
+  'space.wallOne': '{n} 面墙',
+  'space.wallMany': '{n} 面墙',
+  'space.confirmDelete': '删除此空间？内部的墙将被移到未分类。',
+  'space.listView': '列表视图',
+  'space.folderView': '文件夹视图',
+  'toast.spaceCreated': '空间已创建',
+  'toast.spaceDeleted': '空间已删除',
   'toast.wallMoved': '墙面已移动到空间',
 
   'auth.signIn': '登录',

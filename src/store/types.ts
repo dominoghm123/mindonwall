@@ -110,8 +110,8 @@ export interface ToastMessage {
   duration?: number;
 }
 
-/** v0.4: Project 分组（墙归类到项目下） */
-export interface Project {
+/** v0.7: Space 分组（墙归类到空间下，UI 展示为文件夹） */
+export interface Space {
   id: string;
   name: string;
   /** 可选标签色（用于 UI 区分） */
