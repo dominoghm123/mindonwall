@@ -274,13 +274,12 @@ export function LandingPage() {
         <div style={{ position: 'relative', width: 750, height: 520, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'relative', width: 1100, height: 750, transform: 'scale(0.62)', transformOrigin: 'center center', flexShrink: 0 }}>
 
-          {/* ── PHOTOS (top row, well-spaced) ── */}
+          {/* ─ PHOTOS (top row, well-spaced) ── */}
           {/* Photo 1 — Wat Chedi Luang */}
           <div className="landing-obj" style={{ position: 'absolute', left: 55, top: 25, transform: 'rotate(-3deg)', animationDelay: '0.1s' }}>
             <div style={{ width: 240, height: 170, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
               <img src="/demo-assets/north-01-wat-chedi-luang.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
-            <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
           </div>
 
           {/* Photo 2 — Khao Soi */}
@@ -288,7 +287,6 @@ export function LandingPage() {
             <div style={{ width: 235, height: 165, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
               <img src="/demo-assets/north-02-khao-soi.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
-            <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
           </div>
 
           {/* Photo 3 — White Temple */}
@@ -296,7 +294,6 @@ export function LandingPage() {
             <div style={{ width: 238, height: 168, borderRadius: 2, boxShadow: '0 6px 20px rgba(0,0,0,0.22)', overflow: 'hidden', background: '#EEE' }}>
               <img src="/demo-assets/north-03-white-temple.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
-            <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 16, height: 16, borderRadius: '50%', background: '#FFF', border: '2.5px solid #BBB', boxShadow: '0 2px 6px rgba(0,0,0,0.35)', zIndex: 2 }} />
           </div>
 
           {/* ─ NOTES (middle row, spread out) ── */}
@@ -305,7 +302,6 @@ export function LandingPage() {
             <div style={{ width: 230, minHeight: 120, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>The quiet of Wat Chedi Luang makes me not want to leave</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Note 2 — center-right */}
@@ -313,7 +309,6 @@ export function LandingPage() {
             <div style={{ width: 220, minHeight: 115, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontStyle: 'italic' }}>Khao Soi — the soul curry noodles of Northern Thailand</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* ── STICKIES ── */}
@@ -322,7 +317,6 @@ export function LandingPage() {
             <div style={{ width: 175, height: 175, background: '#FFF9C4', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 17, color: '#5D4E37', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>Must go back to Chiang Mai!</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Sticky Green — center-left */}
@@ -330,7 +324,6 @@ export function LandingPage() {
             <div style={{ width: 170, height: 170, background: '#C8E6C9', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 16, color: '#3E5F3E', fontFamily: 'Georgia, serif', fontStyle: 'italic', lineHeight: 1.5 }}>First step in Thai: sawatdee</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* ── STAMPS (transparent PNG, no pin, no rope) ── */}
@@ -350,7 +343,6 @@ export function LandingPage() {
             <div style={{ width: 220, minHeight: 115, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Rainbow after rain at Siam Square</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Torn Paper 2 — center */}
@@ -358,7 +350,6 @@ export function LandingPage() {
             <div style={{ width: 215, minHeight: 110, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Can not stop buying samples at 7-11</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* Torn Paper 3 — right */}
@@ -366,7 +357,6 @@ export function LandingPage() {
             <div style={{ width: 218, minHeight: 115, background: '#FAFAFA', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 16, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontStyle: 'italic' }}>Thai people take fragrance to the extreme</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
           {/* ─ TITLE NOTE (bottom center) ── */}
@@ -374,12 +364,11 @@ export function LandingPage() {
             <div style={{ width: 250, minHeight: 110, background: '#FFF', borderRadius: 2, boxShadow: '0 3px 12px rgba(0,0,0,0.12)', padding: '20px 22px', boxSizing: 'border-box' }}>
               <div style={{ fontSize: 17, color: '#333', fontFamily: 'Georgia, serif', lineHeight: 1.5, fontWeight: 600 }}>Thailand Trip — Chiang Mai & Bangkok</div>
             </div>
-            <div style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: '#FFF', border: '2px solid #CCC', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }} />
           </div>
 
-          {/* ── ROPE CONNECTIONS (inside canvas, same coordinate system) ── */}
+          {/* ── ROPE CONNECTIONS + PINS (SVG, same coordinate system as canvas) ── */}
           <svg
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
             viewBox="0 0 1100 750"
             preserveAspectRatio="xMidYMid meet"
           >
@@ -411,6 +400,25 @@ export function LandingPage() {
             <path d="M 525 620 Q 535 340 538 15" stroke="#8B7355" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeDasharray="620" strokeDashoffset="620" opacity="0.35">
               <animate attributeName="stroke-dashoffset" from="620" to="0" dur="2.0s" fill="freeze" begin="3.8s" />
             </path>
+          </svg>
+
+          {/* ── PIN DOTS (SVG circles, guaranteed Pin-to-Pin alignment) ── */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 6 }}
+            viewBox="0 0 1100 750"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {[
+              [175, 25], [538, 15], [899, 22],
+              [130, 290], [680, 275],
+              [938, 240], [365, 340],
+              [110, 530], [478, 555], [819, 540],
+              [525, 620],
+            ].map(([cx, cy], i) => (
+              <g key={`pin-${i}`}>
+                <circle cx={cx} cy={cy} r="9" fill="#FFF" stroke="#BBB" strokeWidth="2.5" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.3))" />
+              </g>
+            ))}
           </svg>
 
           {/* ── CONNECTION MAP NODE OVERLAY (stage 3) ── */}
