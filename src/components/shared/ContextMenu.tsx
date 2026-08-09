@@ -179,6 +179,17 @@ export function ContextMenu({ zoom: _zoom = 1 }: ContextMenuProps) {
           closeMenu={closeContextMenu}
         />
       )}
+      {(item.type === 'audio' || item.type === 'video') && (
+        <PaperMenuItems
+          item={item}
+          onItemClick={handleItemClick}
+          updateItem={updateItem}
+          bringToFront={bringToFront}
+          sendToBack={sendToBack}
+          removeItem={removeItem}
+          closeMenu={closeContextMenu}
+        />
+      )}
     </div>
   );
 }
