@@ -245,11 +245,11 @@ src/
 - **版本号 bump**：package.json `0.7.0` → `0.8.0`
 - **音频播放确认关闭**：用户实测上传/预存音频均可正常播放（原候选项关闭）
 - **Uncategorized 解锁重命名 + 改色**（用户反馈微调）：L1 卡片新增 ⋮（右键也可），菜单含 Rename + Change Color（仅不可删除）；L2 顶栏同步解锁内联重命名 + ⋮ + 常显色点行；名称显示策略：默认名 `Uncategorized` 显示本地化翻译，改名后显示新名（数据层 `renameSpace`/`setSpaceColor` 无 id 限制，零改动）。实测通过（改名 Inbox → L1/L2 同步；改色绿 → L1 色条染色），截图见 `implementing/v08-uncat-*.png`
+- **v0.8.0 发布**：用户审阅通过后 commit `23d7c3a` 合入 main + tag `v0.8.0` push，Vercel 自动部署成功。线上回归（mindonwall.vercel.app，新注册账号）：注册自动登录 → L1 建 Space → L2 顶栏（标题/色点行/⋮）与菜单（Rename/Change Color/Delete）均正常
 
 #### 候选方向
 - 更多视觉细节打磨
 - 性能优化
-- 合入 main + tag v0.8.0 → Vercel 自动部署（待用户审阅后 push）
 - 其他用户提出的需求
 
 ## 下一窗口任务（历史，供参考）
