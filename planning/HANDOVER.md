@@ -1,9 +1,9 @@
 # Handover — Mind on Wall
 
-**最后更新：** 2026-08-09（v0.7 品牌升级实施中）
-**当前阶段：** v0.7 品牌升级 — i18n/LandingPage/Settings 已更新，待提交
-**当前 main 分支 HEAD：** `076a713`
-**开发模式：** Multi-Agent 协同开发（延续 v0.5/v0.6 模式）
+**最后更新：** 2026-08-10（v0.7 完成，准备 v0.8）
+**当前阶段：** v0.8 迭代（新窗口）
+**当前 main 分支 HEAD：** `9e44a31`
+**开发模式：** Multi-Agent 协同开发（延续 v0.5/v0.6/v0.7 模式）
 
 ## 项目一句话
 
@@ -15,11 +15,11 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 
 | 分支 | 状态 |
 |---|---|
-| `main` | ⭐ 最新稳定版，HEAD `076a713`。**已推送远程**，Vercel 自动构建部署完成 |
+| `main` | ⭐ 最新稳定版，HEAD `9e44a31`。**已推送远程**，Vercel 自动构建部署完成 |
 | 远程 | GitHub：`https://github.com/dominoghm123/mindonwall` |
 | Vercel | ✅ 已部署（mindonwall.vercel.app），构建产物 ~1,136 kB |
 
-- 版本号：package.json `0.5.0`（⚠️ 未随 v0.6 更新，v0.7 需 bump 到 `0.7.0`）
+- 版本号：package.json `0.5.0`（⚠️ 未随 v0.6/v0.7 更新，v0.8 需 bump 到 `0.8.0`）
 - 流程：合入 main + tag → Vercel 自动构建部署
 
 ## v0.4 Completed (tag v0.4)
@@ -34,39 +34,50 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 - **Project 分组管理**：CRUD + 拖拽归组 + 批量移动 + 孤儿墙防御
 - **数据迁移**：一次性旧墙迁移入 Uncategorized
 
-## v0.7 品牌升级（进行中）
+## v0.7 Completed
 
-### 品牌核心决策
+| Commit | 内容 |
+|---|---|
+| `9e44a31` | v0.7: 音频/视频物件右键菜单与 paper 一致 |
+| `8c3be61` | v0.7: Space 迭代 + AudioObject 进度条修复 |
+| `c715c75` | v0.7 Phase 2: 音频面板预存素材 + Onboarding 引导优化 |
+| `7690c1d` | v0.7: SVG Pin dots replace CSS Pin divs — guaranteed Pin-to-Pin alignment |
+| `01235a6` | v0.7: fix Paper object Pin-to-Pin — Pin y = object top |
 
-| 要素 | 内容 |
-|------|------|
-| **Tagline** | Where ideas find each other. |
-| **定位** | 私人拼贴墙 vs 效率工作台（对立于 Milanote/Notion） |
-| **品牌人格** | 创造者 + 探险家 |
-| **信息架构** | My Spaces → Space → Wall → 物件 |
-| **价值观** | 自由优先 / 私人空间 / 发现乐趣 |
-| **目标用户** | 年轻设计师、写作者、旅行者 |
-| **商业化** | 免费 + 高级功能（Freemium） |
-| **传播** | 小红书 + 黑客松 |
+### v0.7 核心特性
 
-### 已完成的变更
+**Phase 1: 品牌升级全触点**
+- **README.md**：中英双语重写，品牌调性
+- **i18n 全量更新**：10 语言文件，tagline/auth/Settings About/Project→Space 文案
+- **LandingPage 视觉升级**：右侧纸张纹理 + 手帐物件拼贴 + Rope 动画；左侧品牌文案 + GitHub 链接
+- **Settings About 扩展**：品牌故事 + 哲学三原则 + GitHub 链接
 
-| 文件 | 变更内容 |
-|------|----------|
-| `README.md` | 中英双语重写，品牌调性（不是技术文档风格） |
-| `src/i18n/en.ts` + 9 语言文件 | tagline、auth、Settings About、Project→Space 文案全量更新 |
-| `src/components/auth/LandingPage.tsx` | 右侧视觉升级（纸张纹理 + 手帐物件拼贴 + Rope 动画）；左侧文案 + GitHub 链接 |
-| `src/components/pages/UserPages.tsx` | Settings About 区块扩展（品牌故事 + 哲学 + GitHub 链接） |
+**Phase 2: 交互层功能迭代**
+- **Markdown 移除**：BottomToolbar 移除 Md 按钮，ItemType 移除 'md'
+- **Audio/Video 面板化**：点击按钮弹出上传面板，支持本地上传 + 预设参考素材
+- **Rope 方案 B 移除**：删除 altKey.ts 及相关全局监听逻辑
+- **Onboarding 改进**：气泡指向具体按钮，带高亮框，TopBar/ZoomWidget onboarding 时常显
+- **新用户流程**：注册后直入 Wall 01 编辑器，老用户进入 Overview
+- **音频素材预存**：sample-piano.wav 加入 DEMO_AUDIO
 
-### 待完成
+**Phase 3: Space 迭代**
+- **Project → Space 全量重命名**：types.ts (`Project` → `Space`)、useOverviewStore.ts（所有状态/方法/ID）、OverviewPage.tsx、i18n（10 语言 `project.*` → `space.*`）
+- **OverviewPage Space UI**：
+  - 文件夹视图（默认）：Space 标题栏 + 墙卡片网格 + 折叠
+  - 列表视图：☰/⊞ 按钮切换，每行 Space 名称 + 墙数量 + 操作
+  - 拖叠合并：跨 Space 拖放 wall card 自动创建新 Space（Space 01, 02...）
+  - Space 管理：三点菜单 Rename（弹窗重命名）+ Delete（确认删除，墙移回 Uncategorized）
+- **AudioObject 真实播放**：`<audio>` 元素 + play/pause + 进度条 + 溢出修复
+- **AssetPickerModal 音频同步**：DEMO_ASSETS 添加 kind 字段，DEMO_AUDIO 分区展示
+- **ContextMenu 扩展**：audio/video 物件右键菜单复用 PaperMenuItems（改色 + 置顶/置底 + 删除）
+- **修复 3 处 useOverviewStore bugs**：addWall/duplicateWall/importSharedWall 中 `projects` → `spaces`
 
-- 交互优化：物件类型扩展（md文档/声音/视频）、TopBar/Spaces 逻辑重构、Rope 连线方案 B（Alt+拖拽）
-- Onboarding：示例墙 + 3 步引导气泡
-- 版本号 bump 到 0.7.0
+### v0.7 待推进（v0.8 候选）
 
-### 方案文档
-
-详见 `docs/superpowers/specs/brand-upgrade-v0.7.md`
+- 视频素材预存（sample-piano.wav 已预存，视频延至 v0.8）
+- 版本号 bump 到 0.8.0
+- 更多视觉细节打磨
+- 性能优化
 
 ---
 
@@ -214,115 +225,16 @@ src/
 
 ## v0.7 迭代规划
 
-### 优先级 1：品牌升级（全触点）
+### v0.8 迭代规划
 
-**目标**：统一品牌表达，覆盖 LandingPage、GitHub README、Settings 产品介绍等所有用户触点。
+**⚠️ 审阅流程**：品牌升级和 UI 优化的任何变更，必须先出截图/预览 → 用户审阅回复通过 → 才可实施代码修改。
 
-**⚠️ 审阅流程**：品牌升级方案需先出截图/预览，用户审阅回复通过后才可实施代码修改。
-
-**具体任务**：
-
-#### 1.1 LandingPage 升级
-- [ ] **嵌入动效示意**：右侧 SVG 静态图改为 CSS/JS 动效，展示 pin → rope → connection 的动态过程
-  - 参考：pin 逐个出现 → rope 线条生长动画 → 节点高亮
-  - 技术：CSS `@keyframes` + `stroke-dashoffset` 动画，或 Lottie/FRAMER Motion
-- [ ] **GitHub 仓库链接**：添加按钮/链接跳转到 `https://github.com/dominoghm123/mindonwall`
-  - 说明项目核心目的、解决的痛点和使用场景（可链接到 README 特定章节）
-- [ ] **Slogan 更新**：`"Map Your Thoughts"` → `"Let's connect and organise your random ideas on a visual wall."`
-  - 文件：`LandingPage.tsx` 第 284 行 + `i18n/en.ts` 对应 key
-- [ ] **右侧视觉层次**：当前 SVG rope 图较平淡，考虑增加：
-  - 真实手帐素材缩略图（photo/paper/stamp）作为节点
-  - 更丰富的色彩和纹理
-  - 微交互（hover 节点时 rope 高亮）
-
-#### 1.2 GitHub README 品牌化
-- [ ] 重写 `README.md`，包含：
-  - 项目一句话介绍 + Slogan
-  - 核心痛点（想法碎片化、难以建立关联）
-  - 使用场景（旅行手帐、研究笔记、创意头脑风暴、项目管理）
-  - 功能特性列表（Wall Editor / Connection Map / Cloud Sync / i18n）
-  - 技术栈（Vite + React + TS + Supabase + Vercel）
-  - 截图/GIF 展示（LandingPage、Wall Editor、Connection Map）
-  - 本地开发 & 部署指南
-
-#### 1.3 Settings / About 产品介绍
-- [ ] Settings 页面的 About & Version 区块增加产品介绍文案
-  - 简述项目愿景和核心功能
-  - 链接到 GitHub 仓库
-  - 可考虑添加"What's New"更新日志区域
-
-**涉及文件**：
-- `src/components/auth/LandingPage.tsx`（LandingPage 动效）
-- `README.md`（GitHub 品牌化）
-- `src/components/pages/UserPages.tsx`（Settings About 区块）
-- `src/i18n/en.ts` + 9 个语言文件（slogan / about 文案 key）
-
-### 优先级 2：TopBar 编辑项下移 + 鼠标 Bug 修复
-
-**目标**：将 TopBar 中的编辑相关按钮移到底部工具栏区域，修复鼠标交互 bug。
-
-**⚠️ 审阅流程**：UI 布局变更需先出截图/预览，用户审阅回复通过后才可实施代码修改。
-
-**具体任务**：
-- [ ] **TopBar 精简**：将以下编辑项从 TopBar 移到主页面/BottomToolbar：
-  - Edit/View Toggle 按钮（`TopBar.tsx` 第 299-340 行）→ 移到底部工具栏或画布内浮窗
-  - Undo/Redo 按钮（`TopBar.tsx` 第 355-388 行）→ 考虑移到画布角落或键盘快捷键提示
-  - Export 下拉菜单（`TopBar.tsx` 第 391-447 行）→ 可保留或移到 AvatarMenu 下拉
-- [ ] **鼠标 Bug 排查**：用户反馈"鼠标所在处有 bug"
-  - 可能原因：TopBar 的 `handleMouseLeave` 逻辑（第 121-131 行）在鼠标快速移动时异常触发
-  - 可能原因：`onMouseLeave={() => setVisible(false)}`（第 202 行）与 `handleMouseMove` 冲突
-  - 建议：用浏览器 DevTools 录制鼠标交互，定位具体触发条件
-- [ ] **TopBar 保留项**：返回箭头、墙名、Wall/Map Tab、Saved 指示、AvatarMenu
-
-**涉及文件**：
-- `src/components/chrome/TopBar.tsx`（主要修改）
-- `src/components/chrome/BottomToolbar.tsx`（接收下移的编辑项）
-
-### 优先级 3：整体 UI 优化
-
-**目标**：提升 Settings、Library 和 Wall 内页的视觉质量和交互体验。
-
-**⚠️ 审阅流程**：UI 优化方案需先出截图/预览，用户审阅回复通过后才可实施代码修改。
-
-**具体任务**：
-- [ ] **Settings 页面重构**：
-  - 当前 `UserPages.tsx` ~1470 行，Settings 部分代码冗长
-  - 考虑拆分为独立组件：`SettingsPage.tsx`（含 Profile/Storage/Language/Data/About 子 Tab）
-  - 视觉升级：参考现代 SaaS 设置页（如 Linear、Notion）的分组卡片布局
-- [ ] **Library 页面优化**：
-  - 素材网格布局优化（当前 64×64 缩略图偏小）
-  - 添加拖拽素材直接上墙的功能（当前需先点击再放置）
-  - 收藏夹交互优化
-- [ ] **Wall 内页交互升级**：
-  - Rope 创建交互优化（当前需进入 rope 模式，考虑改为按住 modifier key 直接连线）
-  - 物件选中/移动的微动效（scale/shadow transition）
-  - 双击物件快速编辑（当前部分支持）
-  - 右键菜单功能扩展（改色、复制、锁定等）
-- [ ] **Design Token 应用**：`src/theme/tokens.ts` 已定义颜色/阴影/圆角常量，但部分组件仍用硬编码值，需统一替换
-
-**涉及文件**：
-- `src/components/pages/UserPages.tsx`（Settings/Library 重构）
-- `src/components/chrome/BottomToolbar.tsx`（Library 拖拽上墙）
-- `src/components/objects/ObjectWrapper.tsx`（选中/移动动效）
-- `src/theme/tokens.ts`（统一 design token）
-
-### 开发工作流（Multi-Agent 协同）
-
-延续 v0.5/v0.6 的 Multi-Agent 协同开发模式：
-- **Agent 分工**：按功能模块拆分任务，多个 Agent 并行处理不同模块（如 LandingPage / TopBar / Settings 可同时推进）
-- **审阅门禁**：品牌升级和 UI 优化的任何变更，必须先出截图/预览 → 用户审阅回复通过 → 才可实施代码修改
-- **提交规范**：每完成一个功能点立即 commit；修订轮整轮一个 commit
-- **分支策略**：v0.7 从 main 新开 `feature/v0.7-*` 分支，完成后合入 main + tag
-
-### 待确认事项
-
-- [ ] **URL 路由方案**：当前使用状态路由（URL 不变），是否需要引入 hash 路由（`/#overview`、`/#wall`）以支持：
-  - 浏览器前进/后退
-  - 分享特定页面状态的链接
-  - SEO（虽然 SPA 意义有限）
-- [x] ~~**Supabase OAuth Redirect**~~：✅ 已修复，Dashboard 已添加 `https://mindonwall.vercel.app` 到 Redirect URLs
-- [ ] **移动端适配**：当前桌面优先，v0.7 暂不做（用户确认延后）
-- [ ] **版本号**：package.json 仍为 `0.5.0`，v0.7 启动时需 bump 到 `0.7.0`
+#### 候选方向
+- 视频素材预存（sample-video.mp4）
+- 版本号 bump 到 0.8.0
+- 更多视觉细节打磨
+- 性能优化
+- 其他用户提出的需求
 
 ## 下一窗口任务（历史，供参考）
 
