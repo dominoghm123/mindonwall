@@ -28,9 +28,7 @@ import {
  * - v0.8 移除：列表视图、框选、全部拖拽交互
  */
 export function OverviewPage() {
-  const walls = useOverviewStore((s) => s.walls);
   const spaces = useOverviewStore((s) => s.spaces);
-  const addWall = useOverviewStore((s) => s.addWall);
   const addSpace = useOverviewStore((s) => s.addSpace);
   const removeSpace = useOverviewStore((s) => s.removeSpace);
   const setSpaceColor = useOverviewStore((s) => s.setSpaceColor);
@@ -53,13 +51,6 @@ export function OverviewPage() {
   useEffect(() => {
     captureCurrentWall();
   }, [captureCurrentWall]);
-
-  const handleNewWall = useCallback(() => {
-    const id = `wall-${Date.now()}`;
-    const name = `Wall ${String(walls.length + 1).padStart(2, '0')}`;
-    addWall(id, name);
-    track('wall_created', { wallId: id });
-  }, [walls.length, addWall]);
 
   const openSpace = useCallback(
     (spaceId: string) => {
@@ -150,7 +141,7 @@ export function OverviewPage() {
               ) : (
                 <HeaderButton label={`+ ${t('space.new')}`} onClick={() => setNewSpaceInput(true)} />
               )}
-              <HeaderButton label={t('ov.newWall')} onClick={handleNewWall} />
+              {/* v0.8 微调：L1 不建墙（无 Space 归属），建墙只在 L2 Space 详情页内 */}
               <div style={{ marginLeft: 8 }}>
                 <AvatarMenu />
               </div>
