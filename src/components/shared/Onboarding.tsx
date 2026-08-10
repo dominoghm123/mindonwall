@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useT } from '../../i18n/useT';
+import type { TKey } from '../../i18n/en';
 
 const ONBOARDING_KEY = 'mindonwall-onboarding-done';
 
 interface StepConfig {
-  key: string;
+  key: TKey;
   color: string;
   target: string;
 }

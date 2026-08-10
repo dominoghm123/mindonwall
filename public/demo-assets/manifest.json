@@ -111,5 +111,16 @@
       "duration": "3s",
       "format": "WAV 44.1kHz mono"
     }
+  ],
+  "demo_video": [
+    {
+      "id": "sample-video",
+      "file": "sample-video.mp4",
+      "title": "曼谷街景短片",
+      "description": "Bangkok photo montage — ken-burns crossfade of bangkok-01/02/03",
+      "duration": "8s",
+      "format": "MP4 H.264 480x360 25fps",
+      "source": "generated locally with ffmpeg from bangkok demo photos (author-owned)"
+    }
   ]
 }

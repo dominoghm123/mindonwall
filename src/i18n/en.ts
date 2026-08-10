@@ -289,6 +289,8 @@ export const en = {
   'space.newPlaceholder': 'Space name',
   'space.uncategorized': 'Uncategorized',
   'space.rename': 'Rename Space',
+  'space.back': 'Spaces',
+  'space.noWalls': 'No walls yet',
   'space.delete': 'Delete Space',
   'space.moveTo': 'Move to',
   'space.walls': '{n} walls',
@@ -330,8 +332,6 @@ export const en = {
 
   /* ── v0.7 Phase 2 ── */
   'tb.tipMd': 'Document — add markdown note',
-  'tb.tipAudio': 'Audio — add audio note',
-  'tb.tipVideo': 'Video — add video clip',
   'tb.newObjects': 'More',
   'ob.step1': 'Pin photos, notes & stamps on the wall',
   'ob.step2': 'Use ropes to connect related items',

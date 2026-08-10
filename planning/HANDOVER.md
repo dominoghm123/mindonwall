@@ -19,7 +19,7 @@ Mind on Wall 是一个桌面优先的数字手帐网页：用户把照片、想�
 | 远程 | GitHub：`https://github.com/dominoghm123/mindonwall` |
 | Vercel | ✅ 已部署（mindonwall.vercel.app），构建产物 ~1,136 kB |
 
-- 版本号：package.json `0.5.0`（⚠️ 未随 v0.6/v0.7 更新，v0.8 需 bump 到 `0.8.0`）
+- 版本号：package.json `0.8.0`（v0.8 已 bump；此前误记为 0.5.0，实际 bump 前为 0.7.0）
 - 流程：合入 main + tag → Vercel 自动构建部署
 
 ## v0.4 Completed (tag v0.4)
@@ -229,11 +229,27 @@ src/
 
 **⚠️ 审阅流程**：品牌升级和 UI 优化的任何变更，必须先出截图/预览 → 用户审阅回复通过 → 才可实施代码修改。
 
+#### v0.8 已完成
+
+- **音频卡片右键改色修复**（debug）：`AudioObject` 原本硬编码紫蓝渐变背景，右键改色写入 `item.color` 后渲染层不消费 → 永不生效。修复：`NewObjectTypes.tsx` 按 `item.color` 派生渐变（向白提亮 22% → 本色）+ 亮度自适应前景色（浅色卡面深色图标/文字，反之白色）+ 阴影跟随颜色。浏览器实测验证通过（浅色 #FFB3BA / 深色 #1E3A8A 均生效），截图见 `implementing/v08-audio-color-*.png`
+- **Spaces 两级交互重构**（预览 `implementing/v08-preview-full.png` 审阅通过后实施）：
+  - **L1 主页**（`OverviewPage.tsx` 全量重写）：仅 Space 卡片网格（封面拼贴 + 标签色条 + 名称 + 墙数）；⋮ 菜单 Rename/Change Color/Delete；Uncategorized 特殊卡片；移除列表视图、框选、全部拖拽
+  - **L2 详情页**（新增 `SpaceDetailPage.tsx`）：`← Spaces` 返回 + 内联重命名标题 + 常显标签色点行（调 `setSpaceColor`）+ 墙计数 + Manage / + New Wall（建入当前 Space）/ ⋮；墙卡片网格复用 `WallCard`/`CardMenu`；Delete Space 确认后墙移回 Uncategorized
+  - **共享组件**（新增 `overview/shared.tsx`）：`SPACE_COLORS` 预设、`ColorDots`、`WallCard`、`CardMenu`、`SpaceMenu`、`ConfirmDialog`、重命名弹层等 L1/L2 共用
+  - **路由/状态**：`ViewMode` 新增 `'space'`；`useUIStore` 新增 `activeSpaceId` + `setActiveSpace`；App.tsx 路由 L2（从墙编辑器返回时若 activeSpaceId 仍在则回到所属 Space）
+  - **数据层零改动**（`setSpaceColor`/`renameSpace`/`removeSpace`/`moveWallToSpace` 均已存在）；i18n 新增 `space.back`/`space.noWalls` × 10 语言
+  - **顺手修复 HEAD 存量 tsc 错误**：i18n 10 文件重复 key（`tb.tipAudio`/`tb.tipVideo`）、`'md'` 死比较（App.tsx/ObjectWrapper.tsx）、TopBar 未用 setter、Onboarding `TKey` 类型；现 `tsc -b` 零错误
+  - 浏览器实测通过（agent-browser，新账号注册 → 建 Space → 改标签色 → 进 L2 → 建墙归属正确 → 内联重命名 → 返回 L1 同步），截图见 `implementing/v08-l1-*.png`、`implementing/v08-l2-*.png`
+- **VideoObject 改色修复 + 真实播放**：原背景硬编码 `#1A1A1A` 且不渲染 `<video>`（纯占位）。修复：按 `item.color` 派生渐变 + 前景自适应（同 AudioObject 模式）；新增真实播放（点击播放/暂停、暂停时叠加播放按钮）；src 解析支持上传素材 dataUrl 优先、demo 路径兑底；`BottomToolbar` Thumb 新增视频图标 tile 分支（修复上传视频缩略图破图）。DOM 级验证：播放中 `video.paused=false`、改色后背景 `#FFC4C9→#FFB3BA` 渐变，截图见 `implementing/v08-verify-*.png`
+- **视频素材预存**：`public/demo-assets/sample-video.mp4`（8s，480×360，273KB，ffmpeg 用 bangkok-01/02/03 生成 ken-burns 交叉淡入）；Video 面板新增 "Bangkok" 预设 tile + `handleAddDemoVideo`；manifest.json 新增 `demo_video` 条目
+- **版本号 bump**：package.json `0.7.0` → `0.8.0`
+- **音频播放确认关闭**：用户实测上传/预存音频均可正常播放（原候选项关闭）
+- **Uncategorized 解锁重命名 + 改色**（用户反馈微调）：L1 卡片新增 ⋮（右键也可），菜单含 Rename + Change Color（仅不可删除）；L2 顶栏同步解锁内联重命名 + ⋮ + 常显色点行；名称显示策略：默认名 `Uncategorized` 显示本地化翻译，改名后显示新名（数据层 `renameSpace`/`setSpaceColor` 无 id 限制，零改动）。实测通过（改名 Inbox → L1/L2 同步；改色绿 → L1 色条染色），截图见 `implementing/v08-uncat-*.png`
+
 #### 候选方向
-- 视频素材预存（sample-video.mp4）
-- 版本号 bump 到 0.8.0
 - 更多视觉细节打磨
 - 性能优化
+- 合入 main + tag v0.8.0 → Vercel 自动部署（待用户审阅后 push）
 - 其他用户提出的需求
 
 ## 下一窗口任务（历史，供参考）

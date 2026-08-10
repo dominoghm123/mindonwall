@@ -76,6 +76,11 @@ const DEMO_AUDIO = [
   { id: 'sample-piano', src: '/demo-assets/sample-piano.wav', label: 'Piano C4' },
 ];
 
+/** 样例视频（v0.8） */
+const DEMO_VIDEO = [
+  { id: 'sample-video', src: '/demo-assets/sample-video.mp4', label: 'Bangkok' },
+];
+
 /** Stamp 预设（v0.2 修订：透明矢量，弃用白底 PNG） */
 const STAMP_PRESETS = [
   { id: 'stamp-blue-travel', color: '#3B82F6' },
@@ -389,6 +394,25 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
     [addItem, placeItem],
   );
 
+  /** 添加预设 Demo 视频（v0.8） */
+  const handleAddDemoVideo = useCallback(
+    (videoId: string) => {
+      const place = placeItem(220, 150);
+      const item: Item = {
+        id: genId('item-video'),
+        type: 'video',
+        ...place,
+        width: 220,
+        height: 150,
+        text: 'Bangkok Clip',
+        assetId: videoId,
+        pinOffset: { x: 0.5, y: 0 },
+      };
+      addItem(item);
+    },
+    [addItem, placeItem],
+  );
+
   /* ── Rope 模式切换 ── */
   const handleRopeToggle = useCallback(() => {
     setRopeMode(!ropeMode);
@@ -581,6 +605,10 @@ export function BottomToolbar({ zoom, panX, panY }: BottomToolbarProps) {
             <UploadTile onClick={() => openUpload('video')} />
             {assets.filter((a) => a.dataUrl && a.kind === 'video').map((a) => (
               <Thumb key={a.id} src={a.dataUrl!} onClick={() => handleAddVideoAsset(a.id)} />
+            ))}
+            {/* 预设视频素材（v0.8） */}
+            {DEMO_VIDEO.map((d) => (
+              <Thumb key={d.id} src={d.src} onClick={() => handleAddDemoVideo(d.id)} label={d.label} />
             ))}
           </div>
           <div style={{ fontSize: 11, color: '#999', textAlign: 'center', padding: '8px 0' }}>
@@ -789,9 +817,10 @@ function ToolButton({
   );
 }
 
-/** 图片缩略图 */
+/** 图片缩略图（音频/视频用图标 tile 兑底） */
 function Thumb({ src, onClick, label }: { src: string; onClick: () => void; label?: string }) {
   const isAudio = src.endsWith('.wav') || src.endsWith('.mp3') || src.endsWith('.m4a');
+  const isVideo = src.startsWith('data:video') || src.endsWith('.mp4') || src.endsWith('.webm') || src.endsWith('.mov');
   return (
     <div
       onClick={onClick}
@@ -806,7 +835,7 @@ function Thumb({ src, onClick, label }: { src: string; onClick: () => void; labe
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: isAudio ? '#F0EEFF' : '#FFFFFF',
+        background: isAudio ? '#F0EEFF' : isVideo ? '#EDEFF5' : '#FFFFFF',
       }}
     >
       {isAudio ? (
@@ -818,6 +847,16 @@ function Thumb({ src, onClick, label }: { src: string; onClick: () => void; labe
           </svg>
           <div style={{ fontSize: 9, color: '#667eea', marginTop: 2, textAlign: 'center', lineHeight: 1.1 }}>
             {label ?? 'Audio'}
+          </div>
+        </>
+      ) : isVideo ? (
+        <>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="14" height="14" rx="2" stroke="#4A6FA5" strokeWidth="2"/>
+            <path d="M16 10l6-3v10l-6-3" stroke="#4A6FA5" strokeWidth="2" strokeLinejoin="round"/>
+          </svg>
+          <div style={{ fontSize: 9, color: '#4A6FA5', marginTop: 2, textAlign: 'center', lineHeight: 1.1 }}>
+            {label ?? 'Video'}
           </div>
         </>
       ) : (

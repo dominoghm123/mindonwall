@@ -112,7 +112,7 @@ export function TopBar({ zoom }: { zoom?: number }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // v0.7: onboarding 期间保持 TopBar 可见
-  const [onboardingActive, setOnboardingActive] = useState(
+  const [onboardingActive] = useState(
     () => !localStorage.getItem('mindonwall-onboarding-done'),
   );
 

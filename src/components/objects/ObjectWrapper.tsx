@@ -240,9 +240,9 @@ export function ObjectWrapper({
   const displayH = resize.isResizing ? resize.resizeHeight : item.height;
   const displayRotation = rotate.currentRotation;
 
-  // Pin 只出现在 picture、非 tape 的 paper、以及 v0.7 新类型（md/audio/video）
+  // Pin 只出现在 picture、非 tape 的 paper、以及 v0.7 新类型（audio/video）
   const showPin = item.type === 'picture' || (item.type === 'paper' && item.variant !== 'tape')
-    || item.type === 'md' || item.type === 'audio' || item.type === 'video';
+    || item.type === 'audio' || item.type === 'video';
   const pinOffset = item.pinOffset ?? { x: 0.5, y: 0 };
 
   return (

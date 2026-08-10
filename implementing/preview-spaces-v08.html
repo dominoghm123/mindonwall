@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>v0.8 Spaces Two-Level Layout Preview</title>
+<style>
+  /* ── 严格取自项目真实样式源 ──
+     tokens.ts: shadow.sm/md/lg, radius, font sizes
+     index.css: body font/system-ui, color #1A1A1A
+     OverviewPage.tsx: TopBar 40px #FAFAFA, HeaderButton 28px, WallCard 200px */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1A1A1A;
+    background: #ECECEA;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 0 64px;
+  }
+  .caption {
+    max-width: 1440px; margin: 0 auto 10px; padding: 0 24px;
+    font-size: 13px; font-weight: 700; color: #666; letter-spacing: 0.5px;
+  }
+  .caption small { font-weight: 400; color: #999; margin-left: 8px; }
+  .frame {
+    width: 1440px; margin: 0 auto 48px; background: #FFFFFF;
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  }
+
+  /* ── TopBar（OverviewPage L217-233 精确参数）── */
+  .topbar {
+    height: 40px; min-height: 40px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 24px;
+    background: #FAFAFA; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .brand { font-size: 14px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 6px; }
+  .brand img { width: 18px; height: 18px; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+  /* HeaderButton（OverviewPage L1349-1385） */
+  .hbtn {
+    height: 28px; padding: 0 12px; font-size: 12px; color: #1A1A1A;
+    background: transparent; border: 1px solid transparent; border-radius: 6px;
+    cursor: pointer; display: inline-flex; align-items: center; font-family: inherit;
+  }
+  .hbtn.hovered { background: #F0F0F0; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%; margin-left: 8px;
+    background: linear-gradient(135deg, #E8D5FF, #BAE1FF);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #555;
+  }
+
+  /* 页面主体背景（homeBackground 默认白） */
+  .pagebody { background: #FFFFFF; padding: 16px 24px; height: 640px; overflow: hidden; }
+
+  /* ── L1: Space 卡片（尺寸/阴影对齐 WallCard：200px 高, radius 8, shadow.sm）── */
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
+    gap: 20px; justify-content: center; align-content: start;
+  }
+  .space-card {
+    width: 100%; height: 200px; background: #FFFFFF; border: none; border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    overflow: hidden; cursor: pointer; display: flex; flex-direction: column; position: relative;
+  }
+  .space-cover { height: 70%; position: relative; overflow: hidden; background-color: #F7F3EA; }
+  .space-info {
+    height: 30%; background: #FFFFFF; padding: 8px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tag-bar { width: 3px; height: 20px; border-radius: 2px; flex-shrink: 0; }
+  .space-name { font-size: 13px; font-weight: 700; color: #333; flex: 1; }
+  .space-count { font-size: 10px; color: #BBB; }
+  .dots-btn {
+    width: 26px; height: 26px; border: none; background: transparent; cursor: pointer;
+    font-size: 14px; color: #666; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  /* 封面里的迷你拼贴（用真实 demo 素材） */
+  .mini-photo { position: absolute; background: #FFF; padding: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .mini-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .mini-pin {
+    position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FFF, #DDD 70%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .mini-sticky {
+    position: absolute; padding: 4px 6px; font-size: 7px; line-height: 1.3; color: #6B5B3E;
+    font-family: "LXGW WenKai", "Caveat", cursive; box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  }
+
+  /* Uncategorized 特殊卡片（灰调、无 ⋮） */
+  .space-card.uncat .space-cover { background: #F5F5F5; }
+  .space-card.uncat .space-name { color: #999; }
+
+  /* ── 浮窗菜单（shadow.md + radius 8，ContextMenu/CardMenu 规范）── */
+  .float-menu {
+    position: absolute; background: #FFFFFF; border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+    padding: 4px 0; min-width: 160px; z-index: 100; user-select: none;
+  }
+  .menu-item {
+    height: 32px; display: flex; align-items: center; padding: 0 14px;
+    font-size: 13px; color: #333; cursor: pointer; justify-content: space-between;
+  }
+  .menu-item.hovered { background: #F5F5F5; }
+  .menu-item.danger { color: #C0392B; }
+  .menu-label { padding: 4px 14px; font-size: 13px; color: #333; }
+  .menu-divider { height: 1px; background: #EEE; margin: 4px 0; }
+
+  /* 色点行（ContextMenu ColorRow 精确参数：20px 圆点, gap 6） */
+  .color-row { display: flex; gap: 6px; padding: 6px 14px; flex-wrap: wrap; align-items: center; }
+  .cdot {
+    width: 20px; height: 20px; border-radius: 50%; border: 1px solid #DDD;
+    cursor: pointer; box-sizing: border-box;
+  }
+  .cdot.active { border: 2px solid #4A90D9; }
+  .cdot.custom {
+    border: 1px dashed #BBB;
+    background: conic-gradient(#EF4444, #EAB308, #22C55E, #3B82F6, #A855F7, #EF4444);
+  }
+  /* 顶栏常显色点（小一号：14px） */
+  .tag-dots { display: flex; gap: 5px; align-items: center; margin-left: 4px; }
+  .tag-dots .cdot { width: 14px; height: 14px; }
+
+  /* ── L2: WallCard（OverviewPage L852-1005 精确复刻）── */
+  .wall-card {
+    width: 100%; height: 200px; background: #FFFFFF; border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    overflow: hidden; cursor: grab; display: flex; flex-direction: column; position: relative;
+  }
+  .wall-preview { height: 70%; position: relative; overflow: hidden; background-color: #F7F3EA; }
+  .wall-info {
+    height: 30%; background: #FFFFFF; padding: 8px 12px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .wall-name { font-size: 13px; font-weight: 700; color: #333; }
+  .wall-count { font-size: 10px; color: #BBB; margin-top: 2px; }
+  .wall-dots {
+    position: absolute; right: 8px; bottom: 8px; width: 26px; height: 26px;
+    border: none; background: transparent; cursor: pointer; font-size: 14px; color: #666;
+    border-radius: 13px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* L2 顶栏标题内联编辑态 */
+  .space-title { font-size: 14px; font-weight: 700; color: #1A1A1A; cursor: text; padding: 4px 6px; border-radius: 6px; }
+  .space-title.editing { outline: none; border: 1px solid #4A90D9; background: #FFF; }
+  .title-area { display: flex; align-items: center; gap: 10px; }
+  .walls-count { font-size: 11px; color: #999; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ L1: Spaces 主页 ════════════════════ -->
+<div class="caption">L1 · SPACES HOME <small>点击 Space 卡片进入 L2 · ⋮ 与右键 = Rename / Change Color / Delete · Uncategorized 无墙时隐藏且不可编辑</small></div>
+<div class="frame">
+  <div class="topbar">
+    <span class="brand"><img src="/src/assets/logo.svg" alt="" />Mind on Wall</span>
+    <div class="topbar-right">
+      <button class="hbtn">Manage</button>
+      <button class="hbtn">+ New Space</button>
+      <button class="hbtn">+ New Wall</button>
+      <div class="avatar">D</div>
+    </div>
+  </div>
+  <div class="pagebody">
+    <div class="grid">
+
+      <!-- Space 1: Thailand Trip（hover 态：⋮ 常显示意） -->
+      <div class="space-card">
+        <div class="space-cover">
+          <div class="mini-photo" style="left:12%; top:14%; width:70px; height:52px; transform:rotate(-3deg);">
+            <img src="/demo-assets/bangkok-01.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-photo" style="left:44%; top:30%; width:64px; height:48px; transform:rotate(2deg);">
+            <img src="/demo-assets/bangkok-02.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-photo" style="left:70%; top:10%; width:56px; height:42px; transform:rotate(-1.5deg);">
+            <img src="/demo-assets/north-02-khao-soi.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:22%; top:66%; width:52px; height:30px; background:#FFF3B0; transform:rotate(2deg);">tomorrow: floating market ~</div>
+          <div class="mini-sticky" style="left:62%; top:62%; width:46px; height:28px; background:#BAFFC9; transform:rotate(-2deg);">call mom ♡</div>
+        </div>
+        <div class="space-info">
+          <span class="tag-bar" style="background:#2E7D32;"></span>
+          <span class="space-name">Thailand Trip</span>
+          <span class="space-count">5 walls</span>
+          <button class="dots-btn" style="background:#F0F0F0;">⋮</button>
+        </div>
+      </div>
+
+      <!-- Space 2: Threads drafts -->
+      <div class="space-card">
+        <div class="space-cover">
+          <div class="mini-sticky" style="left:10%; top:16%; width:64px; height:40px; background:#BAE1FF; transform:rotate(-2deg);">thread draft #12 — the wall as a mind…</div>
+          <div class="mini-sticky" style="left:46%; top:40%; width:60px; height:38px; background:#E8D5FF; transform:rotate(1.5deg);">hook: "what if ideas had gravity?"</div>
+          <div class="mini-photo" style="left:68%; top:14%; width:54px; height:40px; transform:rotate(2.5deg);">
+            <img src="/demo-assets/north-01-wat-chedi-luang.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:24%; top:64%; width:58px; height:30px; background:#FFB3BA; transform:rotate(-1deg);">CTA → try the wall</div>
+        </div>
+        <div class="space-info">
+          <span class="tag-bar" style="background:#4A90D9;"></span>
+          <span class="space-name">Threads drafts</span>
+          <span class="space-count">2 walls</span>
+          <button class="dots-btn">⋮</button>
+        </div>
+      </div>
+
+      <!-- Space 3: Books & Films -->
+      <div class="space-card">
+        <div class="space-cover">
+          <div class="mini-sticky" style="left:12%; top:18%; width:62px; height:42px; background:#FFF3B0; transform:rotate(1.5deg);">Norwegian Wood — re-read ch.4</div>
+          <div class="mini-photo" style="left:48%; top:26%; width:60px; height:44px; transform:rotate(-2deg);">
+            <img src="/demo-assets/bangkok-03.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:20%; top:66%; width:56px; height:28px; background:#FFD8B1; transform:rotate(-1.5deg);">Perfect Days ★★★★★</div>
+          <img src="/demo-assets/stamps/stamp-red-passport.png" alt="" style="position:absolute; right:8%; top:12%; width:38px; opacity:0.9; transform:rotate(6deg);" />
+        </div>
+        <div class="space-info">
+          <span class="tag-bar" style="background:#EAB308;"></span>
+          <span class="space-name">Books &amp; Films</span>
+          <span class="space-count">3 walls</span>
+          <button class="dots-btn">⋮</button>
+        </div>
+      </div>
+
+      <!-- Space 4: 右键菜单展开态（Rename / Change Color / Delete） -->
+      <div class="space-card">
+        <div class="space-cover">
+          <div class="mini-photo" style="left:16%; top:16%; width:66px; height:48px; transform:rotate(-2deg);">
+            <img src="/demo-assets/north-03-white-temple.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:56%; top:24%; width:58px; height:36px; background:#BAE1FF; transform:rotate(2deg);">piano practice log</div>
+          <div class="mini-sticky" style="left:30%; top:64%; width:60px; height:30px; background:#BAFFC9; transform:rotate(-1deg);">gym: Mon / Wed / Fri</div>
+        </div>
+        <div class="space-info">
+          <span class="tag-bar" style="background:#A855F7;"></span>
+          <span class="space-name">Self Growth</span>
+          <span class="space-count">1 wall</span>
+          <button class="dots-btn" style="background:#F0F0F0;">⋮</button>
+        </div>
+        <!-- Space ⋮/右键菜单（v0.8 新增 Change Color） -->
+        <div class="float-menu" style="right:6px; bottom:44px;">
+          <div class="menu-item">Rename</div>
+          <div class="menu-divider"></div>
+          <div class="menu-label">Change Color</div>
+          <div class="color-row">
+            <span class="cdot" style="background:#2E7D32;"></span>
+            <span class="cdot" style="background:#4A90D9;"></span>
+            <span class="cdot" style="background:#EAB308;"></span>
+            <span class="cdot active" style="background:#A855F7;"></span>
+            <span class="cdot" style="background:#EF4444;"></span>
+            <span class="cdot custom"></span>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-item danger">Delete</div>
+        </div>
+      </div>
+
+      <!-- Uncategorized（特殊卡片：灰调、无 ⋮） -->
+      <div class="space-card uncat">
+        <div class="space-cover">
+          <div class="mini-sticky" style="left:20%; top:24%; width:60px; height:36px; background:#F5F5F5; border:1px solid #EEE; transform:rotate(-1.5deg); color:#999;">quick note…</div>
+          <div class="mini-sticky" style="left:56%; top:52%; width:54px; height:30px; background:#F5F5F5; border:1px solid #EEE; transform:rotate(2deg); color:#999;">idea 0308</div>
+        </div>
+        <div class="space-info">
+          <span class="tag-bar" style="background:#CCC;"></span>
+          <span class="space-name">Uncategorized</span>
+          <span class="space-count">1 wall</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ L2: Space 详情页 ════════════════════ -->
+<div class="caption">L2 · SPACE DETAIL <small>← Spaces 返回 · 标题点击变输入框内联重命名 · 标题旁常显标签色点行 · + New Wall 建入当前 Space · Manage 多选墙</small></div>
+<div class="frame">
+  <div class="topbar">
+    <div class="title-area">
+      <button class="hbtn">← Spaces</button>
+      <span class="space-title">Thailand Trip</span>
+      <!-- 常显标签色点行（含自定义调色盘） -->
+      <span class="tag-dots">
+        <span class="cdot active" style="background:#2E7D32;"></span>
+        <span class="cdot" style="background:#4A90D9;"></span>
+        <span class="cdot" style="background:#EAB308;"></span>
+        <span class="cdot" style="background:#A855F7;"></span>
+        <span class="cdot" style="background:#EF4444;"></span>
+        <span class="cdot" style="background:#6B7280;"></span>
+        <span class="cdot custom"></span>
+      </span>
+      <span class="walls-count">5 walls</span>
+    </div>
+    <div class="topbar-right">
+      <button class="hbtn">Manage</button>
+      <button class="hbtn">+ New Wall</button>
+      <button class="dots-btn" style="width:28px; height:28px;">⋮</button>
+      <div class="avatar">D</div>
+    </div>
+  </div>
+  <div class="pagebody">
+    <div class="grid">
+
+      <!-- Wall 01 -->
+      <div class="wall-card">
+        <div class="wall-preview">
+          <div class="mini-photo" style="left:10%; top:12%; width:76px; height:56px; transform:rotate(-2.5deg);">
+            <img src="/demo-assets/bangkok-01.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-photo" style="left:52%; top:20%; width:68px; height:50px; transform:rotate(2deg);">
+            <img src="/demo-assets/bangkok-02.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:24%; top:66%; width:64px; height:30px; background:#FFF3B0; transform:rotate(1.5deg);">day 1 — arrived!</div>
+        </div>
+        <div class="wall-info">
+          <span class="wall-name">Wall 01</span>
+          <span class="wall-count">12 items</span>
+        </div>
+        <button class="wall-dots">⋮</button>
+      </div>
+
+      <!-- Wall 02（右键菜单展开：现有 CardMenu 原样保留） -->
+      <div class="wall-card">
+        <div class="wall-preview">
+          <div class="mini-photo" style="left:12%; top:16%; width:70px; height:52px; transform:rotate(-2deg);">
+            <img src="/demo-assets/north-03-white-temple.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:56%; top:20%; width:62px; height:40px; background:#BAE1FF; transform:rotate(2deg);">Chiang Mai — old city temples</div>
+          <div class="mini-sticky" style="left:26%; top:68%; width:58px; height:28px; background:#BAFFC9; transform:rotate(-1.5deg);">khao soi ★</div>
+          <img src="/demo-assets/stamps/stamp-blue-travel.png" alt="" style="position:absolute; right:6%; bottom:10%; width:36px; opacity:0.9; transform:rotate(-8deg);" />
+        </div>
+        <div class="wall-info">
+          <span class="wall-name">Chiang Mai</span>
+          <span class="wall-count">8 items</span>
+        </div>
+        <button class="wall-dots" style="background:#F0F0F0;">⋮</button>
+        <!-- CardMenu（与现网完全一致） -->
+        <div class="float-menu" style="right:-150px; top:8px; z-index:200;">
+          <div class="menu-item">Rename</div>
+          <div class="menu-item">Duplicate</div>
+          <div class="menu-item hovered">Move to <span style="font-size:10px; color:#999;">▸</span></div>
+          <div class="menu-item">Export JSON</div>
+          <div class="menu-item">Share</div>
+          <div class="menu-item danger">Delete</div>
+        </div>
+      </div>
+
+      <!-- Bangkok -->
+      <div class="wall-card">
+        <div class="wall-preview">
+          <div class="mini-photo" style="left:14%; top:14%; width:74px; height:54px; transform:rotate(2deg);">
+            <img src="/demo-assets/bangkok-03.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-photo" style="left:56%; top:34%; width:60px; height:44px; transform:rotate(-2deg);">
+            <img src="/demo-assets/north-02-khao-soi.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+          <div class="mini-sticky" style="left:18%; top:70%; width:60px; height:28px; background:#FFB3BA; transform:rotate(-1deg);">rooftop bar 7pm</div>
+        </div>
+        <div class="wall-info">
+          <span class="wall-name">Bangkok</span>
+          <span class="wall-count">10 items</span>
+        </div>
+        <button class="wall-dots">⋮</button>
+      </div>
+
+      <!-- Food Log -->
+      <div class="wall-card">
+        <div class="wall-preview">
+          <div class="mini-sticky" style="left:12%; top:16%; width:66px; height:44px; background:#FFF3B0; transform:rotate(-2deg);">pad thai — Thip Samai<br/>★★★★☆</div>
+          <div class="mini-sticky" style="left:52%; top:26%; width:62px; height:40px; background:#FFD8B1; transform:rotate(1.5deg);">mango sticky rice ♡</div>
+          <div class="mini-photo" style="left:26%; top:62%; width:58px; height:34px; transform:rotate(2deg);">
+            <img src="/demo-assets/north-02-khao-soi.jpg" alt="" /><div class="mini-pin"></div>
+          </div>
+        </div>
+        <div class="wall-info">
+          <span class="wall-name">Food Log</span>
+          <span class="wall-count">6 items</span>
+        </div>
+        <button class="wall-dots">⋮</button>
+      </div>
+
+      <!-- Packing -->
+      <div class="wall-card">
+        <div class="wall-preview">
+          <div class="mini-sticky" style="left:14%; top:18%; width:64px; height:46px; background:#E8D5FF; transform:rotate(1.5deg);">☐ passport<br/>☐ sunscreen<br/>☑ camera</div>
+          <div class="mini-sticky" style="left:54%; top:40%; width:58px; height:34px; background:#BAFFC9; transform:rotate(-2deg);">sim card at airport</div>
+          <img src="/demo-assets/stamps/stamp-yellow-sunshine.png" alt="" style="position:absolute; right:10%; top:12%; width:34px; opacity:0.9; transform:rotate(5deg);" />
+        </div>
+        <div class="wall-info">
+          <span class="wall-name">Packing</span>
+          <span class="wall-count">4 items</span>
+        </div>
+        <button class="wall-dots">⋮</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

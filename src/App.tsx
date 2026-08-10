@@ -8,6 +8,7 @@ import { useRopeCreation } from './hooks/useRopeCreation';
 import { TopBar } from './components/chrome/TopBar';
 import { BottomToolbar } from './components/chrome/BottomToolbar';
 import { OverviewPage } from './components/overview/OverviewPage';
+import { SpaceDetailPage } from './components/overview/SpaceDetailPage';
 import { InfiniteCanvas } from './components/canvas/InfiniteCanvas';
 import type { InfiniteCanvasHandle } from './components/canvas/InfiniteCanvas';
 import { ZoomWidget } from './components/chrome/ZoomWidget';
@@ -36,6 +37,8 @@ import { setCurrentUserId } from './store/useOverviewStore';
 function App() {
   // Store selectors
   const viewMode = useUIStore((s) => s.viewMode);
+  // v0.8: 当前打开的 Space（L2）
+  const activeSpaceId = useUIStore((s) => s.activeSpaceId);
   const items = useWallStore((s) => s.items);
   const ropes = useWallStore((s) => s.ropes);
   const wallpaper = useWallStore((s) => s.wallpaper);
@@ -160,7 +163,7 @@ function App() {
         const hasPin =
           it && !it.parentId &&
           (it.type === 'picture' || (it.type === 'paper' && it.variant !== 'tape')
-           || it.type === 'md' || it.type === 'audio' || it.type === 'video');
+           || it.type === 'audio' || it.type === 'video');
         if (hasPin && itemId) {
           ropeCreation.handlePinClick(itemId);
         } else {
@@ -250,6 +253,18 @@ function App() {
     return (
       <>
         <LandingPage />
+        <ToastLayer />
+      </>
+    );
+  }
+
+  // v0.8: Space 详情页（L2）。从墙编辑器返回时若 activeSpaceId 仍在，回到所属 Space 而非主页
+  if (viewMode === 'space' || (viewMode === 'overview' && activeSpaceId)) {
+    return (
+      <>
+        <SpaceDetailPage />
+        <SharedWallBanner />
+        <UserPageOverlay />
         <ToastLayer />
       </>
     );

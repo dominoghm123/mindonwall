@@ -99,8 +99,8 @@ export interface WallSummary {
   thumbnail?: string;
 }
 
-/** 视图模式 */
-export type ViewMode = 'wall' | 'overview' | 'map';
+/** 视图模式（v0.8: 'space' = Space 详情页） */
+export type ViewMode = 'wall' | 'overview' | 'map' | 'space';
 
 /** Toast 消息 */
 export interface ToastMessage {

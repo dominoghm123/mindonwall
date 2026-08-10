@@ -40,6 +40,8 @@ export interface UIState {
   editMode: boolean;
   /** v0.6: 显示登录弹窗（从 TopBar AvatarMenu 触发，需在 App 层渲染以避开 TopBar transform） */
   showAuthModal: boolean;
+  /** v0.8: 当前打开的 Space 详情页 ID */
+  activeSpaceId: string | null;
 
   /** 选中单个物件 */
   selectItem: (id: string) => void;
@@ -91,6 +93,8 @@ export interface UIState {
   setEditMode: (mode: boolean) => void;
   /** v0.6: 打开/关闭登录弹窗 */
   setShowAuthModal: (show: boolean) => void;
+  /** v0.8: 设置当前打开的 Space */
+  setActiveSpace: (spaceId: string | null) => void;
 }
 
 let toastCounter = 0;
@@ -112,6 +116,7 @@ export const useUIStore = create<UIState>()(
       page: null,
       editMode: true,
       showAuthModal: false,
+      activeSpaceId: null,
 
       toggleEditMode: () => {
         const next = !get().editMode;
@@ -243,6 +248,10 @@ export const useUIStore = create<UIState>()(
 
       setShowAuthModal: (show: boolean) => {
         set({ showAuthModal: show });
+      },
+
+      setActiveSpace: (spaceId: string | null) => {
+        set({ activeSpaceId: spaceId });
       },
     }),
     {
